@@ -1,0 +1,22 @@
+services:
+  typescript-frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./Dockerfile
+    container_name: typescript-frontend
+    restart: unless-stopped
+    init: true
+    ports:
+      - "5173:5173"  # Expose SvelteKit preview server
+    # env_file: ./frontend/.env  # Uncomment if .env file exists
+    networks:
+      - appnet
+  # golang-backend: 
+    
+
+# No external services (databases, caches, etc.) were detected in the documentation or source tree.
+# No persistent volumes are required for the frontend service.
+
+networks:
+  appnet:
+    driver: bridge
