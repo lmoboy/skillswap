@@ -19,6 +19,7 @@ Getting Started
 # Prerequisites
 
     latest GoLang 
+    or a docker
 
 # Installation
 
