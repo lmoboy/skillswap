@@ -34,11 +34,11 @@ cd skillswap
 Install dependencies:
 ```Bash
 
-[command to install dependencies, e.g., npm install]
+./downloadDep.sh
 ```
 Run the application:
 ```Bash
-[command to run the app, e.g., npm start]
+./runServer.sh
 ```
 Usage
 
