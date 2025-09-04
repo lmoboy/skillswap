@@ -1,21 +1,39 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   let { children } = $props();
   import "../app.css";
-
   let darkMode = $state(false);
   let menuOpen = $state(false);
 
   function toggleDarkMode() {
     darkMode = !darkMode;
+
+    localStorage.setItem("darkMode", darkMode.toString());
   }
 
   function toggleMenu() {
     menuOpen = !menuOpen;
   }
+  // $effect(() => {
+  //   if (localStorage.getItem("darkMode") === "true") {
+  //     darkMode = true;
+  //   } else {
+  //     darkMode = false;
+  //   }
+  //   console.log("Dark mode is now:", darkMode);
+  // });
+  onMount(() => {
+    if (localStorage.getItem("darkMode") === "true") {
+      darkMode = true;
+    } else {
+      darkMode = false;
+    }
+    console.log("Dark mode is now:", darkMode);
+  });
 </script>
 
 <div
-  class="w-screen min-h-screen flex flex-col items-center justify-center transition-colors duration-300 relative overflow-hidden {darkMode
+  class="w-screen min-h-screen flex flex-col items-center justify-center duration-300 relative overflow-hidden {darkMode
     ? 'dark bg-gray-900 text-white'
     : 'bg-gray-100 text-gray-900'}"
 >
@@ -54,7 +72,9 @@
         <ul class="space-y-4">
           <li><a href="/" class="text-lg hover:text-blue-500">Home</a></li>
           <li>
-            <a href="/about" class="text-lg hover:text-blue-500">About</a>
+            <a href="/video" class="text-lg hover:text-blue-500"
+              >Live feed test</a
+            >
           </li>
           <li>
             <a href="/contact" class="text-lg hover:text-blue-500">Contact</a>
