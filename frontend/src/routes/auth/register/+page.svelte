@@ -7,7 +7,7 @@
 
     const handleSubmit = async () => {
         error = "";
-        // Dummy login logic
+        // Dummy register logic
         if (email && password && passwordr && username) {
             if (username.length > 50) {
                 error = "Username cannot be longer than 50 characters!";
@@ -50,7 +50,7 @@
 </script>
 
 <div class="login-container">
-    <h2>Login</h2>
+    <h2>Sign up</h2>
     {#if error}
         <div class="error">{error}</div>
     {/if}
@@ -70,41 +70,3 @@
         <a href="/auth/login">Already have an account?</a>
     </form>
 </div>
-
-<style>
-    .login-container {
-        max-width: 350px;
-        margin: 2rem auto;
-        padding: 2rem;
-        border: 1px solid #eee;
-        border-radius: 8px;
-        background: #fafafa;
-    }
-    label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-    input {
-        width: 100%;
-        padding: 0.5rem;
-        margin-bottom: 1rem;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-    }
-    button {
-        width: 100%;
-        padding: 0.7rem;
-        background: #0070f3;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .error {
-        color: #d00;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-</style>

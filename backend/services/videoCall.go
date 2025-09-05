@@ -1,4 +1,4 @@
-package GoBackend
+package onlineChat
 
 import (
 	"fmt"

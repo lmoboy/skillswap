@@ -1,4 +1,4 @@
-package main
+package onlineChat
 
 import (
 	"crypto/md5"
@@ -9,10 +9,8 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/rs/cors"
 	// "net/http"
 )
 
@@ -156,41 +154,22 @@ func login(w http.ResponseWriter, req *http.Request) {
 	// fmt.Fprintln(w, "Login successful. Session set.")
 }
 
-func main() {
-	server := mux.NewRouter().StrictSlash(true)
-	server.HandleFunc("/api/login", login)
-	server.HandleFunc("/api/register", register)
-	server.HandleFunc("/api/checks", func(w http.ResponseWriter, req *http.Request) {
-		session, err := store.Get(req, "authentication")
-		if err != nil {
-			http.Error(w, "no session found", http.StatusInternalServerError)
-		}
-
-		auth, ok := session.Values["Authenticated"].(bool)
-		if !ok || !auth {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "User is authenticated")
-	}).Methods("GET")
-
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowCredentials: true,
-	})
-
-	server.Use(c.Handler)
-
-	http.Handle("/", server)
-	serve := &http.Server{
-		Handler: server,
-		Addr:    "localhost:8080",
-
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+func checkValidAuth(w http.ResponseWriter, req *http.Request) {
+	session, err := store.Get(req, "authentication")
+	if err != nil {
+		http.Error(w, "no session found", http.StatusInternalServerError)
 	}
-	serve.ListenAndServe()
+
+	auth, ok := session.Values["Authenticated"].(bool)
+	if !ok || !auth {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "User is authenticated")
+}
+
+func main() {
 
 }

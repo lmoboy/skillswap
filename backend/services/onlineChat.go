@@ -1,4 +1,4 @@
-package GoBackend
+package onlineChat
 
 import (
 	"fmt"
@@ -94,7 +94,7 @@ func wsEndpoint(w http.ResponseWriter, req *http.Request, hub *Hub) {
 // 	fmt.Fprintf(w, "pong\n")
 // }
 
-func setupWebChat() {
+func runwebsocket() {
 	// Create new hub to fill up and run it
 	hub := newHub()
 	go hub.run()

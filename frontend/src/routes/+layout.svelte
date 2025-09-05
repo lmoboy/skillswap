@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
   import { onMount } from "svelte";
   let { children } = $props();
   import "../app.css";
@@ -33,7 +33,7 @@
 </script>
 
 <div
-  class="w-screen min-h-screen flex flex-col items-center justify-center duration-300 relative overflow-hidden {darkMode
+  class="w-full min-h-screen flex flex-col items-center justify-center duration-300 relative overflow-hidden {darkMode
     ? 'dark bg-gray-900 text-white'
     : 'bg-gray-100 text-gray-900'}"
 >
@@ -83,4 +83,26 @@
       </nav>
     </div>
   </div>
+</div> -->
+
+<script lang="ts">
+  import Header from "$lib/Header.svelte";
+  import Footer from "$lib/Footer.svelte";
+  import { isAuthenticated } from "$lib/authManager";
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    if (!isAuthenticated()) {
+      window.location.href = "/auth/login";
+    }
+  });
+  import "../app.css";
+</script>
+
+<div class="flex flex-col min-h-screen">
+  <Header />
+  <main class="flex-grow">
+    <slot />
+  </main>
+  <Footer />
 </div>
