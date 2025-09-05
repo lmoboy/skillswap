@@ -3,7 +3,7 @@
 </script>
 
 <div
-    class="flex p-4 rounded-xl shadow-lg w-fit transition-all duration-300
+    class="flex p-4 rounded-xl shadow-lg w-full transition-all duration-300
          {isCurrentUser
         ? 'self-end bg-blue-600 text-white'
         : 'self-start bg-gray-700 text-gray-200'}"

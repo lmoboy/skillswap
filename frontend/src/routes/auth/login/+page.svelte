@@ -1,4 +1,8 @@
 <script>
+
+
+
+
     let email = "";
     let password = "";
     let error = "";
@@ -23,6 +27,13 @@
                 },
                 body: JSON.stringify({ email, password }),
                 credentials: "include",
+            }).then((response) => {
+                if (response.ok) {
+                    // Redirect to home page or dashboard
+                    window.location.href = "/";
+                } else {
+                    error = "Invalid email or password";
+                }
             });
         } else {
             error = "Invalid email or password";
