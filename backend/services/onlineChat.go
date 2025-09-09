@@ -101,6 +101,4 @@ func runwebsocket() {
 	http.HandleFunc("/chat", func(w http.ResponseWriter, req *http.Request) {
 		wsEndpoint(w, req, hub)
 	})
-	fmt.Println("Server is up and running on http://localhost:8080")
-	http.ListenAndServe(":8080", nil)
 }
