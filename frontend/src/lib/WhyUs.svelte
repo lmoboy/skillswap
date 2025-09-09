@@ -3,45 +3,55 @@
 </script>
 
 <section
-    class="w-full min-h-screen flex justify-center items-center gap-12 p-16 bg-black relative"
+    class="w-full min-h-screen flex justify-center items-center bg-transparent gap-12 p-16 relative"
 >
-    <div
-        class="absolute bottom-[80%] left-[20%] bg-white/20 rounded-md rotate-[26deg] w-26 h-20 p-5 flex"
-    ></div>
-    <div
-        class="absolute bottom-[30%] left-[50%] bg-white/20 rounded-md rotate-8 w-fit h-fit p-5 flex"
-    ></div>
-    <div
-        class="absolute bottom-[60%] left-[70%] bg-white/20 rounded-md rotate-[56deg] w-20 h-8 flex"
-    ></div>
+    <div class="flex gap-12 flex-wrap justify-center items-center w-full">
+        <div
+            class="relative backdrop-blur-lg bg-white/10 border border-indigo-400/30 rounded-2xl shadow-2xl shadow-indigo-900/30 hover:scale-105 transition-all duration-300 overflow-hidden p-8 w-72 h-80 flex flex-col justify-center items-center group"
+        >
+            <div class="flex items-center justify-center mb-4">
+                <Film
+                    class="w-12 h-12 stroke-indigo-400 group-hover:stroke-indigo-300 drop-shadow-[0_0_8px_rgba(99,102,241,0.7)] transition"
+                />
+            </div>
+            <p
+                class="mt-2 text-base font-semibold text-gray-200 text-center drop-shadow-sm"
+            >
+                Watch videos on the subject that interests you at any time made
+                by people from elite universities.
+            </p>
+        </div>
 
-    <div
-        class="relative hover:scale-105 transition-all duration-300 overflow-hidden border border-gray-700 rounded-xl bg-white/10 p-8 w-64 h-64 flex flex-col justify-center items-center shadow-lg"
-    >
-        <Film class="w-10 h-10 stroke-white" />
-        <p class="mt-4 text-base font-normal text-gray-300 text-center">
-            Watch videos on the subject that interests you at any time made by
-            people from elite universities.
-        </p>
-    </div>
+        <div
+            class="relative backdrop-blur-lg bg-white/10 border border-pink-400/30 rounded-2xl shadow-2xl shadow-pink-900/30 hover:scale-105 transition-all duration-300 overflow-hidden p-8 w-72 h-80 flex flex-col justify-center items-center group"
+        >
+            <div class="flex items-center justify-center mb-4">
+                <ShieldCheck
+                    class="w-12 h-12 stroke-pink-300 group-hover:stroke-pink-200 drop-shadow-[0_0_8px_rgba(236,72,153,0.7)] transition"
+                />
+            </div>
+            <p
+                class="mt-2 text-base font-semibold text-gray-200 text-center drop-shadow-sm"
+            >
+                Receive valid certifications upon exchanging skills with
+                verified users*.
+            </p>
+        </div>
 
-    <div
-        class="hover:scale-105 relative transition-all duration-300 overflow-hidden border border-gray-700 rounded-xl bg-white/10 p-8 w-64 h-64 flex flex-col justify-center items-center shadow-lg"
-    >
-        <!-- <GraduationCap  /> -->
-        <ShieldCheck class="w-10 h-10 stroke-white" />
-        <p class="mt-4 text-base font-normal text-gray-300 text-center">
-            Receive valid certifications upon exchanging skills with verified
-            users*.
-        </p>
-    </div>
-
-    <div
-        class="hover:scale-105 relative transition-all duration-300 overflow-hidden border border-gray-700 rounded-xl bg-white/10 p-8 w-64 h-64 flex flex-col justify-center items-center shadow-lg"
-    >
-        <Headset class="w-10 h-10 stroke-white" />
-        <p class="mt-4 text-base font-normal text-gray-300 text-center">
-            Watching videos can be boring, call the exchangee* instead! We support 1080p 60fps video calls with sound!
-        </p>
+        <div
+            class="relative backdrop-blur-lg bg-white/10 border border-cyan-400/30 rounded-2xl shadow-2xl shadow-cyan-900/30 hover:scale-105 transition-all duration-300 overflow-hidden p-8 w-72 h-80 flex flex-col justify-center items-center group"
+        >
+            <div class="flex items-center justify-center mb-4">
+                <Headset
+                    class="w-12 h-12 stroke-cyan-300 group-hover:stroke-cyan-200 drop-shadow-[0_0_8px_rgba(6,182,212,0.7)] transition"
+                />
+            </div>
+            <p
+                class="mt-2 text-base font-semibold text-gray-200 text-center drop-shadow-sm"
+            >
+                Watching videos can be boring, call the swapper instead! We
+                support 1080p 60fps* video calls with sound!
+            </p>
+        </div>
     </div>
 </section>

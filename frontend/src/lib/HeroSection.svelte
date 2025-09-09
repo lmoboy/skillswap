@@ -1,9 +1,9 @@
 <section
-    class="relative w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-black"
+    class="relative w-full min-h-screen flex items-center justify-center bg-transparent"
 >
     <div
         class="absolute
-        flex inset-0 bg-black bg-opacity-60
+        flex inset-0
          overflow-clip
         whitespace-nowrap"
     >
@@ -62,5 +62,3 @@
         <p class="text-xl text-gray-200">Connect. Learn. Grow.</p>
     </div>
 </section>
-
-
