@@ -1,5 +1,6 @@
 <script>
     var input = $state("");
+    let newMessage = $state("");
     var room = $state("EU");
     var messages = $state([{ Name: "", Message: "", isCurrentUser: false }]);
     var name = $state("");
@@ -15,25 +16,37 @@
         console.log("Socket is open");
     };
 
-    socket.onmessage = (e) => {
-        messages.push(JSON.parse(e.data));
+    socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log(event.data);
+        console.log(message.name);
+        messages.push({
+            Name: message.name,
+            Message: message.message,
+            isCurrentUser: message.name === name,
+        });
+        console.log(messages);
     };
 
-    socket.onclose = () => {
-        console.log("Socket is closed");
-    };
-
-    let newMessage = $state("");
-    function sendMessage() {
-        if (newMessage.trim() !== "") {
-            socket.send(JSON.stringify({ Name: name, Message: newMessage }));
-            newMessage = "";
+    socket.onclose = (event) => {
+        console.log("Connection closed:", event.code, event.reason);
+        if (event.code === 1001) {
+            setTimeout(() => {
+                socket = new WebSocket("ws://localhost:8080/chat");
+            }, 1000);
         }
+    };
+
+    socket.onerror = (event) => {
+        console.log("Socket closed: ", event);
+    };
+
+    function sendMessage() {
+        socket.send(JSON.stringify({ Name: name, Message: newMessage }));
+        newMessage = "";
     }
 </script>
 
-<div>WELCOME TO THE ROOM {room}</div>
-<input type="text" name="" id="" bind:value={input} />
 
 <div
     class="flex flex-col h-[70vh] w-3xl max-w-lg mx-auto bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"
@@ -42,17 +55,16 @@
         class="flex-shrink-0 p-4 bg-gray-900 text-white font-semibold text-lg border-b border-gray-700"
     >
         <input type="text" placeholder="name:" bind:value={name} />
+        <input type="text" placeholder="room:" bind:value={room} />
     </div>
 
     <div class="flex-1 p-4 overflow-y-auto w-full space-y-4">
         {#each messages as message}
-            {#if message.Message.trim() !== ""}
-                <Message
-                    user={message.Name}
-                    message={message.Message}
-                    isCurrentUser={message.isCurrentUser}
-                />
-            {/if}
+            <Message
+                user={message.Name}
+                message={message.Message}
+                isCurrentUser={message.isCurrentUser}
+            />
         {/each}
     </div>
 

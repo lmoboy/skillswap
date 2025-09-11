@@ -1,4 +1,4 @@
-package onlineChat
+package main
 
 import (
 	"crypto/md5"
@@ -43,6 +43,24 @@ func applySession(w http.ResponseWriter, req *http.Request, user *Info) {
 	session.ID = fmt.Sprintf("%x", md5.Sum([]byte(user.Email+time.Now().String()+string(securecookie.GenerateRandomKey(16)))))
 	session.Values["Authenticated"] = true
 
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare("INSERT INTO sessions (user_id, session_token, expires_at) VALUES ((SELECT id FROM users WHERE email = ?), ?, DATE_ADD(NOW(), INTERVAL 1 MONTH)) ON DUPLICATE KEY UPDATE expires_at = DATE_ADD(NOW(), INTERVAL 1 MONTH)")
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	_, err = stmt.Exec(user.Email, session.ID)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if err := session.Save(req, w); err != nil {
 		http.Error(w, "Failed to save session", http.StatusInternalServerError)
 		return
@@ -62,47 +80,33 @@ func register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	passwordHash := fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password)))
-	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
-	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-	defer db.Close()
+	// db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
+	// if err != nil {
+	// 	http.Error(w, "Internal server error", http.StatusInternalServerError)
+	// 	return
+	// }
+	// defer db.Close()
 
-	stmt, err := db.Prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)")
-	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(userInfo.Username, userInfo.Email, passwordHash)
-	if err != nil {
+	// stmt, err := db.Prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)")
+	// if err != nil {
+	// 	http.Error(w, "Internal server error", http.StatusInternalServerError)
+	// 	return
+	// }
+	// defer stmt.Close()
+	if addValues("users", []string{"username", "email", "password_hash"}, [][]string{{userInfo.Username, userInfo.Email, passwordHash}}) != nil {
 		http.Error(w, "Username or email already exists", http.StatusConflict)
 		return
 	}
 
-	// Call the helper function to set the session
+	// _, err = stmt.Exec(userInfo.Username, userInfo.Email, passwordHash)
+	// if err != nil {
+	// 	http.Error(w, "Username or email already exists", http.StatusConflict)
+	// 	return
+	// }
+
 	applySession(w, req, &userInfo)
 
-	// session, err := store.Get(req, "fuckasssession")
-	// if err != nil {
-	// 	http.Error(w, "Failed to get session", http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// session.Values["token"] = "session.id"
-	// session.Values["Authenticated"] = true
-	// session.Values["username"] = userInfo.Username
-	// session.Values["email"] = userInfo.Email
-
-	// if err := session.Save(req, w); err != nil {
-	// 	http.Error(w, "Failed to save session", http.StatusInternalServerError)
-	// 	return
-	// }
-
 	w.WriteHeader(http.StatusCreated)
-	// fmt.Fprintln(w, "Registration successful. Session set.")
 }
 
 // ++++++++++++++ Login Handler ++++++++++++++
@@ -114,14 +118,12 @@ func login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Use prepared statements for safe querying
 	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 	defer db.Close()
-	// fmt.Println(userInfo)
 	row := db.QueryRow("SELECT username, email FROM users WHERE email = ? AND password_hash = ?", userInfo.Email, fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password))))
 
 	var storedUsername, storedEmail string
@@ -134,42 +136,44 @@ func login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	applySession(w, req, &Info{Username: storedUsername, Email: storedEmail})
-	// session, err := store.Get(req, "fuckasssession")
-	// if err != nil {
-	// 	http.Error(w, "Failed to get session", http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// session.Values["token"] = "session.id"
-	// session.Values["Authenticated"] = true
-	// session.Values["username"] = userInfo.Username
-	// session.Values["email"] = userInfo.Email
-
-	// if err := session.Save(req, w); err != nil {
-	// 	http.Error(w, "Failed to save session", http.StatusInternalServerError)
-	// 	return
-	// }
 
 	w.WriteHeader(http.StatusOK)
-	// fmt.Fprintln(w, "Login successful. Session set.")
 }
 
-func checkValidAuth(w http.ResponseWriter, req *http.Request) {
-	session, err := store.Get(req, "authentication")
-	if err != nil {
-		http.Error(w, "no session found", http.StatusInternalServerError)
-	}
+func getCookieUser(w http.ResponseWriter, req *http.Request) {
 
-	auth, ok := session.Values["Authenticated"].(bool)
-	if !ok || !auth {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	cookie, err := req.Cookie("authentication")
+	if err != nil {
+		fmt.Println("Error getting cookie:", err)
 		return
 	}
+	if cookie.Value == "" {
+		fmt.Println("Cookie value is empty")
+		return
+	}
+	// cookieValue := cookie.Value
+	var session *sessions.Session
+	if cookie.Value != "" {
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "User is authenticated")
-}
+		session, err = store.Get(req, "authentication")
+		if err != nil {
+			fmt.Println("Error getting session:", err)
+			return
+		}
 
-func main() {
+		auth, ok := session.Values["Authenticated"].(bool)
+		if !ok || !auth {
+			fmt.Println("Unauthorized")
+			return
+		}
 
+		user, err := findValues("users", []string{"username", "email"}, map[string]string{"email": session.Values["email"].(string)})
+		if err != nil {
+			fmt.Println("Internal server error:", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(user[0])
+	}
 }
