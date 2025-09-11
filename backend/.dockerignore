@@ -1,0 +1,52 @@
+# Go-specific ignores
+/vendor/
+*.test
+.go-cache/
+
+# Development artifacts
+.idea/
+.vscode/
+*.swp
+*.swo
+dist/
+build/
+out/
+test/
+tests/
+*_test.go
+debug/
+*.log
+
+# Version control
+.git/
+.gitignore
+.svn/
+.hg/
+
+# Environment and secrets
+.env*
+*.env
+*.pem
+*.key
+*.crt
+config.local.*
+*.local.yml
+
+# Project-specific patterns
+docs/
+*.md
+README*
+Dockerfile*
+docker-compose*
+tmp/
+temp/
+*.tmp
+.local/
+local/
+
+# Ignore SQL files if not needed in container
+*.sql
+
+# Ignore files without extension if not needed
+# (Uncomment if you want to ignore files with no extension)
+# *.

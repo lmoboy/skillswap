@@ -14,7 +14,10 @@ func main() {
 	server.HandleFunc("/api/login", login).Methods("POST")
 	server.HandleFunc("/api/register", register).Methods("POST")
 	server.HandleFunc("/api/cookieUser", getCookieUser).Methods("GET")
-
+	server.HandleFunc("/api/isEmailUsed", isEmailUsed).Methods("POST")
+	server.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		sendJSONResponse(w, http.StatusOK, map[string]string{"status": "pong"})
+	}).Methods("GET")
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
 		AllowCredentials: true,

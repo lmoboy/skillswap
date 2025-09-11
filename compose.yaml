@@ -7,12 +7,21 @@ services:
     restart: unless-stopped
     init: true
     ports:
-      - "5173:5173"  # Expose SvelteKit preview server
+      - "5173:5173" # Expose SvelteKit preview server
     # env_file: ./frontend/.env  # Uncomment if .env file exists
     networks:
       - appnet
-  # golang-backend: 
-    
+  golang-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: golang-backend
+    restart: unless-stopped
+    init: true
+    ports:
+      - "8080:8080"
+    networks:
+      - appnet
 
 # No external services (databases, caches, etc.) were detected in the documentation or source tree.
 # No persistent volumes are required for the frontend service.
