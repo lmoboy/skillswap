@@ -1,4 +1,4 @@
-package onlineChat
+package main
 
 import (
 	"fmt"

@@ -10,12 +10,10 @@ import (
 
 func main() {
 	server := mux.NewRouter().StrictSlash(true)
-
-	// server.HandleFunc("/api/login", services.login)
-	// server.HandleFunc("/api/register", services.register)
-	server.HandleFunc("/api/checks", func(w http.ResponseWriter, req *http.Request) {
-
-	}).Methods("GET")
+	server.HandleFunc("/chat", RunWebsocket)
+	server.HandleFunc("/api/login", login).Methods("POST")
+	server.HandleFunc("/api/register", register).Methods("POST")
+	server.HandleFunc("/api/cookieUser", getCookieUser).Methods("GET")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
