@@ -1,38 +1,50 @@
 # syntax=docker/dockerfile:1
 
-# --- Build Stage ---
-ARG NODE_VERSION=22.13.1
-FROM node:${NODE_VERSION}-slim AS builder
+ARG GO_VERSION=1.25.0
+FROM golang:${GO_VERSION}-alpine AS builder
+
+# Install git for go get if needed, and ca-certificates for HTTPS
+RUN apk add --no-cache git ca-certificates
+
 WORKDIR /app
 
-# Install dependencies (using cache for npm)
-COPY --link package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+# Copy go.mod and go.sum first for dependency caching
+COPY --link go.mod go.mod
+COPY --link go.sum go.sum
 
-# Copy source files (excluding .git, .env, lock files, etc.)
+# Download dependencies (with cache mounts for speed)
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
+
+# Copy the rest of the source code
 COPY --link . .
 
-# Build the app
-RUN npm run build
+# Build the Go binary (static build)
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o app
 
-# --- Production Stage ---
-FROM node:${NODE_VERSION}-slim AS final
+# --- Final minimal image ---
+FROM alpine:latest AS final
+
+# Create a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
+# Copy CA certificates for HTTPS
+RUN apk add --no-cache ca-certificates
 
-# Copy built app and production deps only
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.svelte-kit ./build
-# COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/static ./static
+# Copy the built binary from builder
+COPY --from=builder /app/app /app/app
+# COPY --from=builder /app/bac.sql /app/bac.sql
 
-ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Use non-root user
 USER appuser
 
-EXPOSE 5173
-CMD ["npm", "run", "preview", "--", "--port", "5173", "--host"]
+# Expose the port (as per main.go:8080)
+EXPOSE 8080
+
+# Set entrypoint
+ENTRYPOINT ["/app/app"]

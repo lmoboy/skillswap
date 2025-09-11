@@ -23,17 +23,15 @@ WORKDIR /app
 # Create non-root user
 RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
 
-# # Copy built app and production deps only
+# Copy built app and production deps only
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.svelte-kit ./build
+
+# COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/static ./static
-RUN mkdir ./dist
-# # CMD ["ls", "-la"]
-# # COPY --from=builder /app/dist ./dist
 
 ENV NODE_ENV=production
-
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 USER appuser
 

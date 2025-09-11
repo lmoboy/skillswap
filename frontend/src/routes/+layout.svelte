@@ -88,26 +88,22 @@
 <script lang="ts">
   import Header from "$lib/Header.svelte";
   import Footer from "$lib/Footer.svelte";
-  import AuthManager from "$lib/authManager";
-  // import { onMount } from "svelte";
+  import "../app.css";
+  import { onMount } from "svelte";
+  export let data;
+  // import AuthManager from "$lib/authManager";
   onMount(() => {
-    const auth = new AuthManager();
-    console.log(auth.getUserInfo());
-    let authed = null;
-    cookieStore.get("authentication").then((res) => {
-      authed = res;
-      if (authed == null) {
-        window.location.href = "/auth/login";
-      }
-    });
+    console.log(data);
+    fetch("http://localhost:8080/ping")
+      .then((response) => response.json())
+      .then((data) => console.log(data.status));
+    // console.log(new AuthManager().getUserInfo());
   });
   // onMount(() => {
   //   if (!isAuthenticated()) {
   //     window.location.href = "/auth/login";
   //   }
   // });
-  import "../app.css";
-  import { onMount } from "svelte";
 </script>
 
 <div class="flex flex-col min-h-screen relative">

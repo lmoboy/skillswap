@@ -1,5 +1,9 @@
 <script lang="ts">
     import { Search } from "lucide-svelte";
+    import { onMount } from "svelte";
+    // import AuthManager from "./authManager";
+    // let user = $state(new AuthManager().getUserInfo());
+
     let hover = false;
     let inputRef: HTMLInputElement;
     function handleSearch(): any {
@@ -36,11 +40,19 @@
             />
         </button>
         <nav class="flex gap-8">
-            <a
-                href="/profile"
-                class="text-gray-200 hover:text-white font-semibold transition"
-                >Profile</a
-            >
+            <!-- {#if !user.name || !user.email}
+                <a
+                    href="/auth/login"
+                    class="text-gray-200 hover:text-white font-semibold transition"
+                    >New here?</a
+                >
+            {:else}
+                <a
+                    href="/profile"
+                    class="text-gray-200 hover:text-white font-semibold transition"
+                    >{Auth.getUserInfo().name}</a
+                >
+            {/if} -->
         </nav>
     </div>
 </header>

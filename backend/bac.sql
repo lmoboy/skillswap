@@ -1,9 +1,11 @@
+DROP DATABASE IF EXISTS skillswap;
 CREATE DATABASE IF NOT EXISTS skillswap;
 USE skillswap;
 
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
+	user_id VARCHAR(32) UNIQUE,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
@@ -40,8 +42,8 @@ CREATE TABLE IF NOT EXISTS messages (
     sender_id INT,
     content TEXT NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY chat_id REFERENCES chats(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 
@@ -57,10 +59,10 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 
 
-INSERT INTO users (username, email, password_hash) VALUES
-('testuser', 'test@email.com', 'hashedpassword'),
-('alice', 'alice@email.com', 'hashedpassword2'),
-('bob', 'bob@email.com', 'hashedpassword3');
+INSERT INTO users (user_id, username, email, password_hash) VALUES
+("abcd1234efgh5678abcd1234efgh5678",'testuser', 'test@email.com', 'hashedpassword'),
+("bbcd1234efgh5678abcd1234efgh5678",'alice', 'alice@email.com', 'hashedpassword2'),
+("cbcd1234efgh5678abcd1234efgh5678",'bob', 'bob@email.com', 'hashedpassword3');
 
 INSERT INTO skills (name, description) VALUES
 ('Python', 'Programming language for general-purpose development'),
