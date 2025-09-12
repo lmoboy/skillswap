@@ -38,6 +38,7 @@ func sendJSONResponse(w http.ResponseWriter, statusCode int, payload interface{}
 	json.NewEncoder(w).Encode(payload)
 }
 
+// +++++++++++++++++ Helper function for applying sessions +++++++++++++++++
 func applySession(w http.ResponseWriter, req *http.Request, user *Info) {
 	session, err := store.Get(req, "authentication")
 
@@ -107,10 +108,10 @@ func register(w http.ResponseWriter, req *http.Request) {
 	defer stmt.Close()
 
 	id := fmt.Sprintf("%s%s%s", strings.ToUpper(strings.Replace(uuid.New().String(), "-", "", -1)), strings.ToLower(strings.Replace(uuid.New().String(), "-", "", -1)), strings.Replace(uuid.New().String(), "-", "", -1))
-
+	fmt.Println(userInfo)
 	_, err = stmt.Exec(id, userInfo.Username, userInfo.Email, passwordHash)
 	if err != nil {
-		sendJSONResponse(w, http.StatusConflict, map[string]string{"error": "Username or email already exists"})
+		sendJSONResponse(w, http.StatusConflict, map[string]string{"error": "Username or email already exists", "message": err.Error()})
 		return
 	}
 
@@ -119,8 +120,6 @@ func register(w http.ResponseWriter, req *http.Request) {
 	sendJSONResponse(w, http.StatusCreated, map[string]string{"status": "ok", "message": "Registration successful"})
 }
 
-// ++++++++++++++ Login Handler ++++++++++++++
-
 func isEmailUsed(w http.ResponseWriter, req *http.Request) {
 	var userInfo Info
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
@@ -128,6 +127,7 @@ func isEmailUsed(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	rows, err := findValues("users", []string{"email"}, map[string]string{"email": userInfo.Email})
+	fmt.Println(rows)
 	if err != nil {
 		sendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Internal server error: ERR-0010"})
 		return
@@ -160,7 +160,7 @@ func isUsernameUsed(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-
+// ++++++++++++++ Login Handler ++++++++++++++
 func login(w http.ResponseWriter, req *http.Request) {
 	var userInfo Info
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
@@ -193,15 +193,6 @@ func login(w http.ResponseWriter, req *http.Request) {
 }
 
 func getCookieUser(w http.ResponseWriter, req *http.Request) {
-	_, err := req.Cookie("authentication")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: No cookie found"})
-			return
-		}
-		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Error reading cookie"})
-		return
-	}
 
 	session, err := store.Get(req, "authentication")
 	if err != nil {
@@ -220,7 +211,15 @@ func getCookieUser(w http.ResponseWriter, req *http.Request) {
 		sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session: Missing email"})
 		return
 	}
-
+	_, err = req.Cookie("authentication")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: No cookie found"})
+			return
+		}
+		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Error reading cookie"})
+		return
+	}
 	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
 	if err != nil {
 		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error: Database connection failed"})
@@ -240,4 +239,35 @@ func getCookieUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	sendJSONResponse(w, http.StatusOK, UserData{Username: username, Email: email})
+}
+
+func logout(w http.ResponseWriter, req *http.Request) {
+	session, err := store.Get(req, "authentication")
+	if err != nil {
+		sendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid request: No session found"})
+		return
+	}
+
+	session.Options.MaxAge = -1
+	err = session.Save(req, w)
+	if err != nil {
+		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error: Session save failed"})
+		return
+	}
+
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
+	if err != nil {
+		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error: Database connection failed"})
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("DELETE FROM sessions WHERE session_token = ?", session.ID)
+	if err != nil {
+		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error: Session deletion failed"})
+		return
+	}
+
+	sendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Logout successful"})
+
 }

@@ -4,10 +4,11 @@
     import { quintOut } from "svelte/easing";
     import { slide } from "svelte/transition";
 
-    let name = "John Doe";
-    let email = "johndoe@example.com";
-    let preferences = "Notifications: daily digest, email newsletters.";
-    let password = "";
+    let data = $props();
+    let name = $state(data.name);
+    let email = $state(data.email);
+    let preferences = $state("Notifications: daily digest, email newsletters.");
+    let password = $state("");
     let preview = "https://randomuser.me/api/portraits/men/33.jpg"; // Default profile picture
     let is2FAEnabled = $state(false);
 

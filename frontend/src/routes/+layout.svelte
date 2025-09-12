@@ -86,39 +86,28 @@
 </div> -->
 
 <script lang="ts">
+  // Import components
   import Header from "$lib/Header.svelte";
   import Footer from "$lib/Footer.svelte";
+  // import AuthDebug from "$lib/components/AuthDebug.svelte";
+
+  // Import styles
   import "../app.css";
+
+  // Import Svelte utilities
   import { onMount } from "svelte";
-  export let data;
-  // import AuthManager from "$lib/authManager";
-  onMount(() => {
-    console.log(data);
-    fetch("http://localhost:8080/ping")
-      .then((response) => response.json())
-      .then((data) => console.log(data.status));
-    // console.log(new AuthManager().getUserInfo());
+
+  // Import auth utilities
+  import { checkAuth } from "$lib/api/auth";
+
+  onMount(async () => {
+    await checkAuth();
   });
-  // onMount(() => {
-  //   if (!isAuthenticated()) {
-  //     window.location.href = "/auth/login";
-  //   }
-  // });
 </script>
 
 <div class="flex flex-col min-h-screen relative">
-  <!-- Background covers the whole viewport -->
-  <div
-    class="fixed inset-0 -z-10 h-full w-full bg-black"
-    style="pointer-events: none;"
-  >
-    <div
-      class="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"
-    ></div>
-    <div
-      class="absolute left-1/2 top-[-10%] -translate-x-1/2 h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_400px_at_50%_300px,#fbfbfb36,#000)]"
-    ></div>
-  </div>
+  <!-- <AuthDebug /> -->
+
   <Header />
   <main class="flex-grow">
     <slot />
