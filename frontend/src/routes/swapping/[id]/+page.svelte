@@ -4,8 +4,9 @@
     var room = $state("EU");
     var messages = $state([{ Name: "", Message: "", isCurrentUser: false }]);
     var name = $state("");
+    import { page } from "$app/state";
+    import Message from "../../../components/messages/+message.svelte";
 
-    import Message from "../../components/messages/+message.svelte";
     $effect(() => {
         console.log(input);
     });
@@ -46,7 +47,6 @@
         newMessage = "";
     }
 </script>
-
 
 <div
     class="flex flex-col h-[70vh] w-3xl max-w-lg mx-auto bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"

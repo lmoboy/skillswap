@@ -1,57 +1,104 @@
 <script>
-    import { Film, Headset, ShieldCheck } from "lucide-svelte";
+    import { RefreshCw, Users, Video, Clock, TrendingUp, BookOpen } from "lucide-svelte";
 </script>
 
-<section
-    class="w-full min-h-screen flex justify-center items-center bg-transparent gap-12 p-16 relative"
->
-    <div class="flex gap-12 flex-wrap justify-center items-center w-full">
-        <div
-            class="relative backdrop-blur-lg bg-white/10 border border-indigo-400/30 rounded-2xl shadow-2xl shadow-indigo-900/30 hover:scale-105 transition-all duration-300 overflow-hidden p-8 w-72 h-80 flex flex-col justify-center items-center group"
-        >
-            <div class="flex items-center justify-center mb-4">
-                <Film
-                    class="w-12 h-12 stroke-indigo-400 group-hover:stroke-indigo-300 drop-shadow-[0_0_8px_rgba(99,102,241,0.7)] transition"
-                />
-            </div>
-            <p
-                class="mt-2 text-base font-semibold text-gray-200 text-center drop-shadow-sm"
-            >
-                Watch videos on the subject that interests you at any time made
-                by people from elite universities.
+<section id="how-it-works" class="w-full py-20 bg-gray-50">
+    <div class="container mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                How <span class="text-gray-600">It Works</span>
+            </h2>
+            <p class="text-gray-600">
+                Our unique fair exchange system ensures a balanced community where everyone contributes and benefits
             </p>
         </div>
-
-        <div
-            class="relative backdrop-blur-lg bg-white/10 border border-pink-400/30 rounded-2xl shadow-2xl shadow-pink-900/30 hover:scale-105 transition-all duration-300 overflow-hidden p-8 w-72 h-80 flex flex-col justify-center items-center group"
-        >
-            <div class="flex items-center justify-center mb-4">
-                <ShieldCheck
-                    class="w-12 h-12 stroke-pink-300 group-hover:stroke-pink-200 drop-shadow-[0_0_8px_rgba(236,72,153,0.7)] transition"
-                />
+        
+        <div class="mb-16">
+            <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">Our Fair Exchange System</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="bg-white p-8 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center mb-6">
+                        <Users class="w-6 h-6 text-gray-600" />
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Request 3 Swaps</h3>
+                    <p class="text-gray-600 text-sm">Find and request up to 3 skill swaps with other members based on your learning goals and expertise.</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center mb-6">
+                        <RefreshCw class="w-6 h-6 text-gray-600" />
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Give Back to the Community</h3>
+                    <p class="text-gray-600 text-sm">After 3 received swaps, you'll be prompted to give back by teaching a skill to another community member.</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center mb-6">
+                        <TrendingUp class="w-6 h-6 text-gray-600" />
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Maintain Balance</h3>
+                    <p class="text-gray-600 text-sm">This 3:1 ratio ensures a sustainable ecosystem where everyone contributes and benefits equally.</p>
+                </div>
             </div>
-            <p
-                class="mt-2 text-base font-semibold text-gray-200 text-center drop-shadow-sm"
-            >
-                Receive valid certifications upon exchanging skills with
-                verified users*.
-            </p>
         </div>
-
-        <div
-            class="relative backdrop-blur-lg bg-white/10 border border-cyan-400/30 rounded-2xl shadow-2xl shadow-cyan-900/30 hover:scale-105 transition-all duration-300 overflow-hidden p-8 w-72 h-80 flex flex-col justify-center items-center group"
-        >
-            <div class="flex items-center justify-center mb-4">
-                <Headset
-                    class="w-12 h-12 stroke-cyan-300 group-hover:stroke-cyan-200 drop-shadow-[0_0_8px_rgba(6,182,212,0.7)] transition"
-                />
+        
+        <div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">Pre-recorded Classes</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-8 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center mb-6">
+                        <Video class="w-6 h-6 text-gray-600" />
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Top-Rated Content</h3>
+                    <p class="text-gray-600 text-sm mb-4">Access our curated library of pre-recorded classes, ranked and reviewed by our community. Learn at your own pace from the best instructors.</p>
+                    <a href="/classes" class="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+                        Browse Classes →
+                    </a>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                    <div class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center mb-6">
+                        <BookOpen class="w-6 h-6 text-gray-600" />
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Contribute Your Knowledge</h3>
+                    <p class="text-gray-600 text-sm mb-4">Share your expertise by creating pre-recorded classes. Earn recognition and help others learn while building your personal brand.</p>
+                    <a href="/create-class" class="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+                        Start Teaching →
+                    </a>
+                </div>
             </div>
-            <p
-                class="mt-2 text-base font-semibold text-gray-200 text-center drop-shadow-sm"
+        </div>
+        
+        <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="text-center p-6 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-colors">
+                <div class="text-2xl font-bold text-gray-600 mb-2">10,000+</div>
+                <p class="text-sm text-gray-600">Skills Shared</p>
+            </div>
+            <div class="text-center p-6 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-colors">
+                <div class="text-2xl font-bold text-gray-600 mb-2">5,000+</div>
+                <p class="text-sm text-gray-600">Fair Exchanges</p>
+            </div>
+            <div class="text-center p-6 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-colors">
+                <div class="text-2xl font-bold text-gray-600 mb-2">500+</div>
+                <p class="text-sm text-gray-600">Pre-recorded Classes</p>
+            </div>
+            <div class="text-center p-6 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-colors">
+                <div class="text-2xl font-bold text-gray-600 mb-2">98%</div>
+                <p class="text-sm text-gray-600">Satisfaction Rate</p>
+            </div>
+        </div>
+        
+        <div class="mt-16 text-center">
+            <h3 class="text-xl font-semibold text-gray-900 mb-6">Ready to start your knowledge exchange journey?</h3>
+            <a 
+                href="/signup" 
+                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all transform hover:scale-[1.02]"
             >
-                Watching videos can be boring, call the swapper instead! We
-                support 1080p 60fps* video calls with sound!
-            </p>
+                Join Now for Free
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </a>
         </div>
     </div>
 </section>

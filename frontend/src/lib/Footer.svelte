@@ -1,3 +1,155 @@
-<footer class="bottom-0 bg-[rgb(128, 128, 128)] p-4 h-24 text-center">
-    <div class="footer-content"></div>
+<script>
+    import { Facebook, Linkedin, Mail, MapPin, Twitter } from "lucide-svelte";
+</script>
+
+<footer class="bg-white border-t border-gray-200 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <!-- Company Info -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-gray-900">SkillSwap</h3>
+                <p class="text-sm text-gray-600">
+                    Connecting knowledge seekers with skilled professionals
+                    through a seamless learning experience.
+                </p>
+                <div class="flex space-x-4">
+                    <a
+                        href="https://facebook.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-gray-500 hover:text-gray-700"
+                    >
+                        <span class="sr-only">Facebook</span>
+                        <Facebook />
+                    </a>
+                    <a
+                        href="https://twitter.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-gray-500 hover:text-gray-700"
+                    >
+                        <span class="sr-only">X (formerly twitter)</span>
+                        <Twitter />
+                    </a>
+                    <a
+                        href="https://linkedin.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-gray-500 hover:text-gray-700"
+                    >
+                        <span class="sr-only">LinkedIn</span>
+                        <Linkedin />
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h3
+                    class="text-sm font-semibold text-gray-900 uppercase tracking-wider"
+                >
+                    Quick Links
+                </h3>
+                <ul class="mt-4 space-y-2">
+                    <li>
+                        <a
+                            href="/discover"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >Discover Skills</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="/teach"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >Become a Teacher</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="/about"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >About Us</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="/blog"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >Blog</a
+                        >
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Support -->
+            <div>
+                <h3
+                    class="text-sm font-semibold text-gray-900 uppercase tracking-wider"
+                >
+                    Support
+                </h3>
+                <ul class="mt-4 space-y-2">
+                    <li>
+                        <a
+                            href="/help"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >Help Center</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="/safety"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >Safety Information</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="/privacy"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >Privacy Policy</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="/terms"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                            >Terms of Service</a
+                        >
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Contact -->
+            <div>
+                <h3
+                    class="text-sm font-semibold text-gray-900 uppercase tracking-wider"
+                >
+                    Contact Us
+                </h3>
+                <ul class="mt-4 space-y-2">
+                    <li class="flex items-start">
+                        <Mail class="w-6 h-6 mr-2 fill-black" />
+                        <span class="text-sm text-gray-600"
+                            >contact@skillswap.com</span
+                        >
+                    </li>
+                    <li class="flex items-start">
+                        <MapPin class="w-6 h-6 mr-2 fill-black" />
+                        <span class="text-sm text-gray-600"
+                            >123 Learning St.<br />San Francisco, CA 94103</span
+                        >
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="mt-12 pt-8 border-t border-gray-200">
+            <p class="text-sm text-gray-500 text-center">
+                {new Date().getFullYear()} SkillSwap&trade;
+            </p>
+        </div>
+    </div>
 </footer>

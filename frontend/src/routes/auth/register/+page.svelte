@@ -27,91 +27,91 @@
             curSlide = (curSlide - 1 + 4) % 4;
         }, 500);
     };
-    const checkEmail = () => {
-        fetching = true;
-        fetch("http://localhost:8080/api/isEmailUsed", {
-            method: "POST",
-            body: JSON.stringify({ email: email }),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.error) {
-                    error = data.error;
-                    nextSlide();
-                } else if (data.status == "ok") {
-                    error = "";
-                    nextSlide();
-                }
+    const checkEmail = async () => {
+        try {
+            fetching = true;
+            const response = await fetch("/api/isEmailUsed", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ email }),
             });
-    };
-    const checkPassword = () => {
-        if (password.includes(" ")) {
-        }
-        if (password.length >= 8 || password.length <= 32) {
-            error = "";
-            nextSlide();
+            const data = await response.json();
+            error = data.used ? "Email already in use" : "";
+        } catch (error) {
+            console.error("Email check error:", error);
+            error = "Error checking email";
+        } finally {
+            fetching = false;
         }
     };
-    const checkUsername = () => {
-        fetching = true;
-        fetch("http://localhost:8080/api/isNameUsed", {
-            method: "POST",
-            body: JSON.stringify({ name: name }),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.error) {
-                    error = "name is already used!";
-                    nextSlide();
-                } else if (data.status == "ok") {
-                    error = "";
-                    nextSlide();
-                }
+
+    const checkUsername = async () => {
+        try {
+            fetching = true;
+            const response = await fetch("/api/isNameUsed", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ name: username }),
             });
+            const data = await response.json();
+            error = data.used ? "Username already in use" : "";
+        } catch (error) {
+            console.error("Username check error:", error);
+            error = "Error checking username";
+        } finally {
+            fetching = false;
+        }
     };
-    const handleSubmit = async () => {
+
+    async function handleSubmit() {
+        // Reset errors
         error = "";
-        success = "";
 
-        if (!email || !password || !passwordr || !username) {
-            error = "All fields are required!";
-            return;
-        }
-
-        if (password !== passwordr) {
-            error = "Passwords do not match!";
-            return;
-        }
-
-        if (username.length > 50) {
-            error = "Username cannot be longer than 50 characters!";
+        // Validate inputs
+        if (!email || !username || !password) {
+            if (!email) error = "Email is required";
+            if (!username) error = "Username is required";
+            if (!password) error = "Password is required";
             return;
         }
 
         if (email.length > 100) {
-            error = "Email is too long!";
+            error = "Email is too long";
+            return;
+        }
+
+        if (username.length > 50) {
+            error = "Username is too long";
+            return;
+        }
+
+        if (password.length < 8) {
+            error = "Password must be at least 8 characters";
             return;
         }
 
         if (password.length > 50) {
-            error = "Password cannot be longer than 50 characters!";
+            error = "Password is too long";
             return;
         }
 
         try {
-            const response = await fetch("http://localhost:8080/api/register", {
+            const response = await fetch("/api/register", {
                 method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ username, email, password }),
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
-                error = data.error || "Registration failed. Please try again.";
-                return;
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Registration failed");
             }
 
-            success = "Registration successful! Redirecting to login...";
+            // Registration successful, redirect to login
+            window.location.href = "/auth/login?registered=true";
             setTimeout(() => {
                 goto("/auth/login");
             }, 2000);
@@ -119,7 +119,7 @@
             console.error("Network error during registration:", err);
             error = "Network error. Please check your connection.";
         }
-    };
+    }
 </script>
 
 <div class="flex flex-col items-center justify-center h-screen">
