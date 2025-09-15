@@ -70,7 +70,7 @@
                     class="bg-gray-800 p-4 flex items-center justify-center space-x-6"
                 >
                     <button
-                        on:click={toggleMute}
+                        onclick={toggleMute}
                         class={`p-3 rounded-full ${isMuted ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
                         aria-label={isMuted ? "Unmute" : "Mute"}
                     >
@@ -78,7 +78,7 @@
                     </button>
 
                     <button
-                        on:click={toggleVideo}
+                        onclick={toggleVideo}
                         class={`p-3 rounded-full ${isVideoOff ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
                         aria-label={isVideoOff
                             ? "Turn on camera"
@@ -91,7 +91,7 @@
                     </button>
 
                     <button
-                        on:click={toggleScreenShare}
+                        onclick={toggleScreenShare}
                         class={`p-3 rounded-full ${isSharingScreen ? "bg-blue-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
                         aria-label={isSharingScreen
                             ? "Stop sharing screen"
@@ -101,7 +101,7 @@
                     </button>
 
                     <button
-                        on:click={endCall}
+                        onclick={endCall}
                         class="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors"
                         aria-label="End call"
                     >

@@ -1,101 +1,190 @@
-<script>
-    var input = $state("");
-    let newMessage = $state("");
-    var room = $state("EU");
-    var messages = $state([{ Name: "", Message: "", isCurrentUser: false }]);
-    var name = $state("");
-    import { page } from "$app/state";
-    import Message from "../../../components/messages/+message.svelte";
+<script lang="ts">
+    import { auth } from "$lib/stores/auth";
+    import { onMount, onDestroy } from "svelte";
 
-    $effect(() => {
-        console.log(input);
+    let authState: {
+        user: { name: string; email: string } | null;
+        isAuthenticated: boolean;
+        loading: boolean;
+        error: string | null;
+    } = {
+        user: null,
+        isAuthenticated: false,
+        loading: true,
+        error: null,
+    };
+
+    const unsubscribe = auth.subscribe((state) => {
+        authState = state;
     });
 
-    var socket = new WebSocket("ws://localhost:8080/chat");
+    onDestroy(() => {
+        unsubscribe();
+    });
 
-    socket.onopen = () => {
-        console.log("Socket is open");
-    };
+    let swappers = $state([
+        {
+            name: "John",
+            id: "412487213",
+            lastMessage: "Hey, are you free to swap later?",
+            image: "https://randomuser.me/api/portraits/men/33.jpg",
+        },
+        {
+            name: authState.user?.name,
+            id: "123456789",
+            lastMessage: "I'm available tomorrow morning.",
+            image: "https://randomuser.me/api/portraits/women/44.jpg",
+        },
+    ]);
 
-    socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        console.log(event.data);
-        console.log(message.name);
-        messages.push({
-            Name: message.name,
-            Message: message.message,
-            isCurrentUser: message.name === name,
-        });
-        console.log(messages);
-    };
+    let swappees = $state([
+        {
+            name: "Sara",
+            id: "987654321",
+            lastMessage: "Sounds good, I'll send the details.",
+            image: "https://randomuser.me/api/portraits/women/55.jpg",
+        },
+        {
+            name: "Mike",
+            id: "112233445",
+            lastMessage: "Got it. See you then!",
+            image: "https://randomuser.me/api/portraits/men/66.jpg",
+        },
+    ]);
 
-    socket.onclose = (event) => {
-        console.log("Connection closed:", event.code, event.reason);
-        if (event.code === 1001) {
-            setTimeout(() => {
-                socket = new WebSocket("ws://localhost:8080/chat");
-            }, 1000);
-        }
-    };
-
-    socket.onerror = (event) => {
-        console.log("Socket closed: ", event);
-    };
-
-    function sendMessage() {
-        socket.send(JSON.stringify({ Name: name, Message: newMessage }));
-        newMessage = "";
-    }
+    // Dummy data for messages - you would replace this with real data
+    let messages = $state([
+        { sender: "other", text: "Hey there! Ready to trade?" },
+        {
+            sender: authState.user?.name,
+            text: "Yep, what do you want to swap?",
+        },
+        { sender: "other", text: "I have a vintage watch." },
+        {
+            sender: authState.user?.name,
+            text: "Oh, cool! I have a rare comic book.",
+        },
+    ]);
 </script>
 
 <div
-    class="flex flex-col h-[70vh] w-3xl max-w-lg mx-auto bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"
+    class="h-screen w-full p-4 bg-gray-100 dark:bg-gray-900 transition-colors duration-300"
 >
-    <div
-        class="flex-shrink-0 p-4 bg-gray-900 text-white font-semibold text-lg border-b border-gray-700"
-    >
-        <input type="text" placeholder="name:" bind:value={name} />
-        <input type="text" placeholder="room:" bind:value={room} />
-    </div>
-
-    <div class="flex-1 p-4 overflow-y-auto w-full space-y-4">
-        {#each messages as message}
-            <Message
-                user={message.Name}
-                message={message.Message}
-                isCurrentUser={message.isCurrentUser}
-            />
-        {/each}
-    </div>
-
-    <div class="flex-shrink-0 p-4 bg-gray-900 border-t border-gray-700">
-        <form onsubmit={sendMessage} class="flex space-x-2">
-            <input
-                type="text"
-                placeholder="Write a message..."
-                class="flex-1 p-3 rounded-full bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                bind:value={newMessage}
-            />
-            <!-- svelte-ignore a11y_consider_explicit_label -->
-            <button
-                type="submit"
-                class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+    <div class="grid grid-cols-5 grid-rows-6 h-full w-full gap-4">
+        <div
+            class="flex flex-col col-span-1 row-span-6 bg-white dark:bg-gray-800 p-4 gap-4 rounded-xl shadow-lg overflow-y-auto"
+        >
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white">
+                Inbox
+            </h2>
+            <div class="space-y-4 flex-grow">
+                <span
+                    class="text-sm font-semibold text-gray-500 dark:text-gray-400"
+                    >Swappers</span
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 12h14M12 5l7 7-7 7"
-                    />
-                </svg>
-            </button>
-        </form>
+                <div class="flex flex-col gap-3">
+                    {#each swappers as swapper}
+                        <div
+                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                        >
+                            <img
+                                src={swapper.image}
+                                alt={swapper.name}
+                                class="w-12 h-12 rounded-full ring-2 ring-gray-200 dark:ring-gray-600 object-cover"
+                            />
+                            <div class="flex-grow min-w-0">
+                                <span
+                                    class="text-gray-900 dark:text-white font-medium truncate"
+                                    >{swapper.name}</span
+                                >
+                                <p
+                                    class="text-sm text-gray-600 dark:text-gray-400 truncate"
+                                >
+                                    {swapper.lastMessage}
+                                </p>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-4 row-span-6 flex flex-col gap-4">
+            <div
+                class="col-span-4 row-span-2 bg-gray-300 dark:bg-gray-700 rounded-xl shadow-lg flex-grow overflow-hidden"
+            >
+                <div
+                    class="h-full w-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-2xl"
+                >
+                    Video Call Preview
+                </div>
+            </div>
+
+            <div
+                class="col-span-4 row-span-3 bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg overflow-y-auto flex flex-col-reverse gap-3"
+            >
+                {#each messages as message}
+                    <div
+                        class="flex flex-col p-2 rounded-lg max-w-2/3 {message.sender ===
+                        authState.user?.name
+                            ? 'bg-blue-500 dark:bg-blue-600 text-white self-end'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 self-start'}"
+                    >
+                        {message.text}
+                    </div>
+                {/each}
+            </div>
+
+            <div
+                class="col-span-4 row-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 flex items-center gap-3"
+            >
+                <!-- svelte-ignore a11y_consider_explicit_label -->
+                <button
+                    class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        ><path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13.5"
+                        /></svg
+                    >
+                </button>
+                <!-- svelte-ignore a11y_consider_explicit_label -->
+                <button
+                    class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        ><path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        /></svg
+                    >
+                </button>
+                <input
+                    type="text"
+                    placeholder="Send a message..."
+                    class="flex-grow bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                />
+                <button
+                    class="p-3 rounded-lg bg-blue-500 dark:bg-blue-600 text-white font-semibold hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors duration-200"
+                >
+                    Send
+                </button>
+            </div>
+        </div>
     </div>
 </div>

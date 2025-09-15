@@ -96,7 +96,7 @@ export async function checkAuth(): Promise<boolean> {
         });
 
         if (!response.ok) {
-            throw new Error('Not authenticated');
+            console.warn('Not authenticated');
         }
 
         const data = await response.json();

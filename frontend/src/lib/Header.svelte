@@ -4,9 +4,12 @@
     import { logout } from "$lib/api/auth";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
+    import Debug from "./components/Debug.svelte";
+    import { slide } from "svelte/transition";
+    import { quintOut } from "svelte/easing";
 
     let searchQuery = $state("");
-    let showUserMenu = false;
+    let showUserMenu = $state(false);
 
     async function handleLogout() {
         try {
@@ -19,6 +22,7 @@
 
     function toggleUserMenu() {
         showUserMenu = !showUserMenu;
+        console.log(showUserMenu);
     }
 
     function handleClickOutside(event: MouseEvent) {
@@ -60,6 +64,7 @@
 </script>
 
 <header class="bg-white border-b border-gray-200">
+    <!-- <Debug {searchQuery} /> -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center">
@@ -78,7 +83,7 @@
                     </div>
                     <input
                         bind:value={searchQuery}
-                        on:input={handleSearch}
+                        oninput={handleSearch}
                         type="text"
                         placeholder="Search skills or teachers..."
                         class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -95,7 +100,7 @@
                 {:else if $auth.isAuthenticated && $auth.user}
                     <div class="relative user-menu">
                         <button
-                            on:click={toggleUserMenu}
+                            onclick={toggleUserMenu}
                             class="flex items-center space-x-2 text-sm text-gray-700 hover:bg-gray-100 rounded-full p-1 pr-3 transition-colors"
                             aria-label="User menu"
                             aria-expanded={showUserMenu}
@@ -110,36 +115,43 @@
 
                         {#if showUserMenu}
                             <div
-                                class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-50"
+                                transition:slide={{ easing: quintOut }}
+                                class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 py-1 z-50 transition-transform duration-200 origin-top"
+                                class:scale-y-0={!showUserMenu}
+                                class:opacity-0={!showUserMenu}
                             >
-                                <div class="px-4 py-2 border-b border-gray-100">
+                                <div
+                                    class="px-4 py-2 border-b border-gray-100 dark:border-gray-700"
+                                >
                                     <p
-                                        class="text-sm font-medium text-gray-900"
+                                        class="text-sm font-medium text-gray-900 dark:text-white"
                                     >
                                         {$auth.user.name}
                                     </p>
-                                    <p class="text-xs text-gray-500 truncate">
+                                    <p
+                                        class="text-xs text-gray-500 dark:text-gray-400 truncate"
+                                    >
                                         {$auth.user.email}
                                     </p>
                                 </div>
                                 <a
                                     href="/profile"
-                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                                 >
                                     Your Profile
                                 </a>
                                 <a
                                     href="/settings"
-                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                                 >
                                     Settings
                                 </a>
                                 <div
-                                    class="border-t border-gray-100 my-1"
+                                    class="border-t border-gray-100 dark:border-gray-700 my-1"
                                 ></div>
                                 <button
-                                    on:click={handleLogout}
-                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                                    onclick={handleLogout}
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
                                 >
                                     <LogOut size={14} class="text-gray-400" />
                                     <span>Sign out</span>
