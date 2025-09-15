@@ -24,7 +24,7 @@
 </script>
 
 <div
-    class="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg text-sm max-w-xs"
+    class="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg text-gray-600 text-sm max-w-xs"
 >
     <h3 class="font-bold mb-2">Auth State</h3>
     <div class="space-y-2">
