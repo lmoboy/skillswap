@@ -21,7 +21,6 @@ export interface LoginResponse {
     user?: {
         name: string;
         email: string;
-        // Add other user properties as needed
     };
     error?: string;
     status: string;
@@ -39,7 +38,7 @@ export async function login(credentials: { email: string; password: string }): P
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || 'Login failed');
+            throw new Error(data || 'Login failed');
         }
 
         if (data.user) {
@@ -113,7 +112,7 @@ export async function checkAuth(): Promise<boolean> {
         auth.clearUser();
         return false;
     } catch (error: unknown) {
-        // console.error('Auth check failed:', error);
+        console.error('Auth check failed:', error);
         auth.clearUser();
         return false;
     } finally {

@@ -13,11 +13,11 @@
     const unsubscribe = auth.subscribe((state) => {
         // If user becomes authenticated, redirect to home
         if (state.isAuthenticated) {
-            goto('/');
+            goto("/");
         }
         // Handle loading state
         loading = state.loading;
-        
+
         // Handle errors
         if (state.error) {
             error = state.error;
@@ -32,7 +32,7 @@
     async function handleSubmit() {
         // Reset error state
         error = "";
-        
+
         // Basic validation
         if (!email || !password) {
             error = "Email and password are required.";
@@ -56,8 +56,6 @@
             console.error("Login error:", err);
         }
     }
-    
-
 </script>
 
 <div class="login-container">
@@ -72,6 +70,7 @@
             type="email"
             bind:value={email}
             required
+            class="w-full p-3 rounded-lg border border-blue-400/30 bg-gray-900/60 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             autocomplete="username"
             disabled={loading}
         />
@@ -96,48 +95,3 @@
         <a href="/auth/register">Don't have an account?</a>
     </form>
 </div>
-
-<style>
-    .login-container {
-        max-width: 350px;
-        margin: 2rem auto;
-        padding: 2rem;
-        border: 1px solid #eee;
-        border-radius: 8px;
-        background: #fafafa;
-    }
-    label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-    input {
-        width: 100%;
-        padding: 0.5rem;
-        margin-bottom: 1rem;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-    }
-    input:disabled {
-        background: #f5f5f5;
-    }
-    button {
-        width: 100%;
-        padding: 0.7rem;
-        background: #0070f3;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    button:disabled {
-        background: #999;
-        cursor: not-allowed;
-    }
-    .error {
-        color: #d00;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-</style>

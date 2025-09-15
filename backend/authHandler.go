@@ -61,6 +61,11 @@ func applySession(w http.ResponseWriter, req *http.Request, user *Info) {
 	}
 	defer db.Close()
 
+	if err := session.Save(req, w); err != nil {
+		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save session"})
+	}
+
+	req.Cookie("authentication")
 	stmt, err := db.Prepare("INSERT INTO sessions (user_id, session_token, expires_at) VALUES ((SELECT id FROM users WHERE email = ?), ?, DATE_ADD(NOW(), INTERVAL 1 MONTH)) ON DUPLICATE KEY UPDATE expires_at = DATE_ADD(NOW(), INTERVAL 1 MONTH)")
 	if err != nil {
 		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
@@ -72,10 +77,7 @@ func applySession(w http.ResponseWriter, req *http.Request, user *Info) {
 		return
 	}
 
-	if err := session.Save(req, w); err != nil {
-		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save session"})
-		return
-	}
+	fmt.Println("Session:", session)
 }
 
 // ++++++++++++++ Register Handler ++++++++++++++
@@ -196,29 +198,54 @@ func getCookieUser(w http.ResponseWriter, req *http.Request) {
 
 	session, err := store.Get(req, "authentication")
 	if err != nil {
-		sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session"})
-		return
+		fmt.Println("Error getting session:", err)
+		// sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session"})
 	}
 
 	auth, ok := session.Values["Authenticated"].(bool)
 	if !ok || !auth {
-		sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: Not authenticated"})
-		return
+		fmt.Println("Unauthorized :", err)
+
+		// sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: Not authenticated"})
 	}
 
 	email, ok := session.Values["email"].(string)
 	if !ok || email == "" {
-		sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session: Missing email"})
-		return
+
+		fmt.Println("Where the email:", err)
+		// sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session: Missing email"})
 	}
-	_, err = req.Cookie("authentication")
+
+	cookie, err := req.Cookie("authentication")
 	if err != nil {
 		if err == http.ErrNoCookie {
-			sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: No cookie found"})
-			return
+
+			fmt.Println("Where is the cookie :", err)
+			// sendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized: No cookie found"})
 		}
-		sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Error reading cookie"})
-		return
+
+		fmt.Println("Error getting session cookie:", err)
+		// sendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Error reading cookie"})
+	}
+	if session != nil || auth || email != "" || cookie != nil {
+		var session_value string
+
+		// fmt.Println("Session:", session, "Auth:", auth, "Email:", email, "Cookie:", cookie)
+		if session != nil {
+			session_value = session.ID
+		} else if auth {
+			session_value = email
+		} else if cookie != nil {
+			session_value = cookie.String()
+		} else {
+			session_value = ""
+		}
+
+		// fmt.Println(cookie)
+		fmt.Printf("Session: %v", session_value)
+		// fmt.Println("Decided on:", session_value)
+		// sendJSONResponse(w, http.StatusOK, map[string]string{"cookie": cookie.String()})
+		// return
 	}
 	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
 	if err != nil {
@@ -238,6 +265,7 @@ func getCookieUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	applySession(w, req, &Info{Username: username, Email: email})
 	sendJSONResponse(w, http.StatusOK, UserData{Username: username, Email: email})
 }
 
