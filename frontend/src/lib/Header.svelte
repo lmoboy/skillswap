@@ -5,7 +5,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
 
-    let inputRef: HTMLInputElement;
+    let searchQuery = $state("");
     let showUserMenu = false;
 
     async function handleLogout() {
@@ -17,12 +17,10 @@
         }
     }
 
-    // Toggle user menu
     function toggleUserMenu() {
         showUserMenu = !showUserMenu;
     }
 
-    // Close menu when clicking outside
     function handleClickOutside(event: MouseEvent) {
         const target = event.target as HTMLElement;
         if (!target.closest(".user-menu")) {
@@ -30,8 +28,30 @@
         }
     }
 
+    let timeoutId: number | undefined = undefined;
+
+    function handleSearch() {
+        clearTimeout(timeoutId);
+
+        timeoutId = window.setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/search`, {
+                    method: "POST",
+                    credentials: "include",
+
+                    body: JSON.stringify({
+                        query: searchQuery,
+                    }),
+                });
+                const data = await response.json();
+                console.log(data);
+            } catch (error) {
+                console.error("Search failed:", error);
+            }
+        }, 300);
+    }
+
     onMount(() => {
-        // Add click outside listener
         document.addEventListener("click", handleClickOutside);
         return () => {
             document.removeEventListener("click", handleClickOutside);
@@ -57,7 +77,8 @@
                         <Search class="h-4 w-4 text-gray-400" />
                     </div>
                     <input
-                        bind:this={inputRef}
+                        bind:value={searchQuery}
+                        on:input={handleSearch}
                         type="text"
                         placeholder="Search skills or teachers..."
                         class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"

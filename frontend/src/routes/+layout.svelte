@@ -91,13 +91,8 @@
   import Footer from "$lib/Footer.svelte";
   // import AuthDebug from "$lib/components/AuthDebug.svelte";
 
-  // Import styles
   import "../app.css";
-
-  // Import Svelte utilities
   import { onMount } from "svelte";
-
-  // Import auth utilities
   import { checkAuth } from "$lib/api/auth";
 
   onMount(async () => {
