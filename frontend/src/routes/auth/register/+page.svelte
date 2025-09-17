@@ -183,7 +183,7 @@
                 </div>
             {:else if curSlide === 3}
                 <form
-                    on:submit|preventDefault={handleSubmit}
+                    onsubmit={handleSubmit}
                     class={`${state} flex flex-col items-center gap-4`}
                 >
                     <div class="font-bold text-2xl text-white mb-2 text-center">
