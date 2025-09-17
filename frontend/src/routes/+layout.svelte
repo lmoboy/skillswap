@@ -98,12 +98,16 @@
   import AuthDebug from "$lib/components/AuthDebug.svelte";
 
   onMount(async () => {
-    await checkAuth();
+    try {
+      await checkAuth();
+    } catch (error) {
+      console.error("Error checking auth:", error);
+    }
   });
 </script>
 
 <div class="flex flex-col min-h-screen relative">
-  <AuthDebug />
+  <!-- <AuthDebug /> -->
 
   <Header />
   <main class="flex-grow">

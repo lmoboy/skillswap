@@ -1,17 +1,40 @@
-<script>
+<script lang="ts">
+    import { auth } from "$lib/stores/auth";
+    import { onMount, onDestroy } from "svelte";
+
+    // @ts-nocheck
+
     import { quintOut } from "svelte/easing";
     import { slide } from "svelte/transition";
-    let preview = ""; // This should be a URL or data URL
-    let name = "John Doe";
-    let email = "john.doe@example.com";
-    let preferences = "Daily email, weekly reports...";
-    let password = "";
-    let is2FAEnabled = false;
+    let preview = $state(""); // This should be a URL or data URL
+    let name = $state("John Doe");
+    let email = $state("john@email.com");
+    let preferences = $state("Daily email, weekly reports...");
+    let password = $state("");
+    let is2FAEnabled = $state(false);
+    let authState: {
+        user: { name: string; email: string } | null;
+        isAuthenticated: boolean;
+        loading: boolean;
+        error: string | null;
+    } = {
+        user: null,
+        isAuthenticated: false,
+        loading: true,
+        error: null,
+    };
 
+    const unsubscribe = auth.subscribe((state) => {
+        authState = state;
+    });
+
+    onDestroy(() => {
+        unsubscribe();
+    });
     /**
      * @param {{ target: { files: any[]; }; }} event
      */
-    function handlePictureChange(event) {
+    function handlePictureChange(event: { target: { files: any[]; }; }) {
         const file = event.target.files[0];
         if (file) {
             preview = URL.createObjectURL(file);

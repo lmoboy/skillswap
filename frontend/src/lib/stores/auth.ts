@@ -3,6 +3,7 @@ import { writable } from 'svelte/store';
 export interface User {
     name: string;
     email: string;
+    id: string;
 }
 
 interface AuthState {
@@ -10,13 +11,15 @@ interface AuthState {
     isAuthenticated: boolean;
     loading: boolean;
     error: string | null;
+    step: string | null;
 }
 
 const defaultState: AuthState = {
     user: null,
     isAuthenticated: false,
     loading: true,
-    error: null
+    error: null,
+    step: null
 };
 
 function createAuthStore() {
@@ -31,6 +34,12 @@ function createAuthStore() {
                 isAuthenticated: user !== null,
                 loading: false,
                 error: null
+            }));
+        },
+        setStep: (step: string) => {
+            update(state => ({
+                ...state,
+                step
             }));
         },
         setLoading: (loading: boolean) => {

@@ -7,15 +7,18 @@
         isAuthenticated: boolean;
         loading: boolean;
         error: string | null;
+        step: string | null;
     } = {
         user: null,
         isAuthenticated: false,
         loading: true,
         error: null,
+        step: null,
     };
 
     const unsubscribe = auth.subscribe((state) => {
         authState = state;
+        console.log(state);
     });
 
     onDestroy(() => {
@@ -36,6 +39,13 @@
                     : "❌ Not Authenticated"}
             </span>
         </div>
+
+        {#if authState.step}
+            <div class="flex justify-between">
+                <span class="font-medium">Step:</span>
+                <span class="font-mono">{authState.step}</span>
+            </div>
+        {/if}
 
         {#if authState.loading}
             <div class="text-blue-600">Loading...</div>

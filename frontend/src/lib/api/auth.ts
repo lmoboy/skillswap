@@ -21,6 +21,7 @@ export interface LoginResponse {
     user?: {
         name: string;
         email: string;
+        id: string;
     };
     error?: string;
     status: string;
@@ -29,35 +30,47 @@ export interface LoginResponse {
 export async function login(credentials: { email: string; password: string }): Promise<LoginResponse> {
     try {
         auth.setLoading(true);
+        auth.setStep("Fetching data...")
         const response = await fetch(`${API_BASE}/login`, {
             ...defaultOptions,
             method: 'POST',
             body: JSON.stringify(credentials),
+            credentials: 'include', // Important for cookies
         });
 
+        auth.setStep("Converting to json...")
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data || 'Login failed');
+            throw new Error(data.error || 'Login failed');
         }
-
-        if (data.user) {
+        auth.setStep("Setting user...")
+        if (data) {
             auth.setUser({
-                name: data.user.username || data.user.name || '',
-                email: data.user.email || ''
+                name: data.username || '',
+                email: data.email || '',
+                id: data.id || '',
             });
+
+            auth.setStep("User set, checking auth...")
+            await checkAuth();
+        } else {
+            throw new Error('Invalid response format from server');
         }
+        auth.setStep("Login done")
 
         return {
-            ...data,
-            status: data.status || (data.user ? 'ok' : 'error'),
-            error: data.error || (!data.user ? 'No user data received' : undefined)
+            status: 'ok',
+            user: {
+                name: data.username || '',
+                email: data.email || '',
+                id: data.id || '',
+            }
         };
-    } catch (error: unknown) {
-        console.error('Login error:', error);
+    } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Login failed';
         auth.setError(errorMessage);
-        throw new Error(errorMessage);
+        throw error;
     } finally {
         auth.setLoading(false);
     }
@@ -69,20 +82,24 @@ export async function logout(): Promise<void> {
         const response = await fetch(`${API_BASE}/logout`, {
             ...defaultOptions,
             method: 'POST',
+            credentials: 'include', // Important for cookie-based auth
         });
-
-        if (!response.ok) {
-            throw new Error('Logout failed');
-        }
-
-        // Clear user data regardless of response
+        auth.setStep("Removing token from db...")
+        // Always clear the user state, even if the request fails
         auth.clearUser();
-    } catch (error: unknown) {
-        console.error('Logout error:', error);
+        auth.setStep("Checking response...")
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || 'Logout failed');
+        }
+    } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Logout failed';
-        auth.setError(errorMessage);
+        auth.setStep('Logout error:' + errorMessage);
+        // Still clear user state even if there's an error
+        auth.clearUser();
         throw new Error(errorMessage);
     } finally {
+        auth.setStep("Logout done");
         auth.setLoading(false);
     }
 }
@@ -93,29 +110,43 @@ export async function checkAuth(): Promise<boolean> {
         const response = await fetch(`${API_BASE}/cookieUser`, {
             ...defaultOptions,
             method: 'GET',
+            credentials: 'include', // Make sure to include credentials
         });
+        auth.setStep("Fetching data from bd...");
+        // console.log(response);
+        const data = await response.json();
+        auth.setStep("Converting data...");
 
         if (!response.ok) {
-            console.warn('Not authenticated');
+            auth.setStep("Error occured with response...");
+
+            console.warn('Not authenticated:', data.error || 'No error details');
+            auth.clearUser();
+            return false;
         }
+        // console.log(data);
+        if (data) {
+            auth.setStep("Set user data...");
 
-        const data = await response.json();
-
-        if (data && data.username) {
             auth.setUser({
-                name: data.username,
-                email: data.email || ''
+                name: data.username || '',
+                email: data.email || '',
+                id: data.id || '',
             });
             return true;
         }
+        // console.log("we got this far for some reason");
+        auth.setStep("Data failed, clearing...");
 
         auth.clearUser();
         return false;
     } catch (error: unknown) {
-        console.error('Auth check failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        auth.setStep('Auth check failed:' + errorMessage);
         auth.clearUser();
         return false;
     } finally {
+        auth.setStep("Auth check done");
         auth.setLoading(false);
     }
 }
