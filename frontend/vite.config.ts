@@ -13,10 +13,6 @@ export default defineConfig({
 				secure: false,
 				ws: true
 			},
-			'/chat': {
-				target: 'ws://localhost:8080',
-				ws: true
-			}
 		}
 	},
 });
