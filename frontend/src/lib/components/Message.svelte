@@ -10,7 +10,7 @@
         console.log(input);
     });
 
-    var socket = new WebSocket("ws://localhost:8080/chat");
+    var socket = new WebSocket("/api/chat");
 
     socket.onopen = () => {
         console.log("Socket is open");
@@ -32,7 +32,7 @@
         console.log("Connection closed:", event.code, event.reason);
         if (event.code === 1001) {
             setTimeout(() => {
-                socket = new WebSocket("ws://localhost:8080/chat");
+                socket = new WebSocket("/api/chat");
             }, 1000);
         }
     };

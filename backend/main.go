@@ -84,7 +84,7 @@ func search(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 	server := mux.NewRouter().StrictSlash(true)
-	server.HandleFunc("/chat", RunWebsocket)
+	server.HandleFunc("/api/chat", RunWebsocket)
 	server.HandleFunc("/api/login", login).Methods("POST")
 	server.HandleFunc("/api/register", register).Methods("POST")
 	server.HandleFunc("/api/logout", logout).Methods("POST")
@@ -93,9 +93,9 @@ func main() {
 
 	server.HandleFunc("/api/search", search).Methods("POST")
 
-	server.HandleFunc("/ws/videoCall", handleWebsocket)
+	server.HandleFunc("/api/video", handleWebsocket)
 
-	server.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+	server.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
 		sendJSONResponse(w, http.StatusOK, map[string]string{"status": "pong"})
 	}).Methods("GET")
 
