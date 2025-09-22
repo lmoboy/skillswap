@@ -10,7 +10,7 @@ import (
 	"skillswap/backend/utils"
 )
 
-func register(w http.ResponseWriter, req *http.Request) {
+func Register(w http.ResponseWriter, req *http.Request) {
 	var userInfo structs.UserInfo
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-146"})

@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS user_contacts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-Insert Into users ( firstname, lastname, username, email, profession, profile_picture, aboutme, location, password_hash) Values
+INSERT INTO users ( firstname, lastname, username, email, profession, profile_picture, aboutme, location, password_hash) VALUES
  ( 'Ada','Daveta','Ada_Daveta','Ada.Daveta@example.com','Project Manager','http://localhost:8080/file/profile/Ada','Hello, I am Ada Daveta and I love building things.','City ','00000000000000000000000000000000' ),
  ( 'Stephanie','Elephus','Stephanie_Elephus','Stephanie.Elephus@example.com','DevOps Engineer','http://localhost:8080/file/profile/Stephanie','Hello, I am Stephanie Elephus and I love building things.','City ','00000000000000000000000000000000' ),
  ( 'Halette','Felizio','Halette_Felizio','Halette.Felizio@example.com','AI Specialist','http://localhost:8080/file/profile/Halette','Hello, I am Halette Felizio and I love building things.','City ','00000000000000000000000000000000' ),
@@ -365,7 +365,7 @@ INSERT INTO skills (name, description) VALUES
     ('Flask', 'Micro web framework for developing web applications with Python'),
     ('Data Science', 'Extracting knowledge and insights from data');
 
-Insert Into user_projects ( user_id, name, description, link) Values
+INSERT INTO user_projects ( user_id, name, description, link) VALUES
  ( 1,'Project ','A project about topic .','https://example.com/project/' ),
  ( 2,'Project ','A project about topic .','https://example.com/project/' ),
  ( 3,'Project ','A project about topic .','https://example.com/project/' ),
@@ -767,7 +767,7 @@ Insert Into user_projects ( user_id, name, description, link) Values
  ( 399,'Project ','A project about topic .','https://example.com/project/' ),
  ( 400,'Project ','A project about topic .','https://example.com/project/' );
 
-Insert Into user_contacts ( user_id, name, link) Values
+INSERT INTO user_contacts ( user_id, name, link) VALUES
  ( 1,'email','user1@example.com' ),
  ( 2,'website','https://example.com/u/2' ),
  ( 3,'linkedin','https://linkedin.com/in/user3' ),
@@ -1169,7 +1169,6 @@ Insert Into user_contacts ( user_id, name, link) Values
  ( 399,'linkedin','https://linkedin.com/in/user399' ),
  ( 400,'twitter','https://twitter.com/user400' );
 
-
 INSERT INTO user_skills (user_id, skill_id, teaching_skill, verified) VALUES 
  ( 20,1,"Show how it's done",FALSE ),
  ( 79,9,"Show how it's done",FALSE ),
@@ -1272,8 +1271,7 @@ INSERT INTO user_skills (user_id, skill_id, teaching_skill, verified) VALUES
  ( 32,12,"Give homework report on subject",TRUE ),
  ( 75,19,"Give homework report on subject",FALSE );
 
-
-Insert Into chats ( user1_id, user2_id, initiated_by) Values 
+INSERT INTO chats ( user1_id, user2_id, initiated_by) VALUES 
     ( 1,10,1 ),
     ( 2,18,2 ),
     ( 3,40,3 ),
@@ -1375,8 +1373,7 @@ Insert Into chats ( user1_id, user2_id, initiated_by) Values
     ( 99,69,99 ),
     ( 100,6,100 );
 
-
-Insert Into messages ( chat_id, sender_id, content) Values
+INSERT INTO messages ( chat_id, sender_id, content) VALUES
  ( 1,1,'Message ' ),
  ( 2,2,'Message ' ),
  ( 3,3,'Message ' ),

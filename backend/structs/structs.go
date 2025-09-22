@@ -12,3 +12,8 @@ type UserInfo struct {
 	Skills         string `json:"skills"`
 	Location       string `json:"location"`
 }
+type Skill struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
