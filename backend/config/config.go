@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"github.com/rs/cors"
 )
 
-func getCors() *cors.Cors {
+func CORS() *cors.Cors {
 	return cors.New(cors.Options{
 		// Saraksts ar atļautajiem domēniem, no kuriem var veikt pieprasījumus.
 		AllowedOrigins: []string{"http://localhost:5173", "http://127.0.0.1:5173"},
