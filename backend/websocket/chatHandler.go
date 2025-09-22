@@ -26,25 +26,6 @@ func NewHub() *MessageHub {
 	}
 }
 
-// Run starts the hub
-func (h *MessageHub) Run() {
-	for {
-		msg := <-h.Broadcasts
-		h.Mutex.Lock()
-		h.Messages = append(h.Messages, msg)
-		for client := range h.Clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				utils.HandleError(err)
-				fmt.Println("Error writing message:", err)
-				client.Close()
-				delete(h.Clients, client)
-			}
-		}
-		h.Mutex.Unlock()
-	}
-}
-
 // WSEndpoint is the websocket endpoint handler
 func WSEndpoint(w http.ResponseWriter, req *http.Request, hub *MessageHub) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
