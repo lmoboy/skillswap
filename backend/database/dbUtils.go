@@ -1,8 +1,12 @@
 package database
 
+import (
+	"skillswap/backend/structs"
+)
+
 // GetUserIDFromEmail returns the user ID for a given email
 func GetUserIDFromEmail(email string) (int64, error) {
-	db, err := getDatabase()
+	db, err := GetDatabase()
 	if err != nil {
 		return -1, err
 	}
@@ -18,7 +22,7 @@ func GetUserIDFromEmail(email string) (int64, error) {
 
 // GetSkillIDFromName returns the skill ID for a given name
 func GetSkillIDFromName(name string) (int64, error) {
-	db, err := getDatabase()
+	db, err := GetDatabase()
 	if err != nil {
 		return -1, err
 	}
@@ -33,8 +37,8 @@ func GetSkillIDFromName(name string) (int64, error) {
 }
 
 // GetAllSkills returns a list of all skills in the database
-func GetAllSkills() ([]Skill, error) {
-	db, err := getDatabase()
+func GetAllSkills() ([]structs.Skill, error) {
+	db, err := GetDatabase()
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +50,9 @@ func GetAllSkills() ([]Skill, error) {
 	}
 	defer rows.Close()
 
-	var skills []Skill
+	var skills []structs.Skill
 	for rows.Next() {
-		var skill Skill
+		var skill structs.Skill
 		err := rows.Scan(&skill.ID, &skill.Name, &skill.Description)
 		if err != nil {
 			return nil, err

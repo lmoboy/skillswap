@@ -12,7 +12,7 @@ import (
 
 var db *sql.DB
 
-func init() {
+func Init() {
 	var err error
 	db, err = sql.Open("mysql", os.Getenv("DB_URL"))
 	if err != nil {
@@ -25,23 +25,23 @@ func init() {
 	}
 }
 
-func getDatabase() (*sql.DB, error) {
+func GetDatabase() (*sql.DB, error) {
 	return db, nil
 }
 
-func execute(query string, args ...interface{}) (sql.Result, error) {
+func Execute(query string, args ...interface{}) (sql.Result, error) {
 	return db.Exec(query, args...)
 }
 
-func query(query string, args ...interface{}) (*sql.Rows, error) {
+func Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return db.Query(query, args...)
 }
 
-func queryRow(query string, args ...interface{}) *sql.Row {
+func QueryRow(query string, args ...interface{}) *sql.Row {
 	return db.QueryRow(query, args...)
 }
 
-func close() error {
+func Close() error {
 	return db.Close()
 }
 

@@ -4,50 +4,53 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"skillswap/backend/database"
 	"skillswap/backend/structs"
 	"skillswap/backend/utils"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
-func isEmailUsed(w http.ResponseWriter, req *http.Request) {
+func IsEmailUsed(w http.ResponseWriter, req *http.Request) {
 	var userInfo structs.UserInfo
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-186"})
 		return
 	}
 
-	// fmt.Println(rows)
+	db, err := database.GetDatabase()
 	if err != nil {
 		utils.HandleError(err)
-		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-192"})
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "AH-192"})
 		return
 	}
-	if len(rows) > 0 {
+
+	var exists int
+	qerr := db.QueryRow("SELECT 1 FROM users WHERE email = ? LIMIT 1", userInfo.Email).Scan(&exists)
+	if qerr == nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Email already in use"})
 		return
-	} else {
-		utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Email available"})
-		return
 	}
+	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Email available"})
+	return
 }
-func isUsernameUsed(w http.ResponseWriter, req *http.Request) {
-	var userInfo Info
+
+func IsUsernameUsed(w http.ResponseWriter, req *http.Request) {
+	var userInfo structs.UserInfo
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-206"})
 		return
 	}
-	rows, err := findValues("users", []string{"name"}, map[string]string{"name": userInfo.Username})
+	db, err := database.GetDatabase()
 	if err != nil {
 		utils.HandleError(err)
-		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-211"})
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "AH-211"})
 		return
 	}
-	if len(rows) > 0 {
+	var exists int
+	qerr := db.QueryRow("SELECT 1 FROM users WHERE username = ? LIMIT 1", userInfo.Username).Scan(&exists)
+	if qerr == nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Username already in use"})
 		return
-	} else {
-		utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Username available"})
-		return
 	}
+	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Username available"})
+	return
 }
