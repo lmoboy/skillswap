@@ -12,6 +12,7 @@ func SendJSONResponse(w http.ResponseWriter, statusCode int, payload interface{}
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(payload)
 }
+
 func HandleError(err error) (b bool) {
 	if err != nil {
 		_, filename, line, _ := runtime.Caller(1)

@@ -6,19 +6,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"skillswap/backend/structs"
+	"skillswap/backend/utils"
 )
 
 func Login(w http.ResponseWriter, req *http.Request) {
-	var userInfo Info
+	var userInfo structs.UserInfo
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
-		SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-227"})
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-227"})
 		return
 	}
 
 	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/skillswap")
 	if err != nil {
-		handleError(err)
-		SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "AH-233"})
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "AH-233"})
 		return
 	}
 	defer db.Close()
@@ -28,14 +30,14 @@ func Login(w http.ResponseWriter, req *http.Request) {
 	var storedUsername, storedEmail string
 	if err := row.Scan(&storedUsername, &storedEmail, &storedID); err != nil {
 		if err == sql.ErrNoRows {
-			SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid username or password"})
+			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid username or password"})
 			return
 		}
-		SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "AH-246"})
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "AH-246"})
 		return
 	}
 
-	applySession(w, req, &Info{Username: storedUsername, Email: storedEmail, id: storedID})
+	ApplySession(w, req, &structs.UserInfo{Username: storedUsername, Email: storedEmail, ID: storedID})
 
-	SendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Login successful"})
+	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Login successful"})
 }
