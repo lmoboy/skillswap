@@ -14,7 +14,7 @@ services:
   golang-backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     container_name: golang-backend
     restart: unless-stopped
     init: true

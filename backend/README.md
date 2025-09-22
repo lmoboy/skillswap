@@ -8,11 +8,7 @@ This project is containerized using Docker and Docker Compose for easy setup and
 - **Database:** The project uses PostgreSQL, with initialization SQL in `bac.sql`.
 
 ### Environment Variables
-- The PostgreSQL service uses the following environment variables (set in `docker-compose.yml`):
-  - `POSTGRES_USER=postgres`
-  - `POSTGRES_PASSWORD=postgres`
-  - `POSTGRES_DB=bac`
-- No additional environment variables are required for the Go app by default. If you need to add any, uncomment and use the `env_file` section in the compose file.
+- No additional environment variables are required for the Go app by default. If you need to add any, uncomment and use the section in the compose file.
 
 ### Build and Run Instructions
 1. **Build and Start Services:**

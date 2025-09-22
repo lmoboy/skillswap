@@ -6,6 +6,7 @@
         Share2,
         VideoOff,
     } from "lucide-svelte";
+    import { auth } from "./stores/auth";
 </script>
 
 <section class="w-full min-h-screen flex items-center justify-center bg-white">
@@ -34,16 +35,20 @@
                     knowledge in real-time for free*.
                 </p>
                 <p class="text-sm text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0">
-                    *Our platform leverages additional services to enhance the quality of the video calls, which are offered as a subscription service.
+                    *Our platform leverages additional services to enhance the
+                    quality of the video calls, which are offered as a
+                    subscription service.
                 </p>
                 <div
                     class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
                 >
                     <a
-                        href="/signup"
+                        href={$auth.isAuthenticated ? "/swapping" : "/signup"}
                         class="px-8 py-4 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
                     >
-                        Start Your First Call
+                        {$auth.isAuthenticated
+                            ? "Continue swapping!"
+                            : "Start Your First Call!"}
                     </a>
                     <a
                         href="#how-it-works"
@@ -79,8 +84,9 @@
                         </div>
                     </div>
                     <div class="text-sm text-gray-600">
-                        <span class="font-medium text-gray-900">10,000+</span> knowledge
-                        exchanges completed
+                        <span class="font-medium text-gray-900">100+</span>
+                        knowledgeable speakers and over
+                        <span class="font-medium text-gray-900">1000+</span> exchanges!
                     </div>
                 </div>
             </div>

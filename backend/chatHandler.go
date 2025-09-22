@@ -48,6 +48,7 @@ func (h *Hub) Run() {
 		for client := range h.clients {
 			err := client.WriteJSON(msg)
 			if err != nil {
+				handleError(err)
 				fmt.Println("Error writing message:", err)
 				client.Close()
 				delete(h.clients, client)
@@ -63,6 +64,7 @@ func WSEndpoint(w http.ResponseWriter, req *http.Request, hub *Hub) {
 
 	webSocket, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
+		handleError(err)
 		fmt.Println("Websocket connection error :", err)
 		return
 	}
@@ -75,6 +77,7 @@ func WSEndpoint(w http.ResponseWriter, req *http.Request, hub *Hub) {
 	for _, msg := range hub.messages {
 		err := webSocket.WriteJSON(msg)
 		if err != nil {
+			handleError(err)
 			fmt.Println("Error writing message:", err)
 			hub.mutex.Lock()
 			delete(hub.clients, webSocket)
@@ -88,6 +91,7 @@ func WSEndpoint(w http.ResponseWriter, req *http.Request, hub *Hub) {
 		var p Message
 		err := webSocket.ReadJSON(&p)
 		if err != nil {
+			handleError(err)
 			fmt.Println("Websocket reading error:", err)
 			hub.mutex.Lock()
 			delete(hub.clients, webSocket)
@@ -119,83 +123,83 @@ func LoadMessagesFromDatabase() ([]Message, error) {
 // RunWebsocket starts the websocket
 func RunWebsocket(w http.ResponseWriter, req *http.Request) {
 
-	/* 
-	so a hypothetical is
-	we send over a request to create a new hub and connect to the websocket related to that hub
-	then we save the hub in a global array in the app, unless there are no connections we remove it
-	we identify the hub using a map for easier lookup on request,
+	/*
+		so a hypothetical is
+		we send over a request to create a new hub and connect to the websocket related to that hub
+		then we save the hub in a global array in the app, unless there are no connections we remove it
+		we identify the hub using a map for easier lookup on request,
 
-	if a user want to join our hub they send a body containing their token and the hub they want to join,
-	if the tokens do not match up with the database 
-	(aka the chat token doesn't ontain both users that are trying to join, make a new hub or lookup for old one)
-	----------------------------------scenarios------------------------------------------------
-	User Request -> Send CREATE HUB request with a unique ID
+		if a user want to join our hub they send a body containing their token and the hub they want to join,
+		if the tokens do not match up with the database
+		(aka the chat token doesn't ontain both users that are trying to join, make a new hub or lookup for old one)
+		----------------------------------scenarios------------------------------------------------
+		User Request -> Send CREATE HUB request with a unique ID
 
-	Server -> Check global hub map for ID existence
+		Server -> Check global hub map for ID existence
 
-		IF ID exists -> ❌ Response: Hub already exists
+			IF ID exists -> ❌ Response: Hub already exists
 
-		IF ID does not exist -> ✅ Server Actions:
+			IF ID does not exist -> ✅ Server Actions:
 
-			Create new Hub struct
+				Create new Hub struct
 
-			Create new WebSocket (ws) connection
+				Create new WebSocket (ws) connection
 
-			Add the Hub to the global map
+				Add the Hub to the global map
 
-			Response -> Send SUCCESS message with the hub ID
+				Response -> Send SUCCESS message with the hub ID
 
-	----------------------------------scenarios------------------------------------------------
-	Scenario 2: User Joining an Existing Hub
+		----------------------------------scenarios------------------------------------------------
+		Scenario 2: User Joining an Existing Hub
 
-	This flow is for a user connecting to a hub that has already been created.
+		This flow is for a user connecting to a hub that has already been created.
 
-	User Request -> Send JOIN HUB request with token and hub ID
+		User Request -> Send JOIN HUB request with token and hub ID
 
-	Server -> Validate user's token against the database
+		Server -> Validate user's token against the database
 
-		IF token is invalid -> ❌ Response: Authentication failed
+			IF token is invalid -> ❌ Response: Authentication failed
 
-		IF token is valid -> ✅ Server Actions:
+			IF token is valid -> ✅ Server Actions:
 
-			Look up hub ID in the global map
+				Look up hub ID in the global map
 
-			IF hub does not exist -> Server Actions:
+				IF hub does not exist -> Server Actions:
 
-				Check for an existing private chat hub between the two users
+					Check for an existing private chat hub between the two users
 
-				IF private chat exists -> Redirect user to join that hub
+					IF private chat exists -> Redirect user to join that hub
 
-				IF private chat does not exist -> Create a new hub -> Connect user to it -> Save it to the global map -> Response: SUCCESS with new hub ID
+					IF private chat does not exist -> Create a new hub -> Connect user to it -> Save it to the global map -> Response: SUCCESS with new hub ID
 
-			IF hub exists -> Server Actions:
+				IF hub exists -> Server Actions:
 
-				Establish a new WebSocket connection for the user
+					Establish a new WebSocket connection for the user
 
-				Associate the user with the existing hub
+					Associate the user with the existing hub
 
-				Add user details to the hub's list of connected users
+					Add user details to the hub's list of connected users
 
-				Response -> Send SUCCESS message confirming the join
-	----------------------------------scenarios------------------------------------------------
+					Response -> Send SUCCESS message confirming the join
+		----------------------------------scenarios------------------------------------------------
 
-	Scenario 3: Hub Removal
+		Scenario 3: Hub Removal
 
-	This flow describes how an empty hub is removed from the system.
+		This flow describes how an empty hub is removed from the system.
 
-	Event -> User disconnects from WebSocket
+		Event -> User disconnects from WebSocket
 
-	Server -> Check the number of active connections in the hub
+		Server -> Check the number of active connections in the hub
 
-		IF connections > 0 -> Hub remains active
+			IF connections > 0 -> Hub remains active
 
-		IF connections = 0 -> Server Actions:
+			IF connections = 0 -> Server Actions:
 
-			Remove the hub from the global map
+				Remove the hub from the global map
 
-			Close the WebSocket connection
+				Close the WebSocket connection
 
-			Server -> Log event for monitoring
+				Server -> Log event for monitoring
 
 	*/
 	if req.Body == nil {
@@ -208,6 +212,7 @@ func RunWebsocket(w http.ResponseWriter, req *http.Request) {
 	}
 	err := json.NewDecoder(req.Body).Decode(&p)
 	if err != nil {
+		handleError(err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -218,10 +223,23 @@ func RunWebsocket(w http.ResponseWriter, req *http.Request) {
 	// load messages from database to the hub
 	messages, err := LoadMessagesFromDatabase()
 	if err != nil {
+		handleError(err)
 		fmt.Println("Error loading messages from database:", err)
 		return
 	}
 	hub.messages = messages
 
 	JoinWebSocket(w, req, hub)
+}
+
+func getAllUserChats(w http.ResponseWriter, req *http.Request) {
+	data, err := findValues("chats", []string{"user2_id"}, map[string]string{"user_id1": "1"})
+	if err != nil {
+		handleError(err)
+		sendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Internal server error: ERR-0001"})
+		return
+	}
+	for _, userconst := range data {
+		fmt.Println(userconst)
+	}
 }

@@ -1,6 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { ArrowLeft, ArrowRight, CircleDashed, Upload } from "lucide-svelte";
+    import Error from "../../+error.svelte";
     let curSlide = 0;
     let fetching = false;
     let state = "intro";
@@ -117,19 +118,19 @@
             }, 2000);
         } catch (err) {
             console.error("Network error during registration:", err);
-            error = "Network error. Please check your connection.";
+            // error = err;
         }
     }
 </script>
 
-<div class="flex flex-col items-center justify-center h-screen">
+<div class="flex flex-col items-center justify-center bg-gray-50 h-screen">
     <div
-        class="bg-[#202020] p-8 rounded-lg flex-col shadow-lg h-2/6 w-lg flex justify-center align-middle items-center"
+        class="bg-gray-100/70 shadow-gray-500/50 p-8 rounded-lg flex-col shadow-lg h-2/6 w-lg flex justify-center align-middle items-center"
     >
         <div class="flex justify-center align-middle items-center flex-col">
             {#if curSlide === 0}
                 <div
-                    class={` ${state} font-bold text-2xl text-white mb-4 flex justify-center align-middle items-center text-center`}
+                    class={` ${state} font-bold text-2xl text-gray-800 mb-4 flex justify-center align-middle items-center text-center`}
                 >
                     Ready to join a community of like-minded individuals? Sign
                     up now and unlock a world of opportunities!
@@ -137,13 +138,13 @@
                 <button
                     disabled={state === "outro"}
                     onclick={nextSlide}
-                    class={`${state} bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full`}
+                    class={`${state} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
                 >
                     <ArrowRight class="w-6 h-6 p-0 m-0" />
                 </button>
             {:else if curSlide === 1}
                 <div
-                    class={`font-bold text-2xl text-white mb-4 flex justify-center align-middle items-center text-center ${state}`}
+                    class={`font-bold text-2xl text-gray-800 mb-4 flex justify-center align-middle items-center text-center ${state}`}
                 >
                     Choose a unique username.
                 </div>
@@ -152,18 +153,18 @@
                         type="text"
                         placeholder="Username"
                         bind:value={username}
-                        class={`bg-gray-700 px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        class={`bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     />
                     <button
                         onclick={nextSlide}
-                        class={`${state} bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full`}
+                        class={`${state} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
                     >
                         <ArrowRight class="w-6 h-6 p-0 m-0" />
                     </button>
                 </div>
             {:else if curSlide === 2}
                 <div
-                    class={`${state} font-bold text-2xl text-white mb-4 flex justify-center align-middle items-center text-center`}
+                    class={`${state} font-bold text-2xl text-gray-800 mb-4 flex justify-center align-middle items-center text-center`}
                 >
                     Enter your email address.
                 </div>
@@ -172,11 +173,11 @@
                         type="email"
                         placeholder="Email"
                         bind:value={email}
-                        class={`${state} bg-gray-700 px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        class={`${state} bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     />
                     <button
                         onclick={nextSlide}
-                        class={`${state} bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full`}
+                        class={`${state} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
                     >
                         <ArrowRight class="w-6 h-6 p-0 m-0" />
                     </button>
@@ -186,29 +187,31 @@
                     onsubmit={handleSubmit}
                     class={`${state} flex flex-col items-center gap-4`}
                 >
-                    <div class="font-bold text-2xl text-white mb-2 text-center">
+                    <div
+                        class="font-bold text-2xl text-gray-800 mb-2 text-center"
+                    >
                         Create a strong password.
                     </div>
                     <input
                         type="password"
                         placeholder="Password (min 8 chars)"
                         bind:value={password}
-                        class="bg-gray-700 px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <input
                         type="password"
                         placeholder="Confirm Password"
                         bind:value={passwordr}
-                        class="bg-gray-700 px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
                         type="submit"
                         disabled={fetching}
-                        class={`${fetching ? "animate-spin" : ""} bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full`}
+                        class={`${fetching ? "animate-spin" : ""} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
                     >
                         {#if fetching}
                             <svg
-                                class="animate-spin h-6 w-6 text-white"
+                                class="animate-spin h-6 w-6 text-gray-800"
                                 viewBox="0 0 24 24"
                             >
                                 <circle
