@@ -3,19 +3,17 @@
     import { Mic, PhoneOff, Share2, VideoOff, Send } from "lucide-svelte";
     import VideoDebug from "$lib/components/VideoDebug.svelte";
 
-    
     let localVideo: HTMLVideoElement;
     let remoteVideo: HTMLVideoElement;
 
-    
     let localStream: MediaStream | null = null;
     let remoteStream: MediaStream | null = null;
     let peerConnection: RTCPeerConnection | null = null;
+    let pendingCandidates: RTCIceCandidateInit[] = [];
     let socket: WebSocket | null = null;
     let isConnected = false;
     let isStreaming = false;
 
-    
     let isMuted = false;
     let isVideoOff = false;
     let isSharingScreen = false;
@@ -23,22 +21,22 @@
     let errorMessage = "";
     let statusMessage = "Initializing...";
 
-    
     let formData = {
         message: "",
         rating: 5,
         isPublic: true,
     };
-
-    
-    const rtcConfig = {
+    const rtcConfig: RTCConfiguration = {
         iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            
+            // { urls: "stun:stun.l.google.com:19302" },
+            {
+                urls: "turn:localhost:3499",
+                username: "admin",
+                credential: "admin",
+            },
         ],
     };
 
-    
     const initWebSocket = () => {
         try {
             const wsProtocol =
@@ -65,12 +63,10 @@
                 isConnected = false;
                 statusMessage = "Disconnected from server";
                 if (event.code !== 1000) {
-                    
                     errorMessage = `Connection closed: ${event.reason || "Unknown reason"}`;
                 }
                 stopWebRTC();
-
-                
+                // optionally try reconnect
                 if (!event.wasClean) {
                     console.log("Attempting to reconnect in 3 seconds...");
                     setTimeout(initWebSocket, 3000);
@@ -93,50 +89,55 @@
                         );
                         return;
                     }
-
                     switch (message.type) {
                         case "answer":
-                            console.log("Received answer:", message.data);
-                            try {
-                                const answer = new RTCSessionDescription(
-                                    message.data,
-                                );
-                                await peerConnection.setRemoteDescription(
-                                    answer,
-                                );
-                                console.log(
-                                    "Successfully set remote description (answer)",
-                                );
-                            } catch (err) {
-                                console.error(
-                                    "Error setting remote description:",
-                                    err,
-                                );
-                                errorMessage = "Failed to establish connection";
-                            }
-                            break;
-
-                        case "ice-candidate":
-                            if (message.data) {
+                            const answer = new RTCSessionDescription(
+                                message.data,
+                            );
+                            await peerConnection.setRemoteDescription(answer);
+                            console.log("Remote description set (answer)");
+                            // Now drain pending
+                            for (const cand of pendingCandidates) {
                                 try {
-                                    console.log(
-                                        "Adding ICE candidate:",
-                                        message.data,
-                                    );
                                     await peerConnection.addIceCandidate(
-                                        new RTCIceCandidate(message.data),
+                                        new RTCIceCandidate(cand),
                                     );
-                                } catch (err) {
+                                } catch (e) {
+                                    console.error(
+                                        "Error adding pending ICE candidate",
+                                        e,
+                                    );
+                                }
+                            }
+                            pendingCandidates = [];
+                            break;
+                        case "ice-candidate":
+                            const candData = message.data;
+                            const iceCandidateInit = new RTCIceCandidate(
+                                candData,
+                            );
+                            if (
+                                !peerConnection.remoteDescription ||
+                                !peerConnection.remoteDescription.type
+                            ) {
+                                console.log(
+                                    "RemoteDescription not set yet, queuing ICE candidate",
+                                    iceCandidateInit,
+                                );
+                                pendingCandidates.push(iceCandidateInit);
+                            } else {
+                                try {
+                                    await peerConnection.addIceCandidate(
+                                        iceCandidateInit,
+                                    );
+                                } catch (e) {
                                     console.error(
                                         "Error adding ICE candidate:",
-                                        err,
+                                        e,
                                     );
                                 }
                             }
                             break;
-
-                        default:
-                            console.warn("Unknown message type:", message.type);
                     }
                 } catch (err) {
                     console.error(
@@ -149,99 +150,10 @@
         } catch (err) {
             console.error("Failed to initialize WebSocket:", err);
             errorMessage = "Failed to connect to server";
-            
             setTimeout(initWebSocket, 3000);
         }
     };
 
-    
-    const preferCodec = (sdp: string, codec: string) => {
-        const lines = sdp.split("\n");
-        const mLineIndices: number[] = [];
-
-        
-        for (let i = 0; i < lines.length; i++) {
-            if (
-                lines[i].startsWith("m=") &&
-                (lines[i].includes("audio") || lines[i].includes("video"))
-            ) {
-                mLineIndices.push(i);
-            }
-        }
-
-        
-        for (const mLineIndex of mLineIndices) {
-            const mLine = lines[mLineIndex];
-            const isVideo = mLine.includes("video");
-
-            
-            const codecLines: { line: string; priority: number }[] = [];
-
-            for (let i = mLineIndex + 1; i < lines.length; i++) {
-                if (lines[i].startsWith("a=rtpmap")) {
-                    const payloadType = lines[i].split(" ")[0].split(":")[1];
-                    const codecName = lines[i].toLowerCase();
-                    let priority = 0;
-
-                    
-                    if (isVideo && codecName.includes("h264")) {
-                        priority = 1000;
-                    } else if (!isVideo && codecName.includes("opus")) {
-                        priority = 1000;
-                    } else if (codecName.includes("vp8")) {
-                        priority = 900;
-                    } else if (codecName.includes("vp9")) {
-                        priority = 800;
-                    }
-
-                    codecLines.push({
-                        line: `a=rtpmap:${payloadType}`,
-                        priority: priority,
-                    });
-                } else if (lines[i] === "") {
-                    break; 
-                }
-            }
-
-            
-            codecLines.sort((a, b) => b.priority - a.priority);
-
-            
-            if (codecLines.length > 0) {
-                const newLines: string[] = [];
-                const processedPayloads = new Set<string>();
-
-                
-                newLines.push(mLine);
-
-                
-                for (const codec of codecLines) {
-                    if (!processedPayloads.has(codec.line.split(" ")[0])) {
-                        newLines.push(codec.line);
-                        processedPayloads.add(codec.line.split(" ")[0]);
-                    }
-                }
-
-                
-                for (let i = mLineIndex + 1; i < lines.length; i++) {
-                    if (lines[i] === "") {
-                        newLines.push("");
-                        break;
-                    }
-                    if (!lines[i].startsWith("a=rtpmap")) {
-                        newLines.push(lines[i]);
-                    }
-                }
-
-                
-                lines.splice(mLineIndex, newLines.length, ...newLines);
-            }
-        }
-
-        return lines.join("\n");
-    };
-
-    
     const startWebRTC = async () => {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
             console.error("Cannot start WebRTC: WebSocket is not connected");
@@ -251,221 +163,131 @@
 
         try {
             console.log("Starting WebRTC connection...");
+            peerConnection = new RTCPeerConnection(rtcConfig);
 
-            
-            peerConnection = new RTCPeerConnection({
-                ...rtcConfig,
-                iceTransportPolicy: "all",
-                bundlePolicy: "max-bundle",
-                rtcpMuxPolicy: "require",
-                iceCandidatePoolSize: 10,
-            });
-
-            console.log("Created new RTCPeerConnection");
-
-            
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
                     console.log("New ICE candidate:", event.candidate);
                     if (socket?.readyState === WebSocket.OPEN) {
-                        const candidate = event.candidate.toJSON();
                         socket.send(
                             JSON.stringify({
                                 type: "ice-candidate",
-                                data: candidate,
+                                data: event.candidate.toJSON(),
                             }),
                         );
                         console.log("Sent ICE candidate to server");
                     }
                 } else {
-                    console.log("All ICE candidates have been sent");
+                    console.log("ICE candidate gathering finished");
                 }
             };
 
-            
-            peerConnection.oniceconnectionstatechange = () => {
-                if (!peerConnection) return;
-
-                console.log(
-                    "ICE connection state:",
-                    peerConnection.iceConnectionState,
-                );
-                statusMessage = `ICE: ${peerConnection.iceConnectionState}`;
-
-                
-                if (
-                    peerConnection.iceConnectionState === "failed" ||
-                    peerConnection.iceConnectionState === "disconnected"
-                ) {
-                    console.warn(
-                        "ICE connection failed or disconnected, restarting ICE...",
-                    );
-                    if (peerConnection.iceConnectionState !== "closed") {
-                        peerConnection.restartIce();
-                    }
-                }
-
-                
-                if (
-                    peerConnection.iceConnectionState === "closed" &&
-                    isConnected
-                ) {
-                    console.log(
-                        "ICE connection closed, attempting to reconnect...",
-                    );
-                    setTimeout(startWebRTC, 2000);
-                }
-            };
-
-            
             peerConnection.ontrack = (event) => {
-                console.log(
-                    "Received remote track:",
-                    event.track.kind,
-                    "with id:",
-                    event.track.id,
-                );
-
-                if (!remoteStream) {
-                    remoteStream = new MediaStream();
-                    console.log("Created new remote MediaStream");
-
+                console.log("ontrack", event);
+                const streamFromEvent = event.streams && event.streams[0];
+                if (streamFromEvent) {
+                    remoteStream = streamFromEvent;
                     if (remoteVideo) {
-                        remoteVideo.srcObject = remoteStream;
-                        remoteVideo.play().catch((err) => {
-                            console.error("Error playing remote video:", err);
-                            errorMessage = "Error playing video";
-                        });
+                        remoteVideo.srcObject = streamFromEvent;
+                        remoteVideo.play().catch((e) => console.error(e));
                     }
+                } else {
+                    // fallback to adding individual tracks:
+                    if (!remoteStream) {
+                        remoteStream = new MediaStream();
+                        if (remoteVideo) {
+                            remoteVideo.srcObject = remoteStream;
+                            remoteVideo.play().catch((e) => console.error(e));
+                        }
+                    }
+                    remoteStream.addTrack(event.track);
                 }
-
-                
-                remoteStream.addTrack(event.track);
-                console.log(
-                    "Added track to remote stream. Track count:",
-                    remoteStream.getTracks().length,
-                );
-
-                
-                event.track.onended = () => {
-                    console.log("Track ended:", event.track.id);
-                    if (remoteStream) {
-                        remoteStream.removeTrack(event.track);
-                    }
-                };
-
-                statusMessage = "Connected";
+                statusMessage = "Video stream received";
             };
 
-            
             peerConnection.onconnectionstatechange = () => {
                 if (!peerConnection) return;
-
                 const state = peerConnection.connectionState;
-                console.log("Connection state changed to:", state);
+                console.log("Connection state:", state);
                 statusMessage = `Connection: ${state}`;
-
                 if (state === "connected") {
                     isStreaming = true;
-                    console.log("WebRTC connection established successfully");
+                    console.log("WebRTC connection established");
                 } else if (
                     ["disconnected", "failed", "closed"].includes(state)
                 ) {
-                    console.warn("WebRTC connection lost or failed");
+                    console.warn("WebRTC connection lost or failed", state);
                     isStreaming = false;
-
-                    
-                    if (isConnected) {
-                        console.log("Attempting to reconnect WebRTC...");
-                        setTimeout(startWebRTC, 2000);
-                    }
                 }
             };
 
-            
+            // add local stream tracks
             if (localStream) {
-                console.log("Adding local stream tracks to peer connection");
-                for (const track of localStream.getTracks()) {
+                console.log("Adding local stream tracks");
+                localStream.getTracks().forEach((track) => {
                     if (peerConnection) {
-                        console.log(`Adding local ${track.kind} track`);
-                        peerConnection.addTrack(track, localStream);
+                        peerConnection.addTrack(
+                            track,
+                            localStream as MediaStream,
+                        );
+                        console.log(`Added local ${track.kind} track`);
                     }
-                }
+                });
             } else {
                 console.warn("No local stream available when starting WebRTC");
             }
 
-            
+            // create offer
             console.log("Creating offer...");
             const offer = await peerConnection.createOffer({
                 offerToReceiveAudio: true,
                 offerToReceiveVideo: true,
-                voiceActivityDetection: false,
-                iceRestart: false,
             });
-
-            
-            if (offer.sdp) {
-                offer.sdp = preferCodec(offer.sdp, "H264");
-            }
-
-            console.log("Setting local description...");
             await peerConnection.setLocalDescription(offer);
 
+            // send offer via websocket
             if (socket?.readyState === WebSocket.OPEN) {
-                const offerToSend = peerConnection.localDescription?.toJSON();
-                if (offerToSend) {
-                    socket.send(
-                        JSON.stringify({
-                            type: "offer",
-                            data: offerToSend,
-                        }),
-                    );
-                    console.log("Sent offer to server");
-                    statusMessage = "Sent offer, waiting for response...";
-                } else {
-                    throw new Error("Failed to create offer");
-                }
+                socket.send(
+                    JSON.stringify({
+                        type: "offer",
+                        data: peerConnection.localDescription,
+                    }),
+                );
+                console.log("Sent offer to server");
+                statusMessage = "Sent offer, waiting for answer...";
             } else {
-                throw new Error("WebSocket is not connected");
+                throw new Error("WebSocket closed before sending offer");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error in startWebRTC:", error);
             errorMessage = `Connection error: ${error.message}`;
             stopWebRTC();
-
-            
-            if (isConnected) {
-                console.log("Retrying WebRTC connection in 2 seconds...");
-                setTimeout(startWebRTC, 2000);
-            }
         }
     };
 
-    
     const stopWebRTC = () => {
         if (peerConnection) {
+            peerConnection.getSenders().forEach((sender) => {
+                // optionally stop tracks
+                if (sender.track) {
+                    sender.track.stop();
+                }
+            });
             peerConnection.ontrack = null;
             peerConnection.onicecandidate = null;
-            peerConnection.oniceconnectionstatechange = null;
-
-            
-            if (remoteStream) {
-                remoteStream.getTracks().forEach((track) => track.stop());
-                remoteStream = null;
-            }
-
-            
+            peerConnection.onconnectionstatechange = null;
             peerConnection.close();
             peerConnection = null;
         }
-
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.close();
         }
+        if (remoteStream) {
+            remoteStream.getTracks().forEach((t) => t.stop());
+            remoteStream = null;
+        }
     };
 
-    
     const toggleVideo = () => {
         if (localStream) {
             const videoTracks = localStream.getVideoTracks();
@@ -476,7 +298,6 @@
         }
     };
 
-    
     const toggleAudio = () => {
         if (localStream) {
             const audioTracks = localStream.getAudioTracks();
@@ -487,12 +308,9 @@
         }
     };
 
-    
-    onMount(async (): Promise<() => void> => {
+    onMount(async (): Promise<any> => {
         let cleanupComplete = false;
-
         try {
-            
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 1280 },
@@ -501,119 +319,114 @@
                 },
                 audio: true,
             });
-
             localStream = stream;
-
             if (localVideo) {
                 localVideo.srcObject = stream;
                 await localVideo.play();
                 statusMessage = "Camera ready";
             }
-
-            
             initWebSocket();
         } catch (err) {
             console.error("Error initializing camera:", err);
             errorMessage =
                 "Failed to access camera/microphone. Please check permissions.";
-            return () => {}; 
+            return () => {};
         }
 
-        
         return (): void => {
             if (cleanupComplete) return;
             cleanupComplete = true;
-
             stopWebRTC();
-
             if (localStream) {
                 localStream.getTracks().forEach((track) => track.stop());
                 localStream = null;
             }
-
             if (remoteStream) {
                 remoteStream.getTracks().forEach((track) => track.stop());
                 remoteStream = null;
             }
-
             if (remoteVideo?.srcObject) {
                 const tracks = (
                     remoteVideo.srcObject as MediaStream
                 ).getTracks();
-                tracks.forEach((track) => track.stop());
+                tracks.forEach((t) => t.stop());
                 remoteVideo.srcObject = null;
             }
         };
     });
 
-    
     async function toggleScreenShare() {
         if (isSharingScreen) {
-            
+            // revert to camera
             if (localStream) {
-                const videoTrack = localStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.stop();
+                const videoTracks = localStream.getVideoTracks();
+                videoTracks.forEach((t) => t.stop());
+                localStream = null;
+            }
+            // re-get camera
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false,
+                });
+                localStream = stream;
+                if (localVideo) {
+                    localVideo.srcObject = stream;
+                    await localVideo.play();
                 }
-
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: true,
-                        audio: false,
-                    });
-
-                    const newVideoTrack = stream.getVideoTracks()[0];
-                    if (newVideoTrack) {
-                        localStream.addTrack(newVideoTrack);
-                        if (localVideo) {
-                            localVideo.srcObject = localStream;
-                        }
-                    }
-                } catch (err) {
-                    console.error("Error switching back to camera:", err);
+                // re-add tracks if peerConnection already exists?
+                // for simplicity restart connection
+                if (isConnected) {
+                    stopWebRTC();
+                    startWebRTC();
                 }
+            } catch (err) {
+                console.error("Error switching back to camera:", err);
             }
         } else {
-            
             try {
                 const screenStream =
                     await navigator.mediaDevices.getDisplayMedia({
                         video: true,
                         audio: false,
                     });
-
                 if (localStream) {
-                    const videoTrack = localStream.getVideoTracks()[0];
-                    if (videoTrack) {
-                        videoTrack.stop();
-                        localStream.removeTrack(videoTrack);
+                    // stop old video track
+                    const videoTracks = localStream.getVideoTracks();
+                    videoTracks.forEach((t) => t.stop());
+                }
+                const newStream = new MediaStream();
+                // keep audio tracks
+                if (localStream) {
+                    localStream.getAudioTracks().forEach((t) => {
+                        newStream.addTrack(t);
+                    });
+                }
+                const screenTrack = screenStream.getVideoTracks()[0];
+                if (screenTrack) {
+                    newStream.addTrack(screenTrack);
+                    if (localVideo) {
+                        localVideo.srcObject = newStream;
+                        await localVideo.play();
                     }
-
-                    const screenTrack = screenStream.getVideoTracks()[0];
-                    if (screenTrack) {
-                        localStream.addTrack(screenTrack);
-                        if (localVideo) {
-                            localVideo.srcObject = localStream;
+                    screenTrack.onended = () => {
+                        if (isSharingScreen) {
+                            toggleScreenShare();
                         }
-
-                        
-                        screenTrack.onended = () => {
-                            if (isSharingScreen) {
-                                toggleScreenShare();
-                            }
-                        };
-                    }
+                    };
+                }
+                localStream = newStream;
+                if (isConnected) {
+                    stopWebRTC();
+                    startWebRTC();
                 }
             } catch (err) {
                 console.error("Error sharing screen:", err);
-                return;
             }
         }
-
         isSharingScreen = !isSharingScreen;
     }
 
-    
     function toggleMute() {
         if (localStream) {
             const audioTracks = localStream.getAudioTracks();
@@ -629,9 +442,7 @@
             console.error("Please enter a message");
             return;
         }
-
         isSubmitting = true;
-
         try {
             const response = await fetch("/api/test", {
                 method: "POST",
@@ -645,19 +456,14 @@
                     audioActive: !isMuted,
                 }),
             });
-
             if (!response.ok) {
                 throw new Error("Failed to submit data");
             }
-
             const result = await response.json();
-            console.log("Data submitted successfully!");
-            console.log("Server response:", result);
-
+            console.log("Data submitted successfully!", result);
             formData.message = "";
         } catch (error) {
             console.error("Error submitting data:", error);
-            console.error("Failed to submit data");
         } finally {
             isSubmitting = false;
         }
@@ -697,10 +503,9 @@
                         class="w-full h-full object-cover"
                         autoplay
                         playsinline
-                        muted
-                        controls
+                        muted={false}
                     ></video>
-                    {#if !remoteVideo?.srcObject}
+                    <!-- {#if !remoteVideo?.srcObject}
                         <div
                             class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white"
                         >
@@ -718,14 +523,14 @@
                                 {/if}
                             </div>
                         </div>
-                    {/if}
+                    {/if} -->
                 </div>
 
                 <div
                     class="bg-gray-800 p-4 flex items-center justify-center space-x-6"
                 >
                     <button
-                        onclick={toggleMute}
+                        on:click={toggleMute}
                         class={`p-3 rounded-full ${isMuted ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
                         aria-label={isMuted ? "Unmute" : "Mute"}
                     >
@@ -733,7 +538,7 @@
                     </button>
 
                     <button
-                        onclick={toggleVideo}
+                        on:click={toggleVideo}
                         class={`p-3 rounded-full ${isVideoOff ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
                         aria-label={isVideoOff
                             ? "Turn on camera"
@@ -746,7 +551,7 @@
                     </button>
 
                     <button
-                        onclick={toggleScreenShare}
+                        on:click={toggleScreenShare}
                         class={`p-3 rounded-full ${isSharingScreen ? "bg-blue-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
                         aria-label={isSharingScreen
                             ? "Stop sharing screen"
@@ -756,7 +561,7 @@
                     </button>
 
                     <button
-                        onclick={endCall}
+                        on:click={endCall}
                         class="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors"
                         aria-label="End call"
                     >

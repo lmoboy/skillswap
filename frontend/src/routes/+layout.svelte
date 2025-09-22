@@ -59,7 +59,7 @@
   </button>
 
   <div
-    class="fixed top-0 right-0 h-full w-64 bg-white dark:bg-gray-800 shadow-xl z-50 transform transition-transform duration-300
+    class="fixed top-0 right-0 h-full w-64 bg-white shadow-xl z-50 transform transition-transform duration-300
            {menuOpen ? 'translate-x-0' : 'translate-x-full'}"
   >
     <div class="p-6 flex flex-col h-full">

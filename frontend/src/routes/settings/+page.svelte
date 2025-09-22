@@ -6,12 +6,19 @@
 
     import { quintOut } from "svelte/easing";
     import { slide } from "svelte/transition";
-    let preview = $state(""); // This should be a URL or data URL
+    // Šī mainīgā glabās attēla priekšskatījuma URL (angļu v. preview URL).
+    let preview = $state("");
+    // Lietotāja vārds, kas piesaistīts ievades laukam.
     let name = $state("John Doe");
+    // Lietotāja e-pasts, kas piesaistīts ievades laukam.
     let email = $state("john@email.com");
+    // Lietotāja preferences, kas piesaistītas teksta laukam (angļu v. textarea).
     let preferences = $state("Daily email, weekly reports...");
+    // Parole, kas piesaistīta paroles ievades laukam.
     let password = $state("");
+    // Būla vērtība, kas norāda, vai 2FA ir iespējota (angļu v. enabled).
     let is2FAEnabled = $state(false);
+    // Objekts, kas glabās autentifikācijas stāvokli (angļu v. auth state).
     let authState: {
         user: { name: string; email: string } | null;
         isAuthenticated: boolean;
@@ -24,26 +31,32 @@
         error: null,
     };
 
+    // Abonēt autentifikācijas stāvokļa izmaiņas un atjaunināt 'authState'.
     const unsubscribe = auth.subscribe((state) => {
         authState = state;
     });
 
+    // Funkcija, kas tiek izsaukta, kad komponents (angļu v. component) tiek iznīcināts.
+    // Tā atsaista abonementu (angļu v. unsubscribes from the store).
     onDestroy(() => {
         unsubscribe();
     });
     /**
+     * Funkcija, kas apstrādā attēla faila izvēli.
      * @param {{ target: { files: any[]; }; }} event
      */
-    function handlePictureChange(event: { target: { files: any[]; }; }) {
+    function handlePictureChange(event: any) {
         const file = event.target.files[0];
         if (file) {
+            // Izveido URL objekta (angļu v. URL object) priekšskatījumu, ko var izmantot attēla tagā (angļu v. img tag).
             preview = URL.createObjectURL(file);
         }
     }
 
+    // Funkcija, kas apstrādā profila saglabāšanu.
     function saveProfile() {
-        // Handle form submission logic here
-        console.log("Profile saved!");
+        // Šeit tiks ievietota profila saglabāšanas loģika (angļu v. form submission logic).
+        console.log("Profils saglabāts! (angļu v. Profile saved!)");
     }
 </script>
 

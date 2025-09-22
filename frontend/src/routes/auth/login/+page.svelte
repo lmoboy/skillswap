@@ -58,40 +58,47 @@
     }
 </script>
 
-<div class="login-container">
-    <h2>Sign in</h2>
-    {#if error}
-        <div class="error">{error}</div>
-    {/if}
-    <form on:submit|preventDefault={handleSubmit}>
-        <label for="email">Email</label>
-        <input
-            id="email"
-            type="email"
-            bind:value={email}
-            required
-            class="w-full p-3 rounded-lg border border-blue-400/30 bg-gray-900/60 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            autocomplete="username"
-            disabled={loading}
-        />
+<div
+    class="w-full h-full flex justify-center items-center bg-white text-gray-800"
+>
+    <div class="w-full h-max max-w-md mx-auto p-4">
+        <h2 class="text-center">Sign in</h2>
+        {#if error}
+            <div class="error text-center">{error}</div>
+        {/if}
+        <form on:submit|preventDefault={handleSubmit}>
+            <label for="email" class="block text-center">Email</label>
+            <input
+                id="email"
+                type="email"
+                bind:value={email}
+                required
+                class="w-full p-3 rounded-lg border border-blue-400/30 bg-gray-100/60 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                autocomplete="username"
+                disabled={loading}
+            />
 
-        <label for="password">Password</label>
-        <input
-            id="password"
-            type="password"
-            bind:value={password}
-            required
-            autocomplete="current-password"
-            disabled={loading}
-        />
+            <label for="password" class="block text-center">Password</label>
+            <input
+                id="password"
+                type="password"
+                class="w-full p-3 rounded-lg border border-blue-400/30 bg-gray-100/60 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                bind:value={password}
+                required
+                autocomplete="current-password"
+                disabled={loading}
+            />
 
-        <button type="submit" disabled={loading}>
-            {#if loading}
-                Signing in...
-            {:else}
-                Sign in
-            {/if}
-        </button>
-        <a href="/auth/register">Don't have an account?</a>
-    </form>
+            <button type="submit" disabled={loading} class="w-full">
+                {#if loading}
+                    Signing in...
+                {:else}
+                    Sign in
+                {/if}
+            </button>
+            <p class="text-center mt-4">
+                <a href="/auth/register">Don't have an account?</a>
+            </p>
+        </form>
+    </div>
 </div>
