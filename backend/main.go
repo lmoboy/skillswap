@@ -8,13 +8,17 @@ import (
 	"strconv"
 	"time"
 
+	"skillswap/backend/authentication"
+	"skillswap/backend/config"
+	"skillswap/backend/utils"
+
 	"github.com/gorilla/mux"
 )
 
 func search(w http.ResponseWriter, req *http.Request) {
 	db, err := getDatabase()
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	defer db.Close()
@@ -24,7 +28,7 @@ func search(w http.ResponseWriter, req *http.Request) {
 	}
 	err = json.NewDecoder(req.Body).Decode(&requestBody)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 
@@ -44,14 +48,14 @@ func search(w http.ResponseWriter, req *http.Request) {
         GROUP BY u.id, u.username, u.email
     `)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	defer stmt.Close()
 
 	rows, err := stmt.Query(searchQuery, searchQuery, searchQuery, searchQuery)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	defer rows.Close()
@@ -72,29 +76,29 @@ func search(w http.ResponseWriter, req *http.Request) {
 			SkillsFound string `json:"skills_found"`
 		}
 		if err := rows.Scan(&r.ID, &r.Username, &r.Email, &r.SkillsFound); err != nil {
-			handleError(err)
+			utils.HandleError(err)
 			return
 		}
 		results = append(results, r)
 	}
 
 	if err := rows.Err(); err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, results)
+	SendJSONResponse(w, http.StatusOK, results)
 }
 func getAllSwappers(w http.ResponseWriter, req *http.Request) {
 
 	session, err := store.Get(req, "authentication")
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	db, err := getDatabase()
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	fmt.Println(session)
@@ -106,14 +110,14 @@ JOIN users u2 ON c.user2_id = u2.id
 WHERE u1.email = ? OR u2.email = ?;
 	`)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	defer stmt.Close()
 
 	rows, err := stmt.Query(session.Values["email"], session.Values["email"])
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	defer rows.Close()
@@ -131,31 +135,31 @@ WHERE u1.email = ? OR u2.email = ?;
 			Email    string `json:"email"`
 		}
 		if err := rows.Scan(&r.ID, &r.Username, &r.Email); err != nil {
-			handleError(err)
+			utils.HandleError(err)
 			return
 		}
 		results = append(results, r)
 	}
 
 	if err := rows.Err(); err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, results)
+	SendJSONResponse(w, http.StatusOK, results)
 }
 func startChatWithUser(w http.ResponseWriter, req *http.Request) {
 	// Get user data from session
 	session, err := store.Get(req, "authentication")
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 
 	// Get user email from session
 	userEmail, ok := session.Values["email"].(string)
 	if !ok {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 
@@ -165,7 +169,7 @@ func startChatWithUser(w http.ResponseWriter, req *http.Request) {
 	}{}
 	err = json.NewDecoder(req.Body).Decode(&requestBody)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	db, err := getDatabase()
@@ -185,14 +189,14 @@ func startChatWithUser(w http.ResponseWriter, req *http.Request) {
 	// Create a new chat entry
 	stmt, err := db.Prepare(`INSERT INTO chats (user1_id, user2_id, initiated_by) VALUES (?, ?, ?)`)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(user1ID, user2ID, user1ID) // Using user1ID as initiated_by
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 }
@@ -200,7 +204,7 @@ func startChatWithUser(w http.ResponseWriter, req *http.Request) {
 func getUser(w http.ResponseWriter, req *http.Request) {
 	db, err := getDatabase()
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 	defer db.Close()
@@ -208,26 +212,28 @@ func getUser(w http.ResponseWriter, req *http.Request) {
 	vars := req.URL.Query().Get("q")
 	id, err := strconv.ParseInt(vars, 10, 64)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 
 	user, err := getUserByID(db, id)
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, user)
+	SendJSONResponse(w, http.StatusOK, user)
 }
 func getUserByID(db *sql.DB, id int64) (map[string]interface{}, error) {
 	// First, get user data (excluding password_hash)
-	users, err := findValues("users", []string{"id", "skills", "location", "projects", "aboutme", "contacts", "username", "email", "created_at", "profile_picture"}, map[string]string{"id": strconv.FormatInt(id, 10)})
+	db, err := getDatabase()
+	db.Prepare("SELECT * FROM users WHERE id = ?")
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return nil, err
 	}
-
+	db.Exec(id)
+	var users []map[string]string
 	if len(users) == 0 {
 		return nil, fmt.Errorf("user not found")
 	}
@@ -246,7 +252,7 @@ func getUserByID(db *sql.DB, id int64) (map[string]interface{}, error) {
     `, id)
 
 	if err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -256,7 +262,7 @@ func getUserByID(db *sql.DB, id int64) (map[string]interface{}, error) {
 		var name string
 		var verified bool
 		if err := rows.Scan(&name, &verified); err != nil {
-			handleError(err)
+			utils.HandleError(err)
 			return nil, err
 		}
 		skills = append(skills, map[string]interface{}{
@@ -266,7 +272,7 @@ func getUserByID(db *sql.DB, id int64) (map[string]interface{}, error) {
 	}
 
 	if err = rows.Err(); err != nil {
-		handleError(err)
+		utils.HandleError(err)
 		return nil, err
 	}
 
@@ -282,25 +288,25 @@ func main() {
 
 	// Tiek definēti API ceļi (end-points) dažādām front-end darbībām.
 	// "HandleFunc" piesaista konkrētu URL ceļu noteiktai Go funkcijai.
-	server.HandleFunc("/api/chat", RunWebsocket)
-	server.HandleFunc("/api/login", login).Methods("POST")
-	server.HandleFunc("/api/register", register).Methods("POST")
-	server.HandleFunc("/api/logout", logout).Methods("POST")
-	server.HandleFunc("/api/cookieUser", getCookieUser).Methods("GET")
-	server.HandleFunc("/api/isEmailUsed", isEmailUsed).Methods("POST")
-	server.HandleFunc("/api/search", search).Methods("POST")
-	server.HandleFunc("/api/video", handleVideo)
-	server.HandleFunc("/api/user", getUser).Methods("GET")
-	server.HandleFunc("/api/getAllSwappers", getAllSwappers).Methods("GET")
+	// server.HandleFunc("/api/chat", RunWebsocket)
+	server.HandleFunc("/api/login", authentication.Login).Methods("POST")
+	server.HandleFunc("/api/register", authentication.Register).Methods("POST")
+	server.HandleFunc("/api/logout", authentication.Logout).Methods("POST")
+	// server.HandleFunc("/api/cookieUser", authentication.getCookieUser).Methods("GET")
+	// server.HandleFunc("/api/isEmailUsed", isEmailUsed).Methods("POST")
+	// server.HandleFunc("/api/search", search).Methods("POST")
+	// server.HandleFunc("/api/video", handleVideo)
+	// server.HandleFunc("/api/user", getUser).Methods("GET")
+	// server.HandleFunc("/api/getAllSwappers", getAllSwappers).Methods("GET")
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
 	// Tā atgriež JSON atbildi ar statusu "pong", kad tiek saņemts GET pieprasījums.
 	server.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
-		sendJSONResponse(w, http.StatusOK, map[string]string{"status": "pong"})
+		SendJSONResponse(w, http.StatusOK, map[string]string{"status": "pong"})
 	}).Methods("GET")
 
 	// Tiek konfigurēts CORS (Cross-Origin Resource Sharing), lai atļautu pieprasījumus
 	// no noteiktiem "oriģiniem" (front-end servera adresēm).
-	c := getCors()
+	c := config.CORS()
 
 	// Piesaista CORS apstrādātāju rūterim, lai tas darbotos ar visiem ceļiem.
 	server.Use(c.Handler)
