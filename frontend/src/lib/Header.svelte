@@ -7,15 +7,18 @@
     import Debug from "./components/Debug.svelte";
     import { slide } from "svelte/transition";
     import { quintOut } from "svelte/easing";
+    import AuthDebug from "./components/AuthDebug.svelte";
 
     let searchQuery = $state("");
     let searching = $state(false);
 
     let searchResult = <
         {
-            id: number;
-            username: string;
-            email: string;
+            user: {
+                username: string;
+                email: string;
+                id: string;
+            };
             skills_found: string;
         }[]
     >$state([]);
@@ -96,6 +99,7 @@
 </script>
 
 <header class="bg-white border-b border-gray-200">
+    <!-- <AuthDebug /> -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center">
@@ -138,12 +142,12 @@
                             </div>
                         {:else if searchResult != null && searchResult.length > 0}
                             <ul class="divide-y h-fit divide-gray-200">
-                                {#each searchResult as result (result.id)}
+                                {#each searchResult as result (result.user.id)}
                                     <li
                                         class="p-2 hover:bg-gray-100 transition-colors duration-200 h-fit"
                                     >
                                         <a
-                                            href={`/profile/${result.id}`}
+                                            href={`/profile/${result.user.id}`}
                                             class="block"
                                         >
                                             <div
@@ -151,14 +155,14 @@
                                             >
                                                 <img
                                                     class="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"
-                                                    src="https://via.placeholder.com/150"
+                                                    src={`https://via.placeholder.com/${result.user.id}`}
                                                     alt="Profile Picture"
                                                 />
                                                 <div class="flex-1 min-w-0">
                                                     <p
                                                         class="text-sm font-medium text-gray-900 truncate"
                                                     >
-                                                        {result.username}
+                                                        {result.user.username}
                                                     </p>
                                                     <p
                                                         class="text-xs text-gray-500 truncate"

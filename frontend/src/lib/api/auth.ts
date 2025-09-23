@@ -94,6 +94,63 @@ export async function login(credentials: { email: string; password: string }): P
     }
 }
 
+
+export async function register(credentials: { username: string, email: string, password: string }) {
+    try {
+        auth.setLoading(true); // Iestatīt ielādes statusu (angļu v. loading status) uz 'true'
+        auth.setStep("Datu ielāde... (angļu v. Fetching data...)") // Iestatīt pašreizējo darbības soli
+        // Veikt POST pieprasījumu (angļu v. POST request) uz pieteikšanās galapunktu (angļu v. login endpoint)
+        const response = await fetch(`${API_BASE}/register`, {
+            ...defaultOptions,
+            method: 'POST',
+            body: JSON.stringify(credentials), // Pārvērst datus (angļu v. data) par JSON virkni (angļu v. JSON string)
+            credentials: 'include', // Svarīgi sīkdatnēm (angļu v. cookies)
+        });
+
+        auth.setStep("Pārvēršanās uz json... (angļu v. Converting to json...)")
+        const data = await response.json(); // Parsēt atbildi kā JSON
+
+        if (!response.ok) {
+            // Ja atbilde nav veiksmīga, izmest kļūdu
+            throw new Error(data.error || 'Pieteikšanās neizdevās (angļu v. Login failed)');
+        }
+        auth.setStep("Lietotāja iestatīšana... (angļu v. Setting user...)")
+        if (data) {
+            // Ja ir saņemti dati, iestatīt lietotāju (angļu v. user)
+            auth.setUser({
+                name: data.username || '',
+                email: data.email || '',
+                id: data.id || '',
+            });
+
+            auth.setStep("Lietotājs iestatīts, pārbauda autentifikāciju... (angļu v. User set, checking auth...)")
+            await checkAuth(); // Pārbaudīt lietotāja autentifikāciju (angļu v. check auth)
+        } else {
+            throw new Error('Nederīgs atbildes formāts no servera (angļu v. Invalid response format from server)');
+        }
+        auth.setStep("Pieteikšanās pabeigta (angļu v. Login done)")
+
+        return {
+            status: 'ok',
+            user: {
+                name: data.username || '',
+                email: data.email || '',
+                id: data.id || '',
+            }
+        };
+    } catch (error) {
+        // Apstrādāt kļūdas, kas rodas pieteikšanās laikā
+        const errorMessage = error instanceof Error ? error.message : 'Pieteikšanās neizdevās (angļu v. Login failed)';
+        auth.setError(errorMessage); // Iestatīt kļūdas ziņojumu
+        throw error; // Pārsūtīt kļūdu tālāk
+    } finally {
+        auth.setLoading(false); // Vienmēr iestatīt ielādes statusu uz 'false'
+    }
+
+}
+
+
+
 /**
  * Funkcija lietotāja izrakstīšanai (angļu v. logout).
  * @returns {Promise<void>}
@@ -141,7 +198,6 @@ export async function checkAuth(): Promise<boolean> {
         auth.setStep("Datu ielāde no bd... (angļu v. Fetching data from bd...)");
         // console.log(response);
         const data = await response.json();
-        console.log(data);
         auth.setStep("Datu konvertēšana... (angļu v. Converting data...)");
 
         if (!response.ok) {
@@ -155,7 +211,7 @@ export async function checkAuth(): Promise<boolean> {
             auth.setStep("Lietotāja datu iestatīšana... (angļu v. Set user data...)");
 
             auth.setUser({
-                name: data.username || '',
+                name: data.user || '',
                 email: data.email || '',
                 id: data.id || '',
             });

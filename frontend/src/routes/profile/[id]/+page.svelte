@@ -5,13 +5,12 @@
     import { User, Mail, Twitter, Linkedin, MailIcon } from "lucide-svelte";
 
     export let data;
-    // let prop = $props();
+    let user = data;
     let id = $page.params.id;
-    let user = data.user;
 </script>
 
 <div class="bg-gray-100 min-h-screen p-8">
-    <!-- <Debug {user} /> -->
+    <Debug {data} />
     {#if !user}
         <div class="flex items-center justify-center">
             <div

@@ -9,9 +9,9 @@
     // Šī mainīgā glabās attēla priekšskatījuma URL (angļu v. preview URL).
     let preview = $state("");
     // Lietotāja vārds, kas piesaistīts ievades laukam.
-    let name = $state("John Doe");
+    let name = $auth.user.name
     // Lietotāja e-pasts, kas piesaistīts ievades laukam.
-    let email = $state("john@email.com");
+    let email = $auth.user.email;
     // Lietotāja preferences, kas piesaistītas teksta laukam (angļu v. textarea).
     let preferences = $state("Daily email, weekly reports...");
     // Parole, kas piesaistīta paroles ievades laukam.
