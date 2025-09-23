@@ -29,15 +29,12 @@
     });
 
     onMount(async () => {
-        await fetch(
-            "https://localhost:8080/api/user?q=" + authState?.user?.id,
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+        await fetch("/api/user?q=" + authState?.user?.id, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
             },
-        ).then((response) => {
+        }).then((response) => {
             if (response.ok) {
                 return response.json();
             }
@@ -65,7 +62,7 @@
                 </span>
             </div>
             <div class="text-center md:text-left">
-                <h1 class="text-4xl font-bold text-gray-900">John Doe</h1>
+                <h1 class="text-4xl font-bold text-gray-900"></h1>
                 <p class="text-gray-600 text-lg">Web Developer & Designer</p>
                 <p class="text-sm text-gray-500 mt-2">📍 New York, NY</p>
             </div>

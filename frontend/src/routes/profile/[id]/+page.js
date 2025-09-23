@@ -14,13 +14,16 @@ export async function load({ params, fetch: eventFetch }) {
             return response.json();
         }
     })
-    user.contacts = JSON.parse(user.contacts);
-    user.projects = JSON.parse(user.projects);
+    console.log(user)
+    // user.contacts = JSON.parse(user.contacts);
+    // user.projects = JSON.parse(user.projects);
     if (!user) {
-        throw error(403, 'Error fetching user data');
+        throw error(403, 'Error fetching user user');
     }
 
-    return {
-        user: user,
-    };
+    return user;
 }
+
+
+
+

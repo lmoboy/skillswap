@@ -1,275 +1,134 @@
-<script>
+<script lang="ts">
+    import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { ArrowLeft, ArrowRight, CircleDashed, Upload } from "lucide-svelte";
-    import Error from "../../+error.svelte";
-    let curSlide = 0;
-    let fetching = false;
-    let state = "intro";
+    import { register } from "$lib/api/auth";
+
     let username = "";
     let email = "";
     let password = "";
-    let passwordr = "";
     let error = "";
-    let success = "";
+    let loading = false;
 
-    const nextSlide = () => {
-        state = "outro";
-        setTimeout(() => {
-            state = "intro";
-            fetching = false;
-            curSlide = (curSlide + 1) % 4;
-        }, 500);
-    };
-    const prevSlide = () => {
-        state = "outro";
-        setTimeout(() => {
-            state = "intro";
-            fetching = false;
-            curSlide = (curSlide - 1 + 4) % 4;
-        }, 500);
-    };
-    const checkEmail = async () => {
-        try {
-            fetching = true;
-            const response = await fetch("/api/isEmailUsed", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ email }),
-            });
-            const data = await response.json();
-            error = data.used ? "Email already in use" : "";
-        } catch (error) {
-            console.error("Email check error:", error);
-            error = "Error checking email";
-        } finally {
-            fetching = false;
-        }
-    };
-
-    const checkUsername = async () => {
-        try {
-            fetching = true;
-            const response = await fetch("/api/isNameUsed", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ name: username }),
-            });
-            const data = await response.json();
-            error = data.used ? "Username already in use" : "";
-        } catch (error) {
-            console.error("Username check error:", error);
-            error = "Error checking username";
-        } finally {
-            fetching = false;
-        }
-    };
-
-    async function handleSubmit() {
-        // Reset errors
+    async function handleSubmit(event: Event) {
+        event.preventDefault();
         error = "";
 
-        // Validate inputs
-        if (!email || !username || !password) {
-            if (!email) error = "Email is required";
-            if (!username) error = "Username is required";
-            if (!password) error = "Password is required";
-            return;
-        }
-
-        if (email.length > 100) {
-            error = "Email is too long";
+        // Basic validation
+        if (!username || !email || !password) {
+            error = "All fields are required.";
             return;
         }
 
         if (username.length > 50) {
-            error = "Username is too long";
+            error = "Username is too long (max 50 characters)";
+            return;
+        }
+
+        if (email.length > 100) {
+            error = "Email is too long (max 100 characters)";
             return;
         }
 
         if (password.length < 8) {
-            error = "Password must be at least 8 characters";
+            error = "Password must be at least 8 characters long";
             return;
         }
 
         if (password.length > 50) {
-            error = "Password is too long";
+            error = "Password is too long (max 50 characters)";
             return;
         }
 
+        loading = true;
+
         try {
-            const response = await fetch("/api/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ username, email, password }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Registration failed");
-            }
-
-            // Registration successful, redirect to login
-            window.location.href = "/auth/login?registered=true";
-            setTimeout(() => {
-                goto("/auth/login");
-            }, 2000);
-        } catch (err) {
-            console.error("Network error during registration:", err);
-            // error = err;
+            await register({ username, email, password });
+            // Redirect to login on success
+            goto("/auth/login?registered=true");
+        } catch (err: unknown) {
+            error =
+                err instanceof Error
+                    ? err.message
+                    : "Registration failed. Please try again.";
+        } finally {
+            loading = false;
         }
     }
 </script>
 
-<div class="flex flex-col items-center justify-center bg-gray-50 h-screen">
-    <div
-        class="bg-gray-100/70 shadow-gray-500/50 p-8 rounded-lg flex-col shadow-lg h-2/6 w-lg flex justify-center align-middle items-center"
-    >
-        <div class="flex justify-center align-middle items-center flex-col">
-            {#if curSlide === 0}
-                <div
-                    class={` ${state} font-bold text-2xl text-gray-800 mb-4 flex justify-center align-middle items-center text-center`}
-                >
-                    Ready to join a community of like-minded individuals? Sign
-                    up now and unlock a world of opportunities!
-                </div>
-                <button
-                    disabled={state === "outro"}
-                    onclick={nextSlide}
-                    class={`${state} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
-                >
-                    <ArrowRight class="w-6 h-6 p-0 m-0" />
-                </button>
-            {:else if curSlide === 1}
-                <div
-                    class={`font-bold text-2xl text-gray-800 mb-4 flex justify-center align-middle items-center text-center ${state}`}
-                >
-                    Choose a unique username.
-                </div>
-                <div class={`${state} flex flex-row items-center gap-2`}>
-                    <input
-                        type="text"
-                        placeholder="Username"
-                        bind:value={username}
-                        class={`bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                    <button
-                        onclick={nextSlide}
-                        class={`${state} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
-                    >
-                        <ArrowRight class="w-6 h-6 p-0 m-0" />
-                    </button>
-                </div>
-            {:else if curSlide === 2}
-                <div
-                    class={`${state} font-bold text-2xl text-gray-800 mb-4 flex justify-center align-middle items-center text-center`}
-                >
-                    Enter your email address.
-                </div>
-                <div class={`${state} flex flex-row items-center gap-2`}>
-                    <input
-                        type="email"
-                        placeholder="Email"
-                        bind:value={email}
-                        class={`${state} bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                    <button
-                        onclick={nextSlide}
-                        class={`${state} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
-                    >
-                        <ArrowRight class="w-6 h-6 p-0 m-0" />
-                    </button>
-                </div>
-            {:else if curSlide === 3}
-                <form
-                    onsubmit={handleSubmit}
-                    class={`${state} flex flex-col items-center gap-4`}
-                >
-                    <div
-                        class="font-bold text-2xl text-gray-800 mb-2 text-center"
-                    >
-                        Create a strong password.
-                    </div>
-                    <input
-                        type="password"
-                        placeholder="Password (min 8 chars)"
-                        bind:value={password}
-                        class="bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                        type="password"
-                        placeholder="Confirm Password"
-                        bind:value={passwordr}
-                        class="bg-gray-100 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                        type="submit"
-                        disabled={fetching}
-                        class={`${fetching ? "animate-spin" : ""} bg-blue-500 hover:bg-blue-600 text-gray-800 p-2 rounded-full`}
-                    >
-                        {#if fetching}
-                            <svg
-                                class="animate-spin h-6 w-6 text-gray-800"
-                                viewBox="0 0 24 24"
-                            >
-                                <circle
-                                    class="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    stroke-width="4"
-                                ></circle>
-                                <path
-                                    class="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                            </svg>
-                        {:else}
-                            <Upload class="w-6 h-6 p-0 m-0" />
-                        {/if}
-                    </button>
-                </form>
-            {/if}
+<div
+    class="w-full h-full flex justify-center items-center bg-white text-gray-800"
+>
+    <div class="w-full h-max max-w-md mx-auto p-4">
+        <h2 class="text-center mb-6">Create Account</h2>
 
-            {#if error}
-                <div class="text-red-500 mt-4 text-center">{error}</div>
-            {:else if success}
-                <div class="text-green-500 mt-4 text-center">{success}</div>
-            {/if}
-        </div>
+        {#if error}
+            <div
+                class="text-red-500 text-center mb-4 p-2 bg-red-50 rounded-lg border border-red-200"
+            >
+                {error}
+            </div>
+        {/if}
+
+        <form on:submit={handleSubmit}>
+            <label for="username" class="block text-center mb-2">Username</label
+            >
+            <input
+                id="username"
+                type="text"
+                bind:value={username}
+                required
+                class="w-full p-3 rounded-lg border border-blue-400/30 bg-gray-100/60 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition mb-4"
+                autocomplete="username"
+                disabled={loading}
+                placeholder="Choose a unique username"
+            />
+
+            <label for="email" class="block text-center mb-2">Email</label>
+            <input
+                id="email"
+                type="email"
+                bind:value={email}
+                required
+                class="w-full p-3 rounded-lg border border-blue-400/30 bg-gray-100/60 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition mb-4"
+                autocomplete="email"
+                disabled={loading}
+                placeholder="Enter your email address"
+            />
+
+            <label for="password" class="block text-center mb-2">Password</label
+            >
+            <input
+                id="password"
+                type="password"
+                bind:value={password}
+                required
+                class="w-full p-3 rounded-lg border border-blue-400/30 bg-gray-100/60 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition mb-6"
+                autocomplete="new-password"
+                disabled={loading}
+                placeholder="Create a strong password"
+            />
+
+            <button
+                type="submit"
+                disabled={loading}
+                class="w-full p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+            >
+                {#if loading}
+                    Creating Account...
+                {:else}
+                    Create Account
+                {/if}
+            </button>
+
+            <p class="text-center text-gray-600">
+                Already have an account?
+                <a
+                    href="/auth/login"
+                    class="text-blue-500 hover:text-blue-600 font-medium"
+                    >Sign in</a
+                >
+            </p>
+        </form>
     </div>
 </div>
-
-<style>
-    @keyframes fade-in-from-side {
-        from {
-            transform: translateX(20px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0px);
-            opacity: 1;
-        }
-    }
-
-    @keyframes fade-out-to-side {
-        from {
-            transform: translateX(0px);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(-20px);
-            opacity: 0;
-        }
-    }
-    .intro {
-        animation: fade-in-from-side 0.5s ease-in-out;
-    }
-    .outro {
-        animation: fade-out-to-side 0.6s ease-in-out;
-    }
-</style>

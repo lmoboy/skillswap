@@ -1,91 +1,18 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
 	"skillswap/backend/authentication"
 	"skillswap/backend/config"
 	"skillswap/backend/database"
+	"skillswap/backend/users"
 	"skillswap/backend/utils"
 
 	"github.com/gorilla/mux"
+	_ "github.com/joho/godotenv/autoload"
 )
-
-func search(w http.ResponseWriter, req *http.Request) {
-	db, err := database.GetDatabase()
-	if err != nil {
-		utils.HandleError(err)
-		return
-	}
-
-	var requestBody struct {
-		Query string `json:"query"`
-	}
-	err = json.NewDecoder(req.Body).Decode(&requestBody)
-	if err != nil {
-		utils.HandleError(err)
-		return
-	}
-
-	searchQuery := "%" + requestBody.Query + "%"
-
-	// Use a corrected and more efficient SQL query with GROUP BY
-	stmt, err := db.Prepare(`
-        SELECT
-            u.id,
-            u.username,
-            u.email,
-            GROUP_CONCAT(s.name SEPARATOR ', ') AS skills_found
-        FROM users AS u
-        JOIN user_skills AS us ON u.id = us.user_id
-        JOIN skills AS s ON us.skill_id = s.id
-        WHERE u.username LIKE ? OR u.email LIKE ? OR s.name LIKE ? OR s.description LIKE ?
-        GROUP BY u.id, u.username, u.email
-    `)
-	if err != nil {
-		utils.HandleError(err)
-		return
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(searchQuery, searchQuery, searchQuery, searchQuery)
-	if err != nil {
-		utils.HandleError(err)
-		return
-	}
-	defer rows.Close()
-
-	// Define a new struct to hold the combined skills
-	var results []struct {
-		ID          int64  `json:"id"`
-		Username    string `json:"username"`
-		Email       string `json:"email"`
-		SkillsFound string `json:"skills_found"`
-	}
-
-	for rows.Next() {
-		var r struct {
-			ID          int64  `json:"id"`
-			Username    string `json:"username"`
-			Email       string `json:"email"`
-			SkillsFound string `json:"skills_found"`
-		}
-		if err := rows.Scan(&r.ID, &r.Username, &r.Email, &r.SkillsFound); err != nil {
-			utils.HandleError(err)
-			return
-		}
-		results = append(results, r)
-	}
-
-	if err := rows.Err(); err != nil {
-		utils.HandleError(err)
-		return
-	}
-
-	utils.SendJSONResponse(w, http.StatusOK, results)
-}
 
 func main() {
 	database.Init()
@@ -98,6 +25,9 @@ func main() {
 	server.HandleFunc("/api/login", authentication.Login).Methods("POST")
 	server.HandleFunc("/api/register", authentication.Register).Methods("POST")
 	server.HandleFunc("/api/logout", authentication.Logout).Methods("POST")
+	server.HandleFunc("/api/cookieUser", authentication.CheckSession).Methods("GET")
+	server.HandleFunc("/api/search", database.Search).Methods("POST")
+	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
 	// Tā atgriež JSON atbildi ar statusu "pong", kad tiek saņemts GET pieprasījums.
 	server.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
