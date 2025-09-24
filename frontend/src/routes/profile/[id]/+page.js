@@ -1,5 +1,4 @@
 import { error } from '@sveltejs/kit';
-
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, fetch: eventFetch }) {
 
@@ -10,13 +9,16 @@ export async function load({ params, fetch: eventFetch }) {
         },
     }).then(response => {
         if (response.ok) {
-            // console.log(response.json());
             return response.json();
         }
-    })
-    console.log(user)
-    // user.contacts = JSON.parse(user.contacts);
-    // user.projects = JSON.parse(user.projects);
+    }).catch(error => {
+        console.log(error);
+    });
+
+    // console.log(user.contacts)
+    user.contacts = JSON.parse(user.contacts);
+    user.skills = JSON.parse(user.skills);
+    user.projects = JSON.parse(user.projects);
     if (!user) {
         throw error(403, 'Error fetching user user');
     }
