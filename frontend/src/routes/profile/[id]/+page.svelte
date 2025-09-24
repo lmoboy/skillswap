@@ -1,17 +1,23 @@
-<script>
-    import { page } from "$app/stores";
+<script lang="ts">
+    import { page } from "$app/state";
     import Debug from "$lib/components/Debug.svelte";
     import { auth } from "$lib/stores/auth.js";
     import { User, Mail, Twitter, Linkedin, MailIcon } from "lucide-svelte";
 
-    export let data;
+    let { data } = $props();
+
     let user = data;
-    let id = $page.params.id;
+    let id = page.params.id;
+
+    $effect(() => {
+        id;
+        user = data;
+    });
 </script>
 
 <div class="bg-gray-100 min-h-screen p-8">
-    <Debug {data} />
-    {#if !user}
+    <!-- <Debug {data} /> -->
+    {#if !data}
         <div class="flex items-center justify-center">
             <div
                 class="spinner-border animate-spin text-gray-500"
@@ -43,7 +49,7 @@
                     <h1 class="text-4xl font-bold text-gray-900">
                         {user.username}
                     </h1>
-                    <p class="text-gray-600 text-lg">{user.skills}</p>
+                    <p class="text-gray-600 text-lg">{user.profession}</p>
                     <p class="text-sm text-gray-500 mt-2">📍 {user.location}</p>
                 </div>
                 <div
@@ -55,7 +61,7 @@
                     >
                         Message
                     </a>
-                    {#if user.id == $auth.user?.id}
+                    {#if user.id == $auth?.user?.id}
                         <button
                             class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
                         >
@@ -82,14 +88,14 @@
                         </h2>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             {#if user.projects != null && user.projects.length > 0}
-                                {#each user.projects as { title, description, link }}
+                                {#each user.projects as { name, description, link }}
                                     <div
                                         class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition"
                                     >
                                         <h3
                                             class="font-bold text-lg text-gray-800"
                                         >
-                                            {title}
+                                            {name}
                                         </h3>
                                         <p class="text-sm text-gray-600 mt-1">
                                             {description}

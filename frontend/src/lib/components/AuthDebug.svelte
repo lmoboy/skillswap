@@ -3,7 +3,7 @@
     import { onMount, onDestroy } from "svelte";
 
     let authState: {
-        user: { name: string; email: string } | null;
+        user: { name: string; email: string; id: number } | null;
         isAuthenticated: boolean;
         loading: boolean;
         error: string | null;
@@ -59,8 +59,9 @@
             <div class="mt-2 pt-2 border-t">
                 <div class="font-medium">User:</div>
                 <div class="ml-2">
-                    <div>Name: {authState.user.name}</div>
+                    <div>Name : {authState.user.name}</div>
                     <div>Email: {authState.user.email}</div>
+                    <div>ID : {authState.user.id}</div>
                 </div>
             </div>
         {/if}
