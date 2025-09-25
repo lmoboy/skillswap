@@ -70,6 +70,11 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"user": username, "email": email, "id": fmt.Sprintf("%d", id)})
 }
 
+// RemoveSession invalidates and removes the current authentication session.
+//
+// If the session cannot be retrieved, it responds with 400 Bad Request and returns an error.
+// If saving the invalidated session fails, it responds with 500 Internal Server Error and returns an error.
+// On success, the session is invalidated and the function returns nil.
 func RemoveSession(w http.ResponseWriter, req *http.Request) error {
 
 	session, err := store.Get(req, "authentication")

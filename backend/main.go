@@ -16,7 +16,8 @@ import (
 )
 
 // main initializes the application (database, routes and middleware) and starts the HTTP server.
-// It registers API endpoints for authentication, user, chat and search operations, configures CORS, and listens on localhost:8080 with 15s read and write timeouts.
+// main initializes the database, registers API endpoints for authentication, user, chat, and search, configures CORS, and starts an HTTP server on localhost:8080.
+// The server uses the configured router with ReadTimeout and WriteTimeout set to 15 seconds and blocks while serving.
 func main() {
 	database.Init()
 	// Izveido jaunu rūteri ar stingru pārbaudi slīpsvītrām, kas nozīmē, ka maršruti ar un bez beigu slīpsvītras tiek uzskatīti par atšķirīgiem.
