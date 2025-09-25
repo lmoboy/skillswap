@@ -6,6 +6,11 @@ import (
 	"skillswap/backend/utils"
 )
 
+// GetMessagesFromUID retrieves all messages for the chat specified by the "cid" query parameter and writes them as JSON.
+// Messages include sender details (id, username, email, profile picture, about me, professions, location), message content, and timestamp.
+// Messages are returned ordered by message ID in descending order.
+// On database query error the handler sends HTTP 500 with `{"error": "Failed to get chat messages"}`.
+// If scanning a result row fails the handler returns early and does not write a response.
 func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 	chatId := req.URL.Query().Get("cid")
 	res, err := database.Query(`
@@ -35,6 +40,8 @@ func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 	utils.SendJSONResponse(w, http.StatusOK, map[string]interface{}{"messages": contents})
 }
 
+// GetChatsFromUserID reads the "uid" query parameter, retrieves all chats involving that user from the database, and writes the resulting chats as JSON to the response.
+// On database error it sends HTTP 500 with a JSON error message; on success it sends HTTP 200 with the array of Chat objects.
 func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 	userId := req.URL.Query().Get("uid")
 	res, err := database.Query(`
