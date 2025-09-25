@@ -41,7 +41,10 @@ func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 }
 
 // GetChatsFromUserID reads the "uid" query parameter, retrieves all chats involving that user from the database, and writes the resulting chats as JSON to the response.
-// On database error it sends HTTP 500 with a JSON error message; on success it sends HTTP 200 with the array of Chat objects.
+// GetChatsFromUserID retrieves all chats involving the user specified by the "uid" query parameter and writes them as JSON to the response.
+// It queries the database for distinct chats for that user and returns HTTP 200 with the slice of Chat objects on success.
+// If the initial database query fails it logs the error and sends HTTP 500 with `{"error": "Failed to get chat messages"}`.
+// If scanning a result row fails it logs the error and returns immediately without writing a response.
 func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 	userId := req.URL.Query().Get("uid")
 	res, err := database.Query(`
@@ -70,4 +73,34 @@ func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 	// utils.DebugPrint(contents)
 	utils.DebugPrint("so we got the messages here: ", userId)
 	utils.SendJSONResponse(w, http.StatusOK, contents)
+}
+
+
+
+// LoadMessagesFromDatabase loads the latest 100 messages along with each sender's details from the database.
+// It returns a slice of Message populated with sender fields, content, and timestamp, or an error if the query or row scanning fails.
+func LoadMessagesFromDatabase() ([]Message, error) {
+	res, err := database.Query(`
+		SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location, m.content, m.created_at
+		FROM messages AS m
+		JOIN users AS u ON m.sender_id = u.id
+		ORDER BY m.id DESC
+		LIMIT 100`)
+	if err != nil {
+		utils.HandleError(err)
+		return nil, err
+	}
+	defer res.Close()
+
+	var messages []Message
+	for res.Next() {
+		var msg Message
+		err := res.Scan(&msg.Sender.ID, &msg.Sender.Username, &msg.Sender.Email, &msg.Sender.ProfilePicture, &msg.Sender.AboutMe, &msg.Sender.Professions, &msg.Sender.Location, &msg.Content, &msg.TimeStamp)
+		if err != nil {
+			utils.HandleError(err)
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
 }
