@@ -2,76 +2,71 @@
     import { auth } from "$lib/stores/auth";
     import { onMount, onDestroy } from "svelte";
 
-    let authState: {
-        user: { name: string; email: string } | null;
-        isAuthenticated: boolean;
-        loading: boolean;
-        error: string | null;
-    } = {
-        user: null,
-        isAuthenticated: false,
-        loading: true,
-        error: null,
+    type Messager = {
+        user_name: string;
+        user_id: string;
+        user_image: string;
+        chat_messages: {
+            message_sender: string;
+            message_content: string;
+        }[];
     };
 
-    const unsubscribe = auth.subscribe((state) => {
-        authState = state;
+    let swappers = $state([]);
+    let swappees = $state([]);
+    let chosenMessager = $state(-1);
+
+    onMount(async () => {
+        let chats = fetch("/api/getChats?uid=" + $auth.user?.id).then((res) => {
+            res.json().then((data) => {
+                return data;
+            });
+        });
+        console.log(chats);
+        fetch("/api/getChatInfo?cid=" + chats[0].id).then((res) => {
+            res.json().then((data) => {
+                swappees = data;
+            });
+        });
     });
 
-    onDestroy(() => {
-        unsubscribe();
-    });
+    // let swappers = $state([
+    //     {
+    //         name: "John",
+    //         id: "412487213",
+    //         lastMessage: "Hey, are you free to swap later?",
+    //         image: "https://randomuser.me/api/portraits/men/33.jpg",
+    //     },
+    //     {
+    //         name: $auth.user?.name,
+    //         id: "123456789",
+    //         lastMessage: "I'm available tomorrow morning.",
+    //         image: "https://randomuser.me/api/portraits/women/44.jpg",
+    //     },
+    // ]);
 
-    let swappers = $state([
-        {
-            name: "John",
-            id: "412487213",
-            lastMessage: "Hey, are you free to swap later?",
-            image: "https://randomuser.me/api/portraits/men/33.jpg",
-        },
-        {
-            name: authState.user?.name,
-            id: "123456789",
-            lastMessage: "I'm available tomorrow morning.",
-            image: "https://randomuser.me/api/portraits/women/44.jpg",
-        },
-    ]);
-
-    let swappees = $state([
-        {
-            name: "Sara",
-            id: "987654321",
-            lastMessage: "Sounds good, I'll send the details.",
-            image: "https://randomuser.me/api/portraits/women/55.jpg",
-        },
-        {
-            name: "Mike",
-            id: "112233445",
-            lastMessage: "Got it. See you then!",
-            image: "https://randomuser.me/api/portraits/men/66.jpg",
-        },
-    ]);
-
-    // Dummy data for messages - you would replace this with real data
-    let messages = $state([
-        { sender: "other", text: "Hey there! Ready to trade?" },
-        {
-            sender: authState.user?.name,
-            text: "Yep, what do you want to swap?",
-        },
-        { sender: "other", text: "I have a vintage watch." },
-        {
-            sender: authState.user?.name,
-            text: "Oh, cool! I have a rare comic book.",
-        },
-    ]);
+    // let swappees = $state<Messager>({
+    //     name: "Sara",
+    //     id: "987654321",
+    //     image: "https://randomuser.me/api/portraits/women/55.jpg",
+    //     messages: [
+    //         { sender: "other", text: "Hey there! Ready to trade?" },
+    //         {
+    //             sender: authState.user?.name,
+    //             text: "Yep, what do you want to swap?",
+    //         },
+    //         { sender: "other", text: "I have a vintage watch." },
+    //         {
+    //             sender: authState.user?.name,
+    //             text: "Oh, cool! I have a rare comic book.",
+    //         },
+    //     ],
+    // });
 </script>
 
-<div
-    class="h-screen w-full p-4 bg-gray-100 transition-colors duration-300"
->
+<div class="h-screen w-full p-4 bg-gray-100 transition-colors duration-300">
     <div class="grid grid-cols-5 grid-rows-6 h-full w-full gap-4">
-        <div
+        <!-- <div
             class="flex flex-col col-span-1 row-span-6 bg-white p-4 gap-4 rounded-xl shadow-lg overflow-y-auto"
         >
             <h2 class="text-xl font-bold text-gray-800 dark:text-white">
@@ -93,13 +88,10 @@
                                 class="w-12 h-12 rounded-full ring-2 ring-gray-200 object-cover"
                             />
                             <div class="flex-grow min-w-0">
-                                <span
-                                    class="text-gray-900 font-medium truncate"
+                                <span class="text-gray-900 font-medium truncate"
                                     >{swapper.name}</span
                                 >
-                                <p
-                                    class="text-sm text-gray-600 truncate"
-                                >
+                                <p class="text-sm text-gray-600 truncate">
                                     {swapper.lastMessage}
                                 </p>
                             </div>
@@ -126,7 +118,7 @@
                 {#each messages as message}
                     <div
                         class="flex flex-col p-2 rounded-lg max-w-2/3 {message.sender ===
-                        authState.user?.name
+                        $auth.user?.name
                             ? 'bg-blue-500 text-white self-end'
                             : 'bg-gray-200 text-gray-800 self-start'}"
                     >
@@ -138,7 +130,6 @@
             <div
                 class="col-span-4 row-span-1 bg-white rounded-xl shadow-lg p-3 flex items-center gap-3"
             >
-                <!-- svelte-ignore a11y_consider_explicit_label -->
                 <button
                     class="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors duration-200"
                 >
@@ -156,7 +147,6 @@
                         /></svg
                     >
                 </button>
-                <!-- svelte-ignore a11y_consider_explicit_label -->
                 <button
                     class="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors duration-200"
                 >
@@ -185,6 +175,6 @@
                     Send
                 </button>
             </div>
-        </div>
+        </div> -->
     </div>
 </div>

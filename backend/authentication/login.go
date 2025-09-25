@@ -26,7 +26,7 @@ func Login(w http.ResponseWriter, req *http.Request) {
 			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid username or password"})
 			return
 		}
-		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "AH-246"})
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Report this to the developer\nERRC : LG-29"})
 		return
 	}
 

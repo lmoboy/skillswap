@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"skillswap/backend/authentication"
+	"skillswap/backend/chat"
 	"skillswap/backend/config"
 	"skillswap/backend/database"
 	"skillswap/backend/users"
@@ -28,6 +29,11 @@ func main() {
 	server.HandleFunc("/api/cookieUser", authentication.CheckSession).Methods("GET")
 	server.HandleFunc("/api/search", database.Search).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
+
+	server.HandleFunc("/api/getChats", chat.GetChatsFromUserID)
+	server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromChatId)
+	// server.HandleFunc("/api/video", websocket.JoinWebSocket).Methods("GET")
+
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
 	// Tā atgriež JSON atbildi ar statusu "pong", kad tiek saņemts GET pieprasījums.
 	server.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,4 @@
-package websocket
+package chat
 
 import (
 	"encoding/json"
@@ -11,11 +11,6 @@ import (
 )
 
 // Upgrader is the websocket upgrader
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
-}
 
 // NewHub creates a new hub
 func NewHub() *MessageHub {
@@ -26,11 +21,29 @@ func NewHub() *MessageHub {
 	}
 }
 
+func (h *MessageHub) Run() {
+	for {
+		msg := <-h.Broadcasts
+		h.Mutex.Lock()
+		h.Messages = append(h.Messages, msg)
+		for client := range h.Clients {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				utils.HandleError(err)
+				fmt.Println("Error writing message:", err)
+				client.Close()
+				delete(h.Clients, client)
+			}
+		}
+		h.Mutex.Unlock()
+	}
+}
+
 // WSEndpoint is the websocket endpoint handler
 func WSEndpoint(w http.ResponseWriter, req *http.Request, hub *MessageHub) {
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	MessageUpgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
-	webSocket, err := upgrader.Upgrade(w, req, nil)
+	webSocket, err := MessageUpgrader.Upgrade(w, req, nil)
 	if err != nil {
 		utils.HandleError(err)
 		fmt.Println("Websocket connection error :", err)

@@ -36,6 +36,6 @@ func Register(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create session"})
 		return
 	}
-
-	utils.SendJSONResponse(w, http.StatusCreated, map[string]string{"status": "ok", "message": "Registration successful"})
+	CheckSession(w, req)
+	// utils.SendJSONResponse(w, http.StatusCreated, map[string]string{"status": "ok", "message": "Registration successful"})
 }
