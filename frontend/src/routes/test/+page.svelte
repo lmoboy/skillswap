@@ -1,479 +1,107 @@
-<script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+<script>
+// @ts-nocheck
+
     import { Mic, PhoneOff, Share2, VideoOff, Send } from "lucide-svelte";
     import VideoDebug from "$lib/components/VideoDebug.svelte";
+    import { auth } from "$lib/stores/auth";
 
-    let localVideo: HTMLVideoElement;
-    let remoteVideo: HTMLVideoElement;
-
-    let localStream: MediaStream | null = null;
-    let remoteStream: MediaStream | null = null;
-    let peerConnection: RTCPeerConnection | null = null;
-    let pendingCandidates: RTCIceCandidateInit[] = [];
-    let socket: WebSocket | null = null;
-    let isConnected = false;
-    let isStreaming = false;
-
+    let localStream;
+    let peerConnection;
     let isMuted = false;
-    let isVideoOff = false;
-    let isSharingScreen = false;
-    let isSubmitting = false;
-    let errorMessage = "";
-    let statusMessage = "Initializing...";
+    let isVideoStopped = false;
 
-    let formData = {
-        message: "",
-        rating: 5,
-        isPublic: true,
-    };
-    const rtcConfig: RTCConfiguration = {
-        iceServers: [
-            // { urls: "stun:stun.l.google.com:19302" },
-            {
-                urls: "turn:localhost:3499",
-                username: "admin",
-                credential: "admin",
-            },
-        ],
-    };
+    async function joinSession() {
+        const name = $auth.user.name;
 
-    const initWebSocket = () => {
-        try {
-            const wsProtocol =
-                window.location.protocol === "https:" ? "wss:" : "ws:";
-            const wsUrl = `${wsProtocol}//${window.location.host}/api/video`;
+        
+        peerConnection = new RTCPeerConnection({
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
 
-            console.log("Connecting to WebSocket:", wsUrl);
-            socket = new WebSocket(wsUrl);
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+        });
+        localStream
+            .getTracks()
+            .forEach((track) => peerConnection.addTrack(track, localStream));
 
-            socket.onopen = () => {
-                console.log("WebSocket connected successfully");
-                isConnected = true;
-                statusMessage = "Connected to server";
-                errorMessage = "";
-                startWebRTC();
-            };
+        const localVideo = document.createElement("video");
+        localVideo.srcObject = localStream;
+        localVideo.autoplay = true;
+        localVideo.muted = true;
 
-            socket.onclose = (event) => {
-                console.log(
-                    "WebSocket disconnected:",
-                    event.code,
-                    event.reason,
-                );
-                isConnected = false;
-                statusMessage = "Disconnected from server";
-                if (event.code !== 1000) {
-                    errorMessage = `Connection closed: ${event.reason || "Unknown reason"}`;
-                }
-                stopWebRTC();
-                // optionally try reconnect
-                if (!event.wasClean) {
-                    console.log("Attempting to reconnect in 3 seconds...");
-                    setTimeout(initWebSocket, 3000);
-                }
-            };
+        const ws = new WebSocket(`/api/video`);
 
-            socket.onerror = (error) => {
-                console.error("WebSocket error:", error);
-                errorMessage = "Connection error. Trying to reconnect...";
-            };
+        ws.onopen = () => {
+            console.log("Connected to the signaling server");
+            ws.send(JSON.stringify({ type: "join", name: name }));
+        };
 
-            socket.onmessage = async (event) => {
-                try {
-                    const message = JSON.parse(event.data);
-                    console.log("Received WebSocket message:", message);
-
-                    if (!peerConnection) {
-                        console.error(
-                            "Received message but no peer connection exists",
-                        );
-                        return;
-                    }
-                    switch (message.type) {
-                        case "answer":
-                            const answer = new RTCSessionDescription(
-                                message.data,
-                            );
-                            await peerConnection.setRemoteDescription(answer);
-                            console.log("Remote description set (answer)");
-                            // Now drain pending
-                            for (const cand of pendingCandidates) {
-                                try {
-                                    await peerConnection.addIceCandidate(
-                                        new RTCIceCandidate(cand),
-                                    );
-                                } catch (e) {
-                                    console.error(
-                                        "Error adding pending ICE candidate",
-                                        e,
-                                    );
-                                }
-                            }
-                            pendingCandidates = [];
-                            break;
-                        case "ice-candidate":
-                            const candData = message.data;
-                            const iceCandidateInit = new RTCIceCandidate(
-                                candData,
-                            );
-                            if (
-                                !peerConnection.remoteDescription ||
-                                !peerConnection.remoteDescription.type
-                            ) {
-                                console.log(
-                                    "RemoteDescription not set yet, queuing ICE candidate",
-                                    iceCandidateInit,
-                                );
-                                pendingCandidates.push(iceCandidateInit);
-                            } else {
-                                try {
-                                    await peerConnection.addIceCandidate(
-                                        iceCandidateInit,
-                                    );
-                                } catch (e) {
-                                    console.error(
-                                        "Error adding ICE candidate:",
-                                        e,
-                                    );
-                                }
-                            }
-                            break;
-                    }
-                } catch (err) {
-                    console.error(
-                        "Error processing WebSocket message:",
-                        err,
-                        event.data,
+        ws.onmessage = async (message) => {
+            const data = JSON.parse(message.data);
+            switch (data.type) {
+                case "offer":
+                    await peerConnection.setRemoteDescription(
+                        new RTCSessionDescription(data.offer),
                     );
-                }
-            };
-        } catch (err) {
-            console.error("Failed to initialize WebSocket:", err);
-            errorMessage = "Failed to connect to server";
-            setTimeout(initWebSocket, 3000);
-        }
-    };
-
-    const startWebRTC = async () => {
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
-            console.error("Cannot start WebRTC: WebSocket is not connected");
-            errorMessage = "Not connected to server";
-            return;
-        }
-
-        try {
-            console.log("Starting WebRTC connection...");
-            peerConnection = new RTCPeerConnection(rtcConfig);
-
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    console.log("New ICE candidate:", event.candidate);
-                    if (socket?.readyState === WebSocket.OPEN) {
-                        socket.send(
-                            JSON.stringify({
-                                type: "ice-candidate",
-                                data: event.candidate.toJSON(),
-                            }),
-                        );
-                        console.log("Sent ICE candidate to server");
-                    }
-                } else {
-                    console.log("ICE candidate gathering finished");
-                }
-            };
-
-            peerConnection.ontrack = (event) => {
-                console.log("ontrack", event);
-                const streamFromEvent = event.streams && event.streams[0];
-                if (streamFromEvent) {
-                    remoteStream = streamFromEvent;
-                    if (remoteVideo) {
-                        remoteVideo.srcObject = streamFromEvent;
-                        remoteVideo.play().catch((e) => console.error(e));
-                    }
-                } else {
-                    // fallback to adding individual tracks:
-                    if (!remoteStream) {
-                        remoteStream = new MediaStream();
-                        if (remoteVideo) {
-                            remoteVideo.srcObject = remoteStream;
-                            remoteVideo.play().catch((e) => console.error(e));
-                        }
-                    }
-                    remoteStream.addTrack(event.track);
-                }
-                statusMessage = "Video stream received";
-            };
-
-            peerConnection.onconnectionstatechange = () => {
-                if (!peerConnection) return;
-                const state = peerConnection.connectionState;
-                console.log("Connection state:", state);
-                statusMessage = `Connection: ${state}`;
-                if (state === "connected") {
-                    isStreaming = true;
-                    console.log("WebRTC connection established");
-                } else if (
-                    ["disconnected", "failed", "closed"].includes(state)
-                ) {
-                    console.warn("WebRTC connection lost or failed", state);
-                    isStreaming = false;
-                }
-            };
-
-            // add local stream tracks
-            if (localStream) {
-                console.log("Adding local stream tracks");
-                localStream.getTracks().forEach((track) => {
-                    if (peerConnection) {
-                        peerConnection.addTrack(
-                            track,
-                            localStream as MediaStream,
-                        );
-                        console.log(`Added local ${track.kind} track`);
-                    }
-                });
-            } else {
-                console.warn("No local stream available when starting WebRTC");
-            }
-
-            // create offer
-            console.log("Creating offer...");
-            const offer = await peerConnection.createOffer({
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: true,
-            });
-            await peerConnection.setLocalDescription(offer);
-
-            // send offer via websocket
-            if (socket?.readyState === WebSocket.OPEN) {
-                socket.send(
-                    JSON.stringify({
-                        type: "offer",
-                        data: peerConnection.localDescription,
-                    }),
-                );
-                console.log("Sent offer to server");
-                statusMessage = "Sent offer, waiting for answer...";
-            } else {
-                throw new Error("WebSocket closed before sending offer");
-            }
-        } catch (error: any) {
-            console.error("Error in startWebRTC:", error);
-            errorMessage = `Connection error: ${error.message}`;
-            stopWebRTC();
-        }
-    };
-
-    const stopWebRTC = () => {
-        if (peerConnection) {
-            peerConnection.getSenders().forEach((sender) => {
-                // optionally stop tracks
-                if (sender.track) {
-                    sender.track.stop();
-                }
-            });
-            peerConnection.ontrack = null;
-            peerConnection.onicecandidate = null;
-            peerConnection.onconnectionstatechange = null;
-            peerConnection.close();
-            peerConnection = null;
-        }
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.close();
-        }
-        if (remoteStream) {
-            remoteStream.getTracks().forEach((t) => t.stop());
-            remoteStream = null;
-        }
-    };
-
-    const toggleVideo = () => {
-        if (localStream) {
-            const videoTracks = localStream.getVideoTracks();
-            if (videoTracks.length > 0) {
-                isVideoOff = !isVideoOff;
-                videoTracks[0].enabled = !isVideoOff;
-            }
-        }
-    };
-
-    const toggleAudio = () => {
-        if (localStream) {
-            const audioTracks = localStream.getAudioTracks();
-            if (audioTracks.length > 0) {
-                isMuted = !isMuted;
-                audioTracks[0].enabled = !isMuted;
-            }
-        }
-    };
-
-    onMount(async (): Promise<any> => {
-        let cleanupComplete = false;
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 30, max: 30 },
-                },
-                audio: true,
-            });
-            localStream = stream;
-            if (localVideo) {
-                localVideo.srcObject = stream;
-                await localVideo.play();
-                statusMessage = "Camera ready";
-            }
-            initWebSocket();
-        } catch (err) {
-            console.error("Error initializing camera:", err);
-            errorMessage =
-                "Failed to access camera/microphone. Please check permissions.";
-            return () => {};
-        }
-
-        return (): void => {
-            if (cleanupComplete) return;
-            cleanupComplete = true;
-            stopWebRTC();
-            if (localStream) {
-                localStream.getTracks().forEach((track) => track.stop());
-                localStream = null;
-            }
-            if (remoteStream) {
-                remoteStream.getTracks().forEach((track) => track.stop());
-                remoteStream = null;
-            }
-            if (remoteVideo?.srcObject) {
-                const tracks = (
-                    remoteVideo.srcObject as MediaStream
-                ).getTracks();
-                tracks.forEach((t) => t.stop());
-                remoteVideo.srcObject = null;
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    ws.send(JSON.stringify({ type: "answer", answer: answer }));
+                    break;
+                case "answer":
+                    await peerConnection.setRemoteDescription(
+                        new RTCSessionDescription(data.answer),
+                    );
+                    break;
+                case "candidate":
+                    await peerConnection.addIceCandidate(
+                        new RTCIceCandidate(data.candidate),
+                    );
+                    break;
+                default:
+                    break;
             }
         };
-    });
 
-    async function toggleScreenShare() {
-        if (isSharingScreen) {
-            // revert to camera
-            if (localStream) {
-                const videoTracks = localStream.getVideoTracks();
-                videoTracks.forEach((t) => t.stop());
-                localStream = null;
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                ws.send(
+                    JSON.stringify({
+                        type: "candidate",
+                        candidate: event.candidate,
+                    }),
+                );
             }
-            // re-get camera
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false,
-                });
-                localStream = stream;
-                if (localVideo) {
-                    localVideo.srcObject = stream;
-                    await localVideo.play();
-                }
-                // re-add tracks if peerConnection already exists?
-                // for simplicity restart connection
-                if (isConnected) {
-                    stopWebRTC();
-                    startWebRTC();
-                }
-            } catch (err) {
-                console.error("Error switching back to camera:", err);
-            }
-        } else {
-            try {
-                const screenStream =
-                    await navigator.mediaDevices.getDisplayMedia({
-                        video: true,
-                        audio: false,
-                    });
-                if (localStream) {
-                    // stop old video track
-                    const videoTracks = localStream.getVideoTracks();
-                    videoTracks.forEach((t) => t.stop());
-                }
-                const newStream = new MediaStream();
-                // keep audio tracks
-                if (localStream) {
-                    localStream.getAudioTracks().forEach((t) => {
-                        newStream.addTrack(t);
-                    });
-                }
-                const screenTrack = screenStream.getVideoTracks()[0];
-                if (screenTrack) {
-                    newStream.addTrack(screenTrack);
-                    if (localVideo) {
-                        localVideo.srcObject = newStream;
-                        await localVideo.play();
-                    }
-                    screenTrack.onended = () => {
-                        if (isSharingScreen) {
-                            toggleScreenShare();
-                        }
-                    };
-                }
-                localStream = newStream;
-                if (isConnected) {
-                    stopWebRTC();
-                    startWebRTC();
-                }
-            } catch (err) {
-                console.error("Error sharing screen:", err);
-            }
-        }
-        isSharingScreen = !isSharingScreen;
+        };
+
+        peerConnection.ontrack = (event) => {
+            addRemoteStream(event.streams[0]);
+        };
     }
 
     function toggleMute() {
-        if (localStream) {
-            const audioTracks = localStream.getAudioTracks();
-            if (audioTracks.length > 0) {
-                isMuted = !isMuted;
-                audioTracks[0].enabled = !isMuted;
-            }
-        }
+        localStream
+            .getAudioTracks()
+            .forEach(
+                (track) =>
+                    (track.enabled = !track.enabled),
+            );
+        isMuted = !isMuted;
     }
 
-    async function handleSubmit() {
-        if (!formData.message.trim()) {
-            console.error("Please enter a message");
-            return;
-        }
-        isSubmitting = true;
-        try {
-            const response = await fetch("/api/test", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    ...formData,
-                    timestamp: new Date().toISOString(),
-                    videoActive: !isVideoOff,
-                    audioActive: !isMuted,
-                }),
-            });
-            if (!response.ok) {
-                throw new Error("Failed to submit data");
-            }
-            const result = await response.json();
-            console.log("Data submitted successfully!", result);
-            formData.message = "";
-        } catch (error) {
-            console.error("Error submitting data:", error);
-        } finally {
-            isSubmitting = false;
-        }
+    function toggleVideo() {
+        localStream.getVideoTracks().forEach(
+                (track) =>
+                    (track.enabled = !track.enabled),
+            );
+        isVideoStopped = !isVideoStopped;
     }
 
-    function endCall() {
-        if (localStream) {
-            localStream.getTracks().forEach((track) => track.stop());
-        }
-        window.location.href = "/";
+    function addRemoteStream(stream) {
+        const remoteVideo = document.createElement("video");
+        remoteVideo.srcObject = stream;
+        remoteVideo.autoplay = true;
     }
 </script>
 
@@ -550,7 +178,7 @@
                         />
                     </button>
 
-                    <button
+                    <!-- <button
                         on:click={toggleScreenShare}
                         class={`p-3 rounded-full ${isSharingScreen ? "bg-blue-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
                         aria-label={isSharingScreen
@@ -558,7 +186,7 @@
                             : "Share screen"}
                     >
                         <Share2 size={20} />
-                    </button>
+                    </button> -->
 
                     <button
                         on:click={endCall}

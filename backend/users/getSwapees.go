@@ -3,10 +3,20 @@ package users
 import (
 	"net/http"
 	"skillswap/backend/database"
+	"skillswap/backend/utils"
 )
 
 func GetSwapeeList(w http.ResponseWriter, req *http.Request) {
-	database.Execute(`
-		SELECT u.*, c.* FROM users AS u, chats AS c WHERE c.initiator != 10 AND c.user1_id = u.id OR c.user2_id = u.id
-		`)
+	utils.DebugPrint(req.URL.RawQuery)
+	requestId := req.URL.Query().Get("uid")
+	utils.DebugPrint(requestId)
+	res, err := database.Query(`
+		SELECT * FROm chats AS c, users AS u WHERE c.initiated_by = ? AND c.user1_id = u.id OR c.user2_id = u.id;
+`, requestId)
+	if err != nil {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to get swapees"})
+		return
+	}
+	utils.SendJSONResponse(w, http.StatusOK, res)
 }

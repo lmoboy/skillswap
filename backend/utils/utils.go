@@ -13,6 +13,7 @@ func SendJSONResponse(w http.ResponseWriter, statusCode int, payload interface{}
 	json.NewEncoder(w).Encode(payload)
 }
 
+
 func DebugPrint(message ...any) {
 	_, filename, line, _ := runtime.Caller(1)
 	fmt.Printf("%s:%d (%s)\n", filename, line, message)
