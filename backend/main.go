@@ -24,13 +24,15 @@ func main() {
 
 	// Tiek definēti API ceļi (end-points) dažādām front-end darbībām.
 	// "HandleFunc" piesaista konkrētu URL ceļu noteiktai Go funkcijai.
-	// server.HandleFunc("/api/chat", RunWebsocket)
+	// server.HandleFunc("/api/chat", chat.RunWebsocket)
 	server.HandleFunc("/api/login", authentication.Login).Methods("POST")
 	server.HandleFunc("/api/register", authentication.Register).Methods("POST")
 	server.HandleFunc("/api/logout", authentication.Logout).Methods("POST")
 	server.HandleFunc("/api/cookieUser", authentication.CheckSession).Methods("GET")
 	server.HandleFunc("/api/search", database.Search).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
+
+	server.HandleFunc("/api/sendMessage", chat.SaveToDBLink).Methods("POST")
 
 	server.HandleFunc("/api/getChats", chat.GetChatsFromUserID)
 	server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromUID)

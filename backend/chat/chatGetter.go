@@ -71,3 +71,31 @@ func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 	utils.DebugPrint("so we got the messages here: ", userId)
 	utils.SendJSONResponse(w, http.StatusOK, contents)
 }
+
+
+
+func LoadMessagesFromDatabase() ([]Message, error) {
+	res, err := database.Query(`
+		SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location, m.content, m.created_at
+		FROM messages AS m
+		JOIN users AS u ON m.sender_id = u.id
+		ORDER BY m.id DESC
+		LIMIT 100`)
+	if err != nil {
+		utils.HandleError(err)
+		return nil, err
+	}
+	defer res.Close()
+
+	var messages []Message
+	for res.Next() {
+		var msg Message
+		err := res.Scan(&msg.Sender.ID, &msg.Sender.Username, &msg.Sender.Email, &msg.Sender.ProfilePicture, &msg.Sender.AboutMe, &msg.Sender.Professions, &msg.Sender.Location, &msg.Content, &msg.TimeStamp)
+		if err != nil {
+			utils.HandleError(err)
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
+}
