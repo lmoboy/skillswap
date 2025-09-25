@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 export interface User {
     name: string;
     email: string;
-    id: string;
+    id: number;
 }
 
 interface AuthState {

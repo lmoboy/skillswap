@@ -19,8 +19,8 @@ func Login(w http.ResponseWriter, req *http.Request) {
 	}
 
 	row := database.QueryRow("SELECT username, email, id FROM users WHERE email = ? AND password_hash = ?", userInfo.Email, fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password))))
-	var storedID int
-	var storedUsername, storedEmail string
+
+	var storedUsername, storedEmail, storedID string
 	if err := row.Scan(&storedUsername, &storedEmail, &storedID); err != nil {
 		if err == sql.ErrNoRows {
 			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid username or password"})

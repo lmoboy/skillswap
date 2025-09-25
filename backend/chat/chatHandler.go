@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"skillswap/backend/database"
 	"skillswap/backend/utils"
 
 	"github.com/gorilla/websocket"
 )
 
-// Upgrader is the websocket upgrader
-
-// NewHub creates a new hub
 func NewHub() *MessageHub {
 	return &MessageHub{
 		Clients:    make(map[*websocket.Conn]bool, 2),
@@ -89,17 +87,40 @@ func JoinWebSocket(w http.ResponseWriter, req *http.Request, hub *MessageHub) {
 	WSEndpoint(w, req, hub)
 }
 
+func SaveToDBLink(w http.ResponseWriter, req *http.Request) {
+	var message Message
+
+	err := json.NewDecoder(req.Body).Decode(&message)
+
+	utils.DebugPrint(message)
+	if err != nil {
+		utils.HandleError(err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	err = SaveMessageToDatabase(message)
+	if err != nil {
+		utils.HandleError(err)
+		http.Error(w, "Failed to save message to database", http.StatusInternalServerError)
+		return
+	}
+}
+
 // SaveMessageToDatabase saves a message to the database
 func SaveMessageToDatabase(msg Message) error {
-	// implement your database logic here
+	_, err := database.Execute(`
+		INSERT INTO messages (chat_id, sender_id, content)
+		VALUES (?, ?, ?)
+	`, msg.ChatID, msg.Sender.ID, msg.Content)
+	if err != nil {
+		utils.HandleError(err)
+		return err
+	}
 	return nil
 }
 
 // LoadMessagesFromDatabase loads Messages from the database
-func LoadMessagesFromDatabase() ([]Message, error) {
-	// implement your database logic here
-	return nil, nil
-}
 
 // RunWebsocket starts the websocket
 func RunWebsocket(w http.ResponseWriter, req *http.Request) {

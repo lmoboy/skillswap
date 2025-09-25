@@ -82,7 +82,7 @@ func RemoveSession(w http.ResponseWriter, req *http.Request) error {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save session"})
 		return fmt.Errorf("failed to save session")
 	}
-	utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"message": "BAIIII"})
+	// utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"message": "BAIIII"})
 
 	return nil
 }
