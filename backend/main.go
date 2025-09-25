@@ -31,7 +31,7 @@ func main() {
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
 
 	server.HandleFunc("/api/getChats", chat.GetChatsFromUserID)
-	server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromChatId)
+	server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromUID)
 	// server.HandleFunc("/api/video", websocket.JoinWebSocket).Methods("GET")
 
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
