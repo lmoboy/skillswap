@@ -3,7 +3,10 @@
     import { auth } from "$lib/stores/auth";
     import Debug from "$lib/components/Debug.svelte";
 
+    let socket = new WebSocket("ws://localhost:8080/api/chat");
+
     type User = {
+        email: string | undefined;
         id: number;
         username: string;
         profile_picture: string;
@@ -26,10 +29,11 @@
         messages: Message[];
     };
 
-    let chats: ChatWithMessages[] = [];
-    let selectedChatIndex: number = -1;
+    let newMessage = $state("");
+    let chats: ChatWithMessages[] = $state([]);
+    let selectedChatIndex: number = $state(-1);
 
-    onMount(async () => {
+    async function updateChat() {
         const uid = $auth.user?.id;
         if (!uid) return;
 
@@ -49,6 +53,10 @@
 
         const chatsWithMsgs = await Promise.all(chatPromises);
         chats = chatsWithMsgs;
+    }
+
+    onMount(async () => {
+        updateChat();
 
         if (chats.length > 0) {
             selectedChatIndex = 0;
@@ -57,11 +65,36 @@
 
     function selectChat(i: number) {
         selectedChatIndex = i;
+        socket.send(JSON.stringify({ type: "update", id: i }));
     }
+
+    function handleMessage() {
+        socket.send(
+            JSON.stringify({
+                type: "update",
+                id: selectedChatIndex,
+            }),
+        );
+        newMessage = "";
+    }
+
+    socket.onopen = () => {
+        socket.send(JSON.stringify({ type: "update", id: selectedChatIndex }));
+        updateChat();
+    };
+    socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log(message);
+        if (message.type === "update") {
+            updateChat();
+        }
+    };
+    socket.onclose = (e) => {};
+    socket.onerror = () => {};
 </script>
 
 <div class="h-screen w-full p-4 bg-gray-100 transition-colors duration-300">
-    <Debug {chats} />
+    <!-- <Debug {chats} /> -->
 
     <div class="grid grid-cols-5 grid-rows-6 h-full w-full gap-4">
         <div
@@ -77,9 +110,10 @@
                 >
                 <div class="flex flex-col gap-3">
                     {#each chats as chat, i}
+                        <!-- svelte-ignore event_directive_deprecated -->
                         <div
                             class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
-                            on:click={() => selectChat(i)}
+                            onclick={() => selectChat(i)}
                         >
                             {#if chat.messages.length > 0}
                                 {#key chat.messages[chat.messages.length - 1]}
@@ -203,11 +237,14 @@
                 <input
                     type="text"
                     placeholder="Send a message..."
+                    onsubmit={handleMessage}
+                    bind:value={newMessage}
                     class="flex-grow bg-gray-100 text-gray-900 p-3 rounded-lg
                  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                 />
                 <button
                     class="p-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors duration-200"
+                    onclick={handleMessage}
                 >
                     Send
                 </button>
