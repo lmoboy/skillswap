@@ -1,135 +1,51 @@
 package chat
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 
+	"skillswap/backend/database"
 	"skillswap/backend/utils"
 
 	"github.com/gorilla/websocket"
 )
 
-// Upgrader is the websocket upgrader
-
-// NewHub creates a new hub
-func NewHub() *MessageHub {
-	return &MessageHub{
-		Clients:    make(map[*websocket.Conn]bool, 2),
-		Broadcasts: make(chan Message),
-		Messages:   make([]Message, 0),
+func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		CheckOrigin:     func(r *http.Request) bool { return true },
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
 	}
-}
-
-func (h *MessageHub) Run() {
-	for {
-		msg := <-h.Broadcasts
-		h.Mutex.Lock()
-		h.Messages = append(h.Messages, msg)
-		for client := range h.Clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				utils.HandleError(err)
-				fmt.Println("Error writing message:", err)
-				client.Close()
-				delete(h.Clients, client)
-			}
-		}
-		h.Mutex.Unlock()
-	}
-}
-
-// WSEndpoint is the websocket endpoint handler
-func WSEndpoint(w http.ResponseWriter, req *http.Request, hub *MessageHub) {
-	MessageUpgrader.CheckOrigin = func(r *http.Request) bool { return true }
-
-	webSocket, err := MessageUpgrader.Upgrade(w, req, nil)
+	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		utils.HandleError(err)
-		fmt.Println("Websocket connection error :", err)
+		utils.DebugPrint(err)
 		return
 	}
-
-	hub.Mutex.Lock()
-	hub.Clients[webSocket] = true
-	hub.Mutex.Unlock()
-
-	// send all previous Messages to the new client
-	for _, msg := range hub.Messages {
-		err := webSocket.WriteJSON(msg)
-		if err != nil {
-			utils.HandleError(err)
-			fmt.Println("Error writing message:", err)
-			hub.Mutex.Lock()
-			delete(hub.Clients, webSocket)
-			hub.Mutex.Unlock()
-			webSocket.Close()
-			return
-		}
-	}
+	defer ws.Close()
 
 	for {
-		var p Message
-		err := webSocket.ReadJSON(&p)
+		_, message, err := ws.ReadMessage()
 		if err != nil {
-			utils.HandleError(err)
-			fmt.Println("Websocket reading error:", err)
-			hub.Mutex.Lock()
-			delete(hub.Clients, webSocket)
-			hub.Mutex.Unlock()
-			webSocket.Close()
-			return
+			utils.DebugPrint(err)
+			break
 		}
-		hub.Broadcasts <- p
+		ws.WriteMessage(websocket.TextMessage, message)
 	}
 }
 
-// JoinWebSocket joins the websocket
-func JoinWebSocket(w http.ResponseWriter, req *http.Request, hub *MessageHub) {
-	WSEndpoint(w, req, hub)
-}
-
-// SaveMessageToDatabase saves a message to the database
-func SaveMessageToDatabase(msg Message) error {
-	// implement your database logic here
-	return nil
-}
-
-// LoadMessagesFromDatabase loads Messages from the database
-func LoadMessagesFromDatabase() ([]Message, error) {
-	// implement your database logic here
-	return nil, nil
-}
-
-// RunWebsocket starts the websocket
-func RunWebsocket(w http.ResponseWriter, req *http.Request) {
-
-	if req.Body == nil {
-		http.Error(w, "No request body", http.StatusBadRequest)
-		return
-	}
-	var p struct {
-		UsrToken  string `json:"usrtokn"`
-		JoinsRoom string `json:"joinroom"`
-	}
-	err := json.NewDecoder(req.Body).Decode(&p)
-	if err != nil {
-		utils.HandleError(err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+func CreateChat(w http.ResponseWriter, req *http.Request) {
+	var user1_id, user2_id string
+	user1_id = req.URL.Query().Get("u1")
+	user2_id = req.URL.Query().Get("u2")
+	utils.DebugPrint(user1_id, user2_id)
+	res := database.QueryRow("SELECT * FROM chats WHERE user1_id = ? AND user2_id = ?", user1_id, user2_id)
+	utils.DebugPrint(res)
+	if res != nil {
+		utils.SendJSONResponse(w, http.StatusOK, res)
 		return
 	}
 
-	hub := NewHub()
-	go hub.Run()
+	utils.DebugPrint(req.URL.RawQuery)
 
-	// load Messages from database to the hub
-	Messages, err := LoadMessagesFromDatabase()
-	if err != nil {
-		utils.HandleError(err)
-		fmt.Println("Error loading Messages from database:", err)
-		return
-	}
-	hub.Messages = Messages
-
-	JoinWebSocket(w, req, hub)
+	database.Execute("INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)", user1_id, user2_id)
+	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "Created a new chat with users " + user1_id + " and " + user2_id})
 }
