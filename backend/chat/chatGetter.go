@@ -35,7 +35,7 @@ func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 		}
 		contents = append(contents, content)
 	}
-	utils.DebugPrint("gotta send the messages from: ", chatId)
+	// utils.DebugPrint("gotta send the messages from: ", chatId)
 
 	utils.SendJSONResponse(w, http.StatusOK, map[string]interface{}{"messages": contents})
 }
@@ -68,6 +68,6 @@ func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 		contents = append(contents, content)
 	}
 	// utils.DebugPrint(contents)
-	utils.DebugPrint("so we got the messages here: ", userId)
+	// utils.DebugPrint("so we got the messages here: ", userId)
 	utils.SendJSONResponse(w, http.StatusOK, contents)
 }

@@ -85,18 +85,19 @@ func Search(w http.ResponseWriter, req *http.Request) {
 
 	searchQuery := "%" + requestBody.Query + "%"
 
-	// Use a corrected and more efficient SQL query with GROUP BY
+	// Use a corrected and more efficient SQL query with LEFT JOINs to include users without skills
 	rows, err := Query(`
         SELECT
             u.id,
             u.username,
             u.email,
-            GROUP_CONCAT(s.name SEPARATOR ', ') AS skills_found
+            COALESCE(GROUP_CONCAT(s.name SEPARATOR ', '), '') AS skills_found
         FROM users AS u
-        JOIN user_skills AS us ON u.id = us.user_id
-        JOIN skills AS s ON us.skill_id = s.id
+        LEFT JOIN user_skills AS us ON u.id = us.user_id
+        LEFT JOIN skills AS s ON us.skill_id = s.id
         WHERE u.username LIKE ? OR u.email LIKE ? OR s.name LIKE ? OR s.description LIKE ?
         GROUP BY u.id, u.username, u.email
+        ORDER BY u.id
     `, searchQuery, searchQuery, searchQuery, searchQuery)
 	if err != nil {
 		utils.HandleError(err)
