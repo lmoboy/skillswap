@@ -71,10 +71,22 @@
     function handleMessage() {
         socket.send(
             JSON.stringify({
-                type: "update",
+                type: "post",
                 id: selectedChatIndex,
+                user_id: $auth.user?.id,
+                content: newMessage,
             }),
         );
+        console.log(chats);
+        // console.log(
+        //     JSON.stringify({
+        //         type: "post",
+        //         id: selectedChatIndex,
+        //         user_id: $auth.user?.id,
+        //         content: newMessage,
+        //     }),
+        // );
+        updateChat();
         newMessage = "";
     }
 
@@ -113,7 +125,7 @@
                         <!-- svelte-ignore event_directive_deprecated -->
                         <div
                             class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
-                            onclick={() => selectChat(i)}
+                            onclick={() => selectChat(chat.id)}
                         >
                             {#if chat.messages.length > 0}
                                 {#key chat.messages[chat.messages.length - 1]}

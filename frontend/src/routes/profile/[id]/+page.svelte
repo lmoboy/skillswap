@@ -6,7 +6,7 @@
 
     let { data } = $props();
 
-    let user = data;
+    let user = $state(data);
     let id = page.params.id;
 
     $effect(() => {
@@ -35,8 +35,8 @@
             >
                 <div class="relative w-32 h-32 flex-shrink-0">
                     <img
-                        src={`/api/profile/${id}/picture`}
-                        alt="Profile Picture"
+                        src={user.profile_picture === "noPicture" ? "/default-avatar.png" : `/api/profile/${id}/picture`}
+                        alt={`Profile picture of ${user.username}`}
                         class="w-full h-full rounded-full object-cover border-4 border-white shadow-md"
                     />
                     <span
@@ -49,8 +49,12 @@
                     <h1 class="text-4xl font-bold text-gray-900">
                         {user.username}
                     </h1>
-                    <p class="text-gray-600 text-lg">{user.profession}</p>
-                    <p class="text-sm text-gray-500 mt-2">📍 {user.location}</p>
+                    {#if user.profession}
+                        <p class="text-gray-600 text-lg">{user.profession}</p>
+                    {/if}
+                    {#if user.location}
+                        <p class="text-sm text-gray-500 mt-2">📍 {user.location}</p>
+                    {/if}
                 </div>
                 <div
                     class="flex-grow flex justify-center md:justify-end space-x-4"
@@ -122,14 +126,18 @@
                             Skills
                         </h2>
                         <div class="flex flex-wrap gap-2">
-                            {#each user.skills_coding as skill}
-                                <span
-                                    class="bg-blue-200 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
-                                    >{skill.name}&nbsp;{skill.verified
-                                        ? "✓"
-                                        : ""}</span
-                                >
-                            {/each}
+                            {#if user.skills && user.skills.length > 0}
+                                {#each user.skills as skill}
+                                    <span
+                                        class="bg-blue-200 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
+                                        >{skill.name}&nbsp;{skill.verified
+                                            ? "✓"
+                                            : ""}</span
+                                    >
+                                {/each}
+                            {:else}
+                                <p class="text-gray-600">No skills found.</p>
+                            {/if}
                         </div>
                     </div>
 
@@ -138,52 +146,33 @@
                             Contact
                         </h2>
                         <ul class="space-y-4 text-gray-600">
-                            <li class="flex items-center space-x-2">
-                                <User class="w-5 h-5 text-gray-500" />
-                                <span>{user.contacts.name ?? "Unknown"}</span>
-                            </li>
-
-                            <li class="flex items-center space-x-2">
-                                <MailIcon class="w-5 h-5 text-gray-500" />
-                                <span class="text-wrap"
-                                    >{user.contacts.email ?? "Unknown"}</span
-                                >
-                            </li>
-
-                            <li class="flex items-center space-x-2">
-                                <Twitter class="w-5 h-5 text-gray-500" />
-                                <span>
-                                    <a
-                                        href="https://twitter.com/{user.contacts
-                                            .twitter
-                                            ? user.contacts.twitter.substring(1)
-                                            : ''}"
-                                        class="text-blue-500 hover:underline {user
-                                            .contacts.twitter
-                                            ? ''
-                                            : 'text-gray-400 disabled'}"
-                                    >
-                                        {user.contacts.twitter ?? "Unknown"}
-                                    </a>
-                                </span>
-                            </li>
-
-                            <li class="flex items-center space-x-2">
-                                <Linkedin class="w-5 h-5 text-gray-500" />
-                                <span>
-                                    <a
-                                        href="https://{user.contacts.linkedin
-                                            ? user.contacts.linkedin
-                                            : ''}"
-                                        class="text-blue-500 hover:underline {user
-                                            .contacts.linkedin
-                                            ? ''
-                                            : 'text-gray-400 disabled'}"
-                                    >
-                                        {user.contacts.linkedin ?? "Unknown"}
-                                    </a>
-                                </span>
-                            </li>
+                            {#if user.contacts && user.contacts.length > 0}
+                                {#each user.contacts as contact}
+                                    <li class="flex items-center space-x-2">
+                                        {#if contact.icon === "email"}
+                                            <MailIcon class="w-5 h-5 text-gray-500" />
+                                            <span>{contact.name}: {contact.link}</span>
+                                        {:else if contact.icon === "twitter"}
+                                            <Twitter class="w-5 h-5 text-gray-500" />
+                                            <a href="{contact.link}" class="text-blue-500 hover:underline">
+                                                {contact.name}
+                                            </a>
+                                        {:else if contact.icon === "linkedin"}
+                                            <Linkedin class="w-5 h-5 text-gray-500" />
+                                            <a href="{contact.link}" class="text-blue-500 hover:underline">
+                                                {contact.name}
+                                            </a>
+                                        {:else}
+                                            <User class="w-5 h-5 text-gray-500" />
+                                            <a href="{contact.link}" class="text-blue-500 hover:underline">
+                                                {contact.name}
+                                            </a>
+                                        {/if}
+                                    </li>
+                                {/each}
+                            {:else}
+                                <li class="text-gray-500">No contact information available</li>
+                            {/if}
                         </ul>
                     </div>
                 </aside>

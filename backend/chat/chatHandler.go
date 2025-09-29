@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"skillswap/backend/database"
@@ -8,6 +9,14 @@ import (
 
 	"github.com/gorilla/websocket"
 )
+
+// WebSocketMessage represents the incoming WebSocket message structure
+type WebSocketMessage struct {
+	Type    string `json:"type"`
+	ID      int    `json:"id"`
+	UserID  string `json:"user_id"`
+	Content string `json:"content"`
+}
 
 func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
@@ -21,15 +30,78 @@ func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer ws.Close()
-
 	for {
 		_, message, err := ws.ReadMessage()
 		if err != nil {
 			utils.DebugPrint(err)
 			break
 		}
-		ws.WriteMessage(websocket.TextMessage, message)
+
+		// Parse the incoming message
+		var wsMessage WebSocketMessage
+		messageStr := string(message)
+
+		// Handle both array format [{"type":"post",...}] and single object format {"type":"post",...}
+		if len(messageStr) > 0 && messageStr[0] == '[' && messageStr[len(messageStr)-1] == ']' {
+			// Array format - take the first element
+			var messages []WebSocketMessage
+			if err := json.Unmarshal(message, &messages); err != nil {
+				utils.DebugPrint("Error parsing array message:", err)
+				continue
+			}
+			if len(messages) > 0 {
+				wsMessage = messages[0]
+			}
+		} else {
+			// Single object format
+			if err := json.Unmarshal(message, &wsMessage); err != nil {
+				utils.DebugPrint("Error parsing message:", err)
+				continue
+			}
+		}
+
+		utils.DebugPrint("Parsed message:", wsMessage)
+
+		// Handle different message types
+		switch wsMessage.Type {
+		case "post":
+			utils.DebugPrint("Handling POST message with ID:", wsMessage.ID)
+			response := map[string]interface{}{
+				"type":    wsMessage.Type,
+				"id":      wsMessage.ID,
+				"user_id": wsMessage.UserID,
+				"content": wsMessage.Content,
+				"status":  "processed",
+			}
+			_, err = database.Execute("INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)", wsMessage.ID, wsMessage.UserID, wsMessage.Content)
+			utils.DebugPrint("INSERT INTO messages (chat_id, sender_id, content) VALUES (%v, %v, %v)", wsMessage.ID, wsMessage.UserID, wsMessage.Content)
+
+			if err != nil {
+				utils.DebugPrint(err)
+				response["status"] = "error"
+				response["error"] = err.Error()
+			}
+			responseBytes, _ := json.Marshal(response)
+			ws.WriteMessage(websocket.TextMessage, responseBytes)
+
+		case "update":
+			utils.DebugPrint("Handling UPDATE message with ID:", wsMessage.ID)
+			response := map[string]interface{}{
+				"type":    wsMessage.Type,
+				"id":      wsMessage.ID,
+				"user_id": wsMessage.UserID,
+				"content": wsMessage.Content,
+				"status":  "processed",
+			}
+			responseBytes, _ := json.Marshal(response)
+			ws.WriteMessage(websocket.TextMessage, responseBytes)
+		default:
+			utils.DebugPrint("Unknown message type:", wsMessage.Type)
+		}
+
+		// Echo back the processed message
 	}
+	ws.WriteMessage(websocket.TextMessage, []byte("Connection closed"))
 }
 
 func CreateChat(w http.ResponseWriter, req *http.Request) {
@@ -38,9 +110,10 @@ func CreateChat(w http.ResponseWriter, req *http.Request) {
 	user2_id = req.URL.Query().Get("u2")
 	utils.DebugPrint(user1_id, user2_id)
 	res := database.QueryRow("SELECT * FROM chats WHERE user1_id = ? AND user2_id = ?", user1_id, user2_id)
-	utils.DebugPrint(res)
-	if res != nil {
-		utils.SendJSONResponse(w, http.StatusOK, res)
+	utils.DebugPrint(res.Err())
+	if res.Err() != nil {
+		utils.DebugPrint(res.Err())
+		utils.SendJSONResponse(w, http.StatusNotFound, "somethng happned")
 		return
 	}
 

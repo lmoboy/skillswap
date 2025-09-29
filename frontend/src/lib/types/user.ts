@@ -8,6 +8,7 @@ export type User = {
     projects: Projects[];
     skills: Skills[];
     contacts: Contacts[];
+    id: number;
 };
 
 export type Skills = {

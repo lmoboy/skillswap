@@ -7,17 +7,34 @@ import (
 )
 
 type UserInfo struct {
-	Username       string `json:"username"`
-	Email          string `json:"email"`
-	Password       string `json:"password"`
-	ID             int    `json:"id"`
-	ProfilePicture string `json:"profile_picture"`
-	AboutMe        string `json:"aboutme"`
-	Projects       string `json:"projects"`
-	Professions    string `json:"professions"`
-	Contacts       string `json:"contacts"`
-	Skills         string `json:"skills"`
-	Location       string `json:"location"`
+	Username       string            `json:"username"`
+	Email          string            `json:"email"`
+	Password       string            `json:"password"`
+	ID             int               `json:"id"`
+	ProfilePicture string            `json:"profile_picture"`
+	AboutMe        string            `json:"aboutme"`
+	Projects       []UserProject     `json:"projects"`
+	Professions    string            `json:"profession"`
+	Contacts       []UserContact     `json:"contacts"`
+	Skills         []UserSkill       `json:"skills"`
+	Location       string            `json:"location"`
+}
+
+type UserProject struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Link        string `json:"link"`
+}
+
+type UserSkill struct {
+	Name     string `json:"name"`
+	Verified bool   `json:"verified"`
+}
+
+type UserContact struct {
+	Name string `json:"name"`
+	Link string `json:"link"`
+	Icon string `json:"icon"`
 }
 type Skill struct {
 	ID          int    `json:"id"`
