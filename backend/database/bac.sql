@@ -9,10 +9,10 @@ CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   username VARCHAR(50) NOT NULL,
   email VARCHAR(191) NOT NULL,
-  profile_picture VARCHAR(255) NULL,
-  aboutme TEXT NULL,
-  profession TEXT NULL,
-  location VARCHAR(191) NULL,
+  profile_picture VARCHAR(255) DEFAULT "noPicture",
+  aboutme TEXT DEFAULT "",
+  profession TEXT DEFAULT "",
+  location VARCHAR(191) DEFAULT "",
 
   password_hash VARCHAR(255) NOT NULL,
 
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS skills (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(100) NOT NULL,
-  description TEXT NULL,
+  description TEXT DEFAULT "",
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_skills_name (name)
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS messages (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   chat_id BIGINT UNSIGNED NOT NULL,
   sender_id BIGINT UNSIGNED NOT NULL,
-  content TEXT NOT NULL,
+  content TEXT DEFAULT "",
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY (id),
@@ -90,8 +90,8 @@ CREATE TABLE IF NOT EXISTS user_projects (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
   name VARCHAR(191) NOT NULL,
-  description TEXT NULL,
-  link VARCHAR(255) NULL,
+  description TEXT DEFAULT "",
+  link VARCHAR(255) DEFAULT "",
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY (id),
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS user_contacts (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
   name VARCHAR(191) NOT NULL,
-  link VARCHAR(255) NOT NULL,
+  link VARCHAR(255) DEFAULT "",
   icon VARCHAR(255) NOT NULL DEFAULT("MessageCircleQuestionMark"),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -847,11 +847,11 @@ INSERT INTO user_skills (user_id, skill_id, teaching_skill, verified) VALUES
  ( 52,10,"Give homework report on subject",TRUE ),
  ( 32,12,"Give homework report on subject",TRUE ),
  ( 75,19,"Give homework report on subject",FALSE );
-INSERT INTO chats ( user1_id, user2_id) VALUES 
-    (201,1),(1,201);
-INSERT INTO messages ( chat_id, sender_id, content) VALUES
- ( 1,1,"Hi there" ),
- ( 1,201,"HALOOOOO HAIIIII :333333" ),
- ( 1,1,"what is wrong with u" ),
- ( 1,201,"idk man felt pretty" ),
- ( 1,1,"this concludes our little message testing");
+-- INSERT INTO chats ( user1_id, user2_id) VALUES 
+    -- (201,1),(1,201);
+-- INSERT INTO messages ( chat_id, sender_id, content) VALUES
+--  ( 1,1,"Hi there" ),
+--  ( 1,201,"HALOOOOO HAIIIII :333333" ),
+--  ( 1,1,"what is wrong with u" ),
+--  ( 1,201,"idk man felt pretty" ),
+--  ( 1,1,"this concludes our little message testing");
