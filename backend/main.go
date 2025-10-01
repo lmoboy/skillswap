@@ -16,7 +16,8 @@ import (
 )
 
 // main initializes the application (database, routes and middleware) and starts the HTTP server.
-// It registers API endpoints for authentication, user, chat and search operations, configures CORS, and listens on localhost:8080 with 15s read and write timeouts.
+// main initializes the database, starts the chat WebSocket hub, registers HTTP API routes (authentication, user, chat, search, and health), configures CORS, and starts an HTTP server on localhost:8080 with 15-second read and write timeouts.
+// Registered endpoints handle login/register/logout, session check, search and fullSearch, user info retrieval, websocket and chat operations, and a /api/ping health check.
 func main() {
 	database.Init()
 

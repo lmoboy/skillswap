@@ -10,7 +10,10 @@ import (
 // Messages include sender details (id, username, email, profile picture, about me, professions, location), message content, and timestamp.
 // Messages are returned ordered by message ID in descending order.
 // On database query error the handler sends HTTP 500 with `{"error": "Failed to get chat messages"}`.
-// If scanning a result row fails the handler returns early and does not write a response.
+// GetMessagesFromUID retrieves all messages for the chat identified by the "cid" query parameter and writes a JSON response.
+// On success it writes HTTP 200 with JSON {"messages": [...]} containing sender details, content, and timestamps.
+// If the database query fails it writes HTTP 500 with JSON {"error":"Failed to get chat messages"}.
+// If scanning a result row fails the handler returns immediately without writing a response.
 func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 	chatId := req.URL.Query().Get("cid")
 	res, err := database.Query(`
@@ -41,7 +44,8 @@ func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 }
 
 // GetChatsFromUserID reads the "uid" query parameter, retrieves all chats involving that user from the database, and writes the resulting chats as JSON to the response.
-// On database error it sends HTTP 500 with a JSON error message; on success it sends HTTP 200 with the array of ChatWithUserInfo objects.
+// GetChatsFromUserID retrieves all chats that involve the user identified by the "uid" query parameter and writes them as JSON.
+// On database query error it sends HTTP 500 with JSON {"error":"Failed to get chat messages"}; on success it responds with HTTP 200 and a JSON array of ChatWithUserInfo objects ordered by chat creation time (newest first).
 func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 	userId := req.URL.Query().Get("uid")
 	res, err := database.Query(`
