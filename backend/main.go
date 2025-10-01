@@ -16,7 +16,8 @@ import (
 )
 
 // main initializes the application (database, routes and middleware) and starts the HTTP server.
-// It registers API endpoints for authentication, user, chat and search operations, configures CORS, and listens on localhost:8080 with 15s read and write timeouts.
+// main initializes the database, registers API endpoints for authentication, user, chat, and search, configures CORS, and starts an HTTP server on localhost:8080.
+// The server uses the configured router with ReadTimeout and WriteTimeout set to 15 seconds and blocks while serving.
 func main() {
 	database.Init()
 	// Izveido jaunu rūteri ar stingru pārbaudi slīpsvītrām, kas nozīmē, ka maršruti ar un bez beigu slīpsvītras tiek uzskatīti par atšķirīgiem.
@@ -24,13 +25,15 @@ func main() {
 
 	// Tiek definēti API ceļi (end-points) dažādām front-end darbībām.
 	// "HandleFunc" piesaista konkrētu URL ceļu noteiktai Go funkcijai.
-	// server.HandleFunc("/api/chat", RunWebsocket)
+	// server.HandleFunc("/api/chat", chat.RunWebsocket)
 	server.HandleFunc("/api/login", authentication.Login).Methods("POST")
 	server.HandleFunc("/api/register", authentication.Register).Methods("POST")
 	server.HandleFunc("/api/logout", authentication.Logout).Methods("POST")
 	server.HandleFunc("/api/cookieUser", authentication.CheckSession).Methods("GET")
 	server.HandleFunc("/api/search", database.Search).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
+
+	server.HandleFunc("/api/sendMessage", chat.SaveToDBLink).Methods("POST")
 
 	server.HandleFunc("/api/getChats", chat.GetChatsFromUserID)
 	server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromUID)
