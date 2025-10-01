@@ -3,6 +3,7 @@ package chat
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"skillswap/backend/database"
 	"skillswap/backend/utils"
@@ -18,30 +19,106 @@ type WebSocketMessage struct {
 	Content string `json:"content"`
 }
 
-func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
-	upgrader := websocket.Upgrader{
-		CheckOrigin:     func(r *http.Request) bool { return true },
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+// Client represents a single user's WebSocket connection.
+type Client struct {
+	hub  *Hub
+	conn *websocket.Conn
+	// Buffered channel of outbound messages.
+	send chan []byte
+}
+
+// Hub maintains the set of active clients and broadcasts messages to them.
+type Hub struct {
+	// Registered clients.
+	clients map[*Client]bool
+
+	// Inbound messages to be broadcasted to all clients.
+	broadcast chan []byte
+
+	// Register requests from the clients.
+	register chan *Client
+
+	// Unregister requests from clients.
+	unregister chan *Client
+}
+
+// --- HUB IMPLEMENTATION ---
+
+// NewHub initializes and returns a new Hub.
+func NewHub() *Hub {
+	return &Hub{
+		broadcast:  make(chan []byte),
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
+		clients:    make(map[*Client]bool),
 	}
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		utils.DebugPrint(err)
-		return
-	}
-	defer ws.Close()
+}
+
+// Run starts the Hub's main loop. This should be run in a separate goroutine.
+func (h *Hub) Run() {
 	for {
-		_, message, err := ws.ReadMessage()
+		select {
+		case client := <-h.register:
+			// Add new client
+			h.clients[client] = true
+			utils.DebugPrint("New client connected. Total clients:", len(h.clients))
+
+		case client := <-h.unregister:
+			// Remove client
+			if _, ok := h.clients[client]; ok {
+				delete(h.clients, client)
+				close(client.send)
+				utils.DebugPrint("Client disconnected. Total clients:", len(h.clients))
+			}
+
+		case message := <-h.broadcast:
+			// Send message to all active clients
+			for client := range h.clients {
+				select {
+				case client.send <- message:
+					// Message successfully sent to client's channel
+				default:
+					// Failed to send (channel blocked/full), unregister client
+					close(client.send)
+					delete(h.clients, client)
+					client.conn.Close() // Close the connection
+					utils.DebugPrint("Client unregistering due to failed send.")
+				}
+			}
+		}
+	}
+}
+
+// --- CLIENT READ/WRITE IMPLEMENTATION ---
+
+// readPump reads messages from the WebSocket connection and processes them.
+func (c *Client) readPump() {
+	defer func() {
+		c.hub.unregister <- c
+		c.conn.Close()
+	}()
+
+	c.conn.SetReadLimit(maxMessageSize)
+	// Set read deadline to ensure the connection eventually times out
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	for {
+		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			utils.DebugPrint(err)
-			break
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				utils.DebugPrint("error reading message:", err)
+			}
+			break // Exit the loop and run deferred cleanup
 		}
 
-		// Parse the incoming message
 		var wsMessage WebSocketMessage
 		messageStr := string(message)
 
-		// Handle both array format [{"type":"post",...}] and single object format {"type":"post",...}
+		// Original array/single message parsing logic (preserved)
 		if len(messageStr) > 0 && messageStr[0] == '[' && messageStr[len(messageStr)-1] == ']' {
 			// Array format - take the first element
 			var messages []WebSocketMessage
@@ -53,7 +130,6 @@ func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 				wsMessage = messages[0]
 			}
 		} else {
-			// Single object format
 			if err := json.Unmarshal(message, &wsMessage); err != nil {
 				utils.DebugPrint("Error parsing message:", err)
 				continue
@@ -66,23 +142,54 @@ func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 		switch wsMessage.Type {
 		case "post":
 			utils.DebugPrint("Handling POST message with ID:", wsMessage.ID)
-			response := map[string]interface{}{
-				"type":    wsMessage.Type,
-				"id":      wsMessage.ID,
-				"user_id": wsMessage.UserID,
-				"content": wsMessage.Content,
-				"status":  "processed",
+			
+			// Insert message into database
+			if(wsMessage.Content == "") {
+				continue
 			}
 			_, err = database.Execute("INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)", wsMessage.ID, wsMessage.UserID, wsMessage.Content)
-			utils.DebugPrint("INSERT INTO messages (chat_id, sender_id, content) VALUES (%v, %v, %v)", wsMessage.ID, wsMessage.UserID, wsMessage.Content)
 
 			if err != nil {
-				utils.DebugPrint(err)
-				response["status"] = "error"
-				response["error"] = err.Error()
+				utils.HandleError(err)
+				errorResponse := map[string]interface{}{
+					"type":   "error",
+					"status": "error",
+					"error":  err.Error(),
+				}
+				errorBytes, _ := json.Marshal(errorResponse)
+				c.hub.broadcast <- errorBytes
+				continue
+			}
+
+			// Fetch the complete user information for the sender
+			row := database.QueryRow(`
+				SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location
+				FROM users AS u
+				WHERE u.id = ?`, wsMessage.UserID)
+			
+			var sender Message
+			err = row.Scan(&sender.Sender.ID, &sender.Sender.Username, &sender.Sender.Email, 
+				&sender.Sender.ProfilePicture, &sender.Sender.AboutMe, &sender.Sender.Professions, 
+				&sender.Sender.Location)
+			
+			if err != nil {
+				utils.HandleError(err)
+				continue
+			}
+
+			sender.Content = wsMessage.Content
+			// Get current timestamp
+			sender.TimeStamp = time.Now().Format("2006-01-02 15:04:05")
+
+			response := map[string]interface{}{
+				"type":    "new_message",
+				"chat_id": wsMessage.ID,
+				"message": sender,
 			}
 			responseBytes, _ := json.Marshal(response)
-			ws.WriteMessage(websocket.TextMessage, responseBytes)
+
+			// Broadcast the complete message to all connected clients
+			c.hub.broadcast <- responseBytes
 
 		case "update":
 			utils.DebugPrint("Handling UPDATE message with ID:", wsMessage.ID)
@@ -94,14 +201,90 @@ func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 				"status":  "processed",
 			}
 			responseBytes, _ := json.Marshal(response)
-			ws.WriteMessage(websocket.TextMessage, responseBytes)
+
+			// For updates, we'll also broadcast the status to all users
+			c.hub.broadcast <- responseBytes
+
 		default:
 			utils.DebugPrint("Unknown message type:", wsMessage.Type)
 		}
-
-		// Echo back the processed message
 	}
-	ws.WriteMessage(websocket.TextMessage, []byte("Connection closed"))
+}
+
+// writePump pumps messages from the hub to the WebSocket connection.
+func (c *Client) writePump() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			w, err := c.conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				utils.HandleError(err)
+				return
+			}
+			w.Write(message)
+
+			n := len(c.send)
+			for i := 0; i < n; i++ {
+				utils.DebugPrint("Sending message:", message)
+				w.Write(<-c.send)
+			}
+
+			if err := w.Close(); err != nil {
+				utils.HandleError(err)
+				return
+			}
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				utils.HandleError(err)
+				return
+			}
+		}
+	}
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin:     func(r *http.Request) bool { return true },
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+var globalHub = NewHub()
+
+// StartHub initializes and runs the global WebSocket hub
+func StartHub() {
+	globalHub.Run()
+}
+
+func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		utils.DebugPrint("Upgrade error:", err)
+		return
+	}
+
+	client := &Client{
+		hub:  globalHub,
+		conn: conn,
+		send: make(chan []byte, 256), // Buffered channel for outbound messages
+	}
+	client.hub.register <- client
+	utils.DebugPrint("New client connected:", len(globalHub.clients))
+
+	go client.writePump() // Handles outgoing broadcast messages
+	client.readPump()     // Handles incoming messages (blocking until connection closes)
 }
 
 func CreateChat(w http.ResponseWriter, req *http.Request) {

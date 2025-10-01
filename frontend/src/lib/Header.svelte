@@ -87,7 +87,7 @@
                 console.error("Search failed:", error);
             }
             searching = false;
-        }, 500); // 500ms debounce
+        }, 100); // 100ms debounce
     }
 
     onMount(() => {
@@ -175,6 +175,22 @@
                                         </a>
                                     </li>
                                 {/each}
+                                <a
+                                    href="/search?q={searchQuery}"
+                                    class="block p-2"
+                                >
+                                    <div
+                                        class="flex items-center space-x-3 hover:bg-gray-100 transition-colors duration-200 h-fit"
+                                    >
+                                        <div class="flex-1 min-w-0">
+                                            <p
+                                                class="text-sm font-medium text-gray-900 truncate"
+                                            >
+                                                See all results
+                                            </p>
+                                        </div>
+                                    </div>
+                                </a>
                             </ul>
                         {:else}
                             <div class="p-4 text-center text-sm text-gray-500">

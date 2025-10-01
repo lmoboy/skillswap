@@ -19,6 +19,10 @@ import (
 // It registers API endpoints for authentication, user, chat and search operations, configures CORS, and listens on localhost:8080 with 15s read and write timeouts.
 func main() {
 	database.Init()
+
+	// Start the WebSocket hub for chat functionality
+	go chat.StartHub()
+
 	// Izveido jaunu rūteri ar stingru pārbaudi slīpsvītrām, kas nozīmē, ka maršruti ar un bez beigu slīpsvītras tiek uzskatīti par atšķirīgiem.
 	server := mux.NewRouter().StrictSlash(true)
 
@@ -28,7 +32,9 @@ func main() {
 	server.HandleFunc("/api/register", authentication.Register).Methods("POST")
 	server.HandleFunc("/api/logout", authentication.Logout).Methods("POST")
 	server.HandleFunc("/api/cookieUser", authentication.CheckSession).Methods("GET")
+
 	server.HandleFunc("/api/search", database.Search).Methods("POST")
+	server.HandleFunc("/api/fullSearch", database.FullSearch).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
 
 	server.HandleFunc("/api/chat", chat.SimpleWebSocketEndpoint)

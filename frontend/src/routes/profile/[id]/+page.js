@@ -15,10 +15,6 @@ export async function load({ params, fetch: eventFetch }) {
         console.log(error);
     });
 
-    // console.log(user.contacts)
-    user.contacts = JSON.stringify(user.contacts);
-    user.skills = JSON.stringify(user.skills);
-    user.projects = JSON.stringify(user.projects);
     if (!user) {
         throw error(403, 'Error fetching user user');
     }
