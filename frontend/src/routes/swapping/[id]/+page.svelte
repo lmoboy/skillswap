@@ -6,8 +6,6 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
 
-    var ss = globalThis;
-
     onMount(async () => {
         // Get the user ID from route parameters
         const targetUserId = $page.params.id;

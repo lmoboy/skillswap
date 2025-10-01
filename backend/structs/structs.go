@@ -7,17 +7,18 @@ import (
 )
 
 type UserInfo struct {
-	Username       string            `json:"username"`
-	Email          string            `json:"email"`
-	Password       string            `json:"password"`
-	ID             int               `json:"id"`
-	ProfilePicture string            `json:"profile_picture"`
-	AboutMe        string            `json:"aboutme"`
-	Projects       []UserProject     `json:"projects"`
-	Professions    string            `json:"profession"`
-	Contacts       []UserContact     `json:"contacts"`
-	Skills         []UserSkill       `json:"skills"`
-	Location       string            `json:"location"`
+	Username       string        `json:"username"`
+	Email          string        `json:"email"`
+	Password       string        `json:"password"`
+	ID             int           `json:"id"`
+	ProfilePicture string        `json:"profile_picture"`
+	AboutMe        string        `json:"aboutme"`
+	Projects       []UserProject `json:"projects"`
+	Professions    string        `json:"profession"`
+	Contacts       []UserContact `json:"contacts"`
+	Skills         []UserSkill   `json:"skills"`
+	Location       string        `json:"location"`
+	Joined         string        `json:"created_at"`
 }
 
 type UserProject struct {

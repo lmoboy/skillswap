@@ -20,9 +20,13 @@
 
     type ChatMeta = {
         id: number;
-        Initiator: number;
-        Responder: number;
-        Created_at: string;
+        user1_id: number;
+        user2_id: number;
+        created_at: string;
+        user1_username: string;
+        user1_profile_picture: string;
+        user2_username: string;
+        user2_profile_picture: string;
     };
 
     type ChatWithMessages = ChatMeta & {
@@ -65,44 +69,87 @@
 
     function selectChat(i: number) {
         selectedChatIndex = i;
-        socket.send(JSON.stringify({ type: "update", id: i }));
+        socket.send(JSON.stringify({ type: "update", id: chats[i].id }));
     }
 
     function handleMessage() {
-        socket.send(
-            JSON.stringify({
-                type: "post",
-                id: selectedChatIndex,
-                user_id: $auth.user?.id,
-                content: newMessage,
-            }),
-        );
-        console.log(chats);
-        // console.log(
-        //     JSON.stringify({
-        //         type: "post",
-        //         id: selectedChatIndex,
-        //         user_id: $auth.user?.id,
-        //         content: newMessage,
-        //     }),
-        // );
+        if (
+            chats.length > 0 &&
+            selectedChatIndex >= 0 &&
+            selectedChatIndex < chats.length
+        ) {
+            socket.send(
+                JSON.stringify({
+                    type: "post",
+                    id: chats[selectedChatIndex].id,
+                    user_id: $auth.user?.id,
+                    content: newMessage,
+                }),
+            );
+        } else {
+            socket.send(
+                JSON.stringify({
+                    type: "post",
+                    id: selectedChatIndex,
+                    user_id: $auth.user?.id,
+                    content: newMessage,
+                }),
+            );
+        }
+        // console.log(chats);
+        // // console.log(
+        // //     JSON.stringify({
+        // //         type: "post",
+        // //         id: selectedChatIndex,
+        // //         user_id: $auth.user?.id,
+        // //         content: newMessage,
+        // //     }),
+        // // );
         updateChat();
         newMessage = "";
     }
 
     socket.onopen = () => {
-        socket.send(JSON.stringify({ type: "update", id: selectedChatIndex }));
-        updateChat();
-    };
-    socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        console.log(message);
-        if (message.type === "update") {
+        if (
+            chats.length > 0 &&
+            selectedChatIndex >= 0 &&
+            selectedChatIndex < chats.length
+        ) {
+            socket.send(
+                JSON.stringify({
+                    type: "update",
+                    id: chats[selectedChatIndex].id,
+                }),
+            );
             updateChat();
         }
     };
-    socket.onclose = (e) => {};
-    socket.onerror = () => {};
+    socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log("WebSocket message received:", message);
+        
+        if (message.type === "new_message") {
+            // Add the new message to the appropriate chat
+            const chatId = message.chat_id;
+            const chatIndex = chats.findIndex(c => c.id === chatId);
+            
+            if (chatIndex !== -1) {
+                // Add message to the chat
+                chats[chatIndex].messages = [message.message, ...chats[chatIndex].messages];
+                chats = chats; // Trigger reactivity
+            }
+        } else if (message.type === "update") {
+            updateChat();
+        }
+    };
+    socket.onclose = (e) => {
+        console.log(e);
+    };
+    socket.onerror = () => {
+        setTimeout(() => {
+            socket = new WebSocket("ws://localhost:8080/api/chat");
+        }, 15000);
+    };
 </script>
 
 <div class="h-screen w-full p-4 bg-gray-100 transition-colors duration-300">
@@ -121,51 +168,45 @@
                     >Chats</span
                 >
                 <div class="flex flex-col gap-3">
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
                     {#each chats as chat, i}
                         <!-- svelte-ignore event_directive_deprecated -->
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <div
-                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
-                            onclick={() => selectChat(chat.id)}
+                            class={`${selectedChatIndex == i ? "bg-gray-200" : ""} flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer`}
+                            onclick={() => selectChat(i)}
                         >
-                            {#if chat.messages.length > 0}
-                                {#key chat.messages[chat.messages.length - 1]}
-                                    <img
-                                        src={chat.messages[
-                                            chat.messages.length - 1
-                                        ].sender.profile_picture}
-                                        alt={chat.messages[
-                                            chat.messages.length - 1
-                                        ].sender.username}
-                                        class="w-12 h-12 rounded-full ring-2 ring-gray-200 object-cover"
-                                    />
-                                    <div class="flex-grow min-w-0">
-                                        <span
-                                            class="text-gray-900 font-medium truncate"
-                                        >
-                                            {chat.messages[
-                                                chat.messages.length - 1
-                                            ].sender.username}
-                                        </span>
-                                        <p
-                                            class="text-sm text-gray-600 truncate"
-                                        >
-                                            {chat.messages[
-                                                chat.messages.length - 1
-                                            ].content}
-                                        </p>
-                                    </div>
-                                {/key}
-                            {:else}
-                                <div
-                                    class="w-12 h-12 bg-gray-200 rounded-full"
-                                ></div>
-                                <div class="flex-grow min-w-0">
-                                    <span
-                                        class="text-gray-900 font-medium truncate"
-                                        >No messages</span
+                            <img
+                                src={chat.user1_id == $auth.user?.id
+                                    ? chat.user2_profile_picture
+                                    : chat.user1_profile_picture}
+                                alt={chat.user1_id == $auth.user?.id
+                                    ? chat.user2_username
+                                    : chat.user1_username}
+                                class="w-12 h-12 rounded-full ring-2 ring-gray-200 object-cover"
+                            />
+                            <div class="flex-grow min-w-0">
+                                <span
+                                    class="text-gray-900 font-medium truncate"
+                                >
+                                    {chat.user1_id == $auth.user?.id
+                                        ? chat.user2_username
+                                        : chat.user1_username}
+                                </span>
+                                {#if chat.messages.length > 0}
+                                    <p
+                                        class="text-sm text-gray-600 truncate"
                                     >
-                                </div>
-                            {/if}
+                                        {chat.messages[
+                                            chat.messages.length - 1
+                                        ].content}
+                                    </p>
+                                {:else}
+                                    <p class="text-sm text-gray-400 italic">
+                                        No messages yet
+                                    </p>
+                                {/if}
+                            </div>
                         </div>
                     {/each}
                 </div>
@@ -190,12 +231,30 @@
                 {#if selectedChatIndex >= 0}
                     {#each chats[selectedChatIndex].messages as message}
                         <div
-                            class="flex flex-col p-2 rounded-lg max-w-2/3 {message
-                                .sender.email === $auth.user?.email
-                                ? 'bg-blue-500 text-white self-end'
-                                : 'bg-gray-200 text-gray-800 self-start'}"
+                            class="flex {message.sender.email === $auth.user?.email ? 'justify-end' : 'justify-start'}"
                         >
-                            {message.content}
+                            <div
+                                class="flex flex-col max-w-[70%] {message
+                                    .sender.email === $auth.user?.email
+                                    ? 'items-end'
+                                    : 'items-start'}"
+                            >
+                                {#if message.sender.email !== $auth.user?.email}
+                                    <span class="text-xs text-gray-500 mb-1 px-2">
+                                        {message.sender.username}
+                                    </span>
+                                {/if}
+                                <div
+                                    class="p-3 rounded-lg {message.sender.email === $auth.user?.email
+                                        ? 'bg-blue-500 text-white rounded-br-none'
+                                        : 'bg-gray-200 text-gray-800 rounded-bl-none'}"
+                                >
+                                    {message.content}
+                                </div>
+                                <span class="text-xs text-gray-400 mt-1 px-2">
+                                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
                         </div>
                     {/each}
                 {:else}

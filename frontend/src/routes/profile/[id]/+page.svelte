@@ -6,13 +6,25 @@
 
     let { data } = $props();
 
+    let editing = $state(false);
     let user = $state(data);
+    const original = user;
     let id = page.params.id;
 
     $effect(() => {
         id;
         user = data;
     });
+
+    const handleCancel = () => {
+        user = original;
+
+        editing = false;
+    };
+
+    const handleUpdate = () => {
+        console.log("yippiii");
+    };
 </script>
 
 <div class="bg-gray-100 min-h-screen p-8">
@@ -35,7 +47,9 @@
             >
                 <div class="relative w-32 h-32 flex-shrink-0">
                     <img
-                        src={user.profile_picture === "noPicture" ? "/default-avatar.png" : `/api/profile/${id}/picture`}
+                        src={user.profile_picture === "noPicture"
+                            ? "/default-avatar.png"
+                            : `/api/profile/${id}/picture`}
                         alt={`Profile picture of ${user.username}`}
                         class="w-full h-full rounded-full object-cover border-4 border-white shadow-md"
                     />
@@ -50,10 +64,33 @@
                         {user.username}
                     </h1>
                     {#if user.profession}
-                        <p class="text-gray-600 text-lg">{user.profession}</p>
+                        {#if editing}
+                            <input
+                                type="text"
+                                bind:value={user.profession}
+                                class="text-gray-600 text-lg"
+                            />
+                        {:else}
+                            <p class="text-gray-600 text-lg">
+                                {user.profession}
+                            </p>
+                        {/if}
                     {/if}
                     {#if user.location}
-                        <p class="text-sm text-gray-500 mt-2">📍 {user.location}</p>
+                        {#if editing}
+                            <p class="text-sm text-gray-500 mt-2">
+                                📍
+                                <input
+                                    type="text"
+                                    bind:value={user.location}
+                                    class="text-sm text-gray-500 mt-2"
+                                />
+                            </p>
+                        {:else}
+                            <p class="text-sm text-gray-500 mt-2">
+                                📍 {user.location}
+                            </p>
+                        {/if}
                     {/if}
                 </div>
                 <div
@@ -66,11 +103,27 @@
                         Message
                     </a>
                     {#if user.id == $auth?.user?.id}
-                        <button
-                            class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
-                        >
-                            Edit Profile
-                        </button>
+                        {#if editing}
+                            <button
+                                onclick={handleUpdate}
+                                class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
+                            >
+                                Save
+                            </button>
+                            <button
+                                onclick={handleCancel}
+                                class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
+                            >
+                                Cancel
+                            </button>
+                        {:else}
+                            <button
+                                onclick={() => (editing = !editing)}
+                                class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
+                            >
+                                Edit Profile
+                            </button>
+                        {/if}
                     {/if}
                 </div>
             </header>
@@ -81,9 +134,19 @@
                         <h2 class="text-2xl font-bold text-gray-800 mb-4">
                             About Me
                         </h2>
-                        <p class="text-gray-700 leading-relaxed">
-                            {user.aboutme}
-                        </p>
+                        {#if editing}
+                            <p class="text-gray-700 leading-relaxed">
+                                <input
+                                    type="text"
+                                    bind:value={user.aboutme}
+                                    class="text-gray-600 w-full h-full text-lg"
+                                />
+                            </p>
+                        {:else}
+                            <p class="text-gray-700 leading-relaxed">
+                                {user.aboutme}
+                            </p>
+                        {/if}
                     </div>
 
                     <div class="bg-gray-50 rounded-lg p-6">
@@ -150,28 +213,49 @@
                                 {#each user.contacts as contact}
                                     <li class="flex items-center space-x-2">
                                         {#if contact.icon === "email"}
-                                            <MailIcon class="w-5 h-5 text-gray-500" />
-                                            <span>{contact.name}: {contact.link}</span>
+                                            <MailIcon
+                                                class="w-5 h-5 text-gray-500"
+                                            />
+                                            <span
+                                                >{contact.name}: {contact.link}</span
+                                            >
                                         {:else if contact.icon === "twitter"}
-                                            <Twitter class="w-5 h-5 text-gray-500" />
-                                            <a href="{contact.link}" class="text-blue-500 hover:underline">
+                                            <Twitter
+                                                class="w-5 h-5 text-gray-500"
+                                            />
+                                            <a
+                                                href={contact.link}
+                                                class="text-blue-500 hover:underline"
+                                            >
                                                 {contact.name}
                                             </a>
                                         {:else if contact.icon === "linkedin"}
-                                            <Linkedin class="w-5 h-5 text-gray-500" />
-                                            <a href="{contact.link}" class="text-blue-500 hover:underline">
+                                            <Linkedin
+                                                class="w-5 h-5 text-gray-500"
+                                            />
+                                            <a
+                                                href={contact.link}
+                                                class="text-blue-500 hover:underline"
+                                            >
                                                 {contact.name}
                                             </a>
                                         {:else}
-                                            <User class="w-5 h-5 text-gray-500" />
-                                            <a href="{contact.link}" class="text-blue-500 hover:underline">
+                                            <User
+                                                class="w-5 h-5 text-gray-500"
+                                            />
+                                            <a
+                                                href={contact.link}
+                                                class="text-blue-500 hover:underline"
+                                            >
                                                 {contact.name}
                                             </a>
                                         {/if}
                                     </li>
                                 {/each}
                             {:else}
-                                <li class="text-gray-500">No contact information available</li>
+                                <li class="text-gray-500">
+                                    No contact information available
+                                </li>
                             {/if}
                         </ul>
                     </div>

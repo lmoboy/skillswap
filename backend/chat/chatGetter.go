@@ -41,25 +41,30 @@ func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 }
 
 // GetChatsFromUserID reads the "uid" query parameter, retrieves all chats involving that user from the database, and writes the resulting chats as JSON to the response.
-// On database error it sends HTTP 500 with a JSON error message; on success it sends HTTP 200 with the array of Chat objects.
+// On database error it sends HTTP 500 with a JSON error message; on success it sends HTTP 200 with the array of ChatWithUserInfo objects.
 func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 	userId := req.URL.Query().Get("uid")
 	res, err := database.Query(`
-	SELECT DISTINCT c.* 
-	FROm chats AS c, users AS u 
-	WHERE c.user1_id = ? 
-	AND c.user1_id = u.id 
-	OR c.user2_id = u.id`, userId)
+	SELECT c.id, c.user1_id, c.user2_id, c.created_at,
+		u1.username as user1_username, u1.profile_picture as user1_profile_picture,
+		u2.username as user2_username, u2.profile_picture as user2_profile_picture
+	FROM chats AS c
+	JOIN users AS u1 ON c.user1_id = u1.id
+	JOIN users AS u2 ON c.user2_id = u2.id
+	WHERE c.user1_id = ? OR c.user2_id = ?
+	ORDER BY c.created_at DESC`, userId, userId)
 	if err != nil {
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to get chat messages"})
 		return
 	}
-	var contents []Chat
+	var contents []ChatWithUserInfo
 	for res.Next() {
-		var content Chat
+		var content ChatWithUserInfo
 		err := res.Scan(
 			&content.Id, &content.Initiator, &content.Responder, &content.Created_at,
+			&content.InitiatorUsername, &content.InitiatorProfilePicture,
+			&content.ResponderUsername, &content.ResponderProfilePicture,
 		)
 		if err != nil {
 			utils.HandleError(err)
@@ -67,7 +72,5 @@ func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 		}
 		contents = append(contents, content)
 	}
-	// utils.DebugPrint(contents)
-	// utils.DebugPrint("so we got the messages here: ", userId)
 	utils.SendJSONResponse(w, http.StatusOK, contents)
 }
