@@ -4,6 +4,7 @@
     import Debug from "$lib/components/Debug.svelte";
 
     type User = {
+        email: string | undefined;
         id: number;
         username: string;
         profile_picture: string;
@@ -13,6 +14,7 @@
         sender: User;
         content: string;
         timestamp: string;
+        chat_id: number;
     };
 
     type ChatMeta = {
@@ -26,18 +28,20 @@
         messages: Message[];
     };
 
-    let chats: ChatWithMessages[] = [];
-    let selectedChatIndex: number = -1;
+    let chats: ChatWithMessages[] = $state([]);
+    let selectedChatIndex: number = $state(-1);
+    let ws: WebSocket | null = null;
+    let newMessage: string = $state("");
 
     onMount(async () => {
         const uid = $auth.user?.id;
         if (!uid) return;
 
+        // Load existing chats
         const resp = await fetch(`/api/getChats?uid=${uid}`);
         const chatMetas: ChatMeta[] = await resp.json();
 
         const chatPromises = chatMetas.map(async (cm) => {
-            console.log(cm);
             const res2 = await fetch(`/api/getChatInfo?cid=${cm.id}`);
             const body2 = await res2.json();
             const msgs: Message[] = body2.messages ?? [];
@@ -52,16 +56,92 @@
 
         if (chats.length > 0) {
             selectedChatIndex = 0;
+            // connectWebSocket(chats[0].id);
         }
     });
 
+    function connectWebSocket(chatId: number) {
+        if (ws) ws.close();
+
+        ws = new WebSocket(`/api/chat`);
+
+        ws.onopen = () => {
+            ws?.send(
+                JSON.stringify({
+                    usrtokn: $auth.user?.id,
+                    joinroom: chatId,
+                }),
+            );
+        };
+
+        ws.onmessage = (event) => {
+            const message: Message = JSON.parse(event.data);
+            if (
+                selectedChatIndex >= 0 &&
+                chats[selectedChatIndex].id === message.chat_id
+            ) {
+                chats[selectedChatIndex].messages = [
+                    ...chats[selectedChatIndex].messages,
+                    message,
+                ];
+            }
+        };
+
+        ws.onclose = () => {
+            console.log("WebSocket disconnected");
+        };
+    }
+
     function selectChat(i: number) {
         selectedChatIndex = i;
+        if (chats[i]) {
+            // connectWebSocket(chats[i].id);
+        }
+    }
+
+    function sendMessage() {
+        if (!newMessage.trim() || selectedChatIndex < 0) return;
+
+        const message: Message = {
+            sender: {
+                id: $auth.user?.id || 0,
+                username: $auth.user?.name || "",
+                email: $auth.user?.email || "",
+                profile_picture: "",
+            },
+            content: newMessage,
+            timestamp: new Date().toISOString(),
+            chat_id: chats[selectedChatIndex].id,
+        };
+
+        // ws.send(JSON.stringify(message))
+        chats[selectedChatIndex].messages = [
+            message,
+            ...chats[selectedChatIndex].messages,
+        ];
+        fetch(`/api/sendMessage`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                chat_id: message.chat_id,
+                sender: {
+                    id: message.sender.id,
+                    username: message.sender.username,
+                    email: message.sender.email,
+                    profile_picture: message.sender.profile_picture || "",
+                },
+                content: message.content,
+                timestamp: message.timestamp,
+            }),
+        });
+        newMessage = "";
     }
 </script>
 
 <div class="h-screen w-full p-4 bg-gray-100 transition-colors duration-300">
-    <Debug {chats} />
+    <!-- <Debug {chats} /> -->
 
     <div class="grid grid-cols-5 grid-rows-6 h-full w-full gap-4">
         <div
@@ -76,7 +156,10 @@
                     >Chats</span
                 >
                 <div class="flex flex-col gap-3">
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
                     {#each chats as chat, i}
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <div
                             class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
                             on:click={() => selectChat(i)}
@@ -203,11 +286,13 @@
                 <input
                     type="text"
                     placeholder="Send a message..."
-                    class="flex-grow bg-gray-100 text-gray-900 p-3 rounded-lg
-                 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    class="flex-grow bg-gray-100 text-gray-900 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    bind:value={newMessage}
+                    on:keydown={(e) => e.key === "Enter" && sendMessage()}
                 />
                 <button
                     class="p-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors duration-200"
+                    on:click={sendMessage}
                 >
                     Send
                 </button>
