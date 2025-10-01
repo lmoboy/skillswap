@@ -44,7 +44,7 @@ type Hub struct {
 
 // --- HUB IMPLEMENTATION ---
 
-// NewHub initializes and returns a new Hub.
+// NewHub creates a Hub with initialized channels and a client registry for managing registrations, unregistrations, and broadcast messages.
 func NewHub() *Hub {
 	return &Hub{
 		broadcast:  make(chan []byte),
@@ -268,6 +268,9 @@ func StartHub() {
 	globalHub.Run()
 }
 
+// SimpleWebSocketEndpoint upgrades the HTTP request to a WebSocket, registers a new Client with the global hub, and runs the client's I/O pumps.
+// 
+// On successful upgrade it creates a Client with a buffered send channel, registers the client with globalHub, starts writePump in a new goroutine and runs readPump (blocking) until the connection closes. If the WebSocket upgrade fails, the error is logged and the handler returns.
 func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -287,6 +290,9 @@ func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	client.readPump()     // Handles incoming messages (blocking until connection closes)
 }
 
+// CreateChat handles HTTP requests to create a chat between two users.
+//
+// It reads the user IDs from query parameters "u1" and "u2". If a database query to check the chat fails, it responds with HTTP 404 and a JSON error message. On success it inserts a new chat record and responds with HTTP 200 and a JSON object indicating the created chat and the involved user IDs.
 func CreateChat(w http.ResponseWriter, req *http.Request) {
 	var user1_id, user2_id string
 	user1_id = req.URL.Query().Get("u1")
