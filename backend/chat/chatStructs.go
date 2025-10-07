@@ -27,7 +27,6 @@ type ChatWithUserInfo struct {
 }
 
 type Message struct {
-	ChatID    int              `json:"chat_id"`
 	Sender    structs.UserInfo `json:"sender"`
 	Content   string           `json:"content"`
 	TimeStamp string           `json:"timestamp"`

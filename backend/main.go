@@ -35,10 +35,7 @@ func getSkills(w http.ResponseWriter, req *http.Request) {
 }
 
 // main initializes the application (database, routes and middleware) and starts the HTTP server.
-// main initializes the database, registers API endpoints for authentication, user, chat, and search, configures CORS, and starts an HTTP server on localhost:8080.
-// The server uses the configured router with ReadTimeout and WriteTimeout set to 15 seconds and blocks while serving.
-// main initializes the database, starts the chat WebSocket hub, registers HTTP API routes (authentication, user, chat, search, and health), configures CORS, and starts an HTTP server on localhost:8080 with 15-second read and write timeouts.
-// Registered endpoints handle login/register/logout, session check, search and fullSearch, user info retrieval, websocket and chat operations, and a /api/ping health check.
+// It registers API endpoints for authentication, user, chat and search operations, configures CORS, and listens on localhost:8080 with 15s read and write timeouts.
 func main() {
 	database.Init()
 
@@ -50,7 +47,6 @@ func main() {
 
 	// Tiek definēti API ceļi (end-points) dažādām front-end darbībām.
 	// "HandleFunc" piesaista konkrētu URL ceļu noteiktai Go funkcijai.
-	// server.HandleFunc("/api/chat", chat.RunWebsocket)
 	server.HandleFunc("/api/login", authentication.Login).Methods("POST")
 	server.HandleFunc("/api/register", authentication.Register).Methods("POST")
 	server.HandleFunc("/api/logout", authentication.Logout).Methods("POST")
@@ -62,8 +58,6 @@ func main() {
 	server.HandleFunc("/api/search", database.Search).Methods("POST")
 	server.HandleFunc("/api/fullSearch", database.FullSearch).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
-
-	server.HandleFunc("/api/sendMessage", chat.SaveToDBLink).Methods("POST")
 
 	server.HandleFunc("/api/chat", chat.SimpleWebSocketEndpoint)
 	server.HandleFunc("/api/createChat", chat.CreateChat)

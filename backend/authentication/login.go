@@ -11,8 +11,6 @@ import (
 	"skillswap/backend/utils"
 )
 
-// Login authenticates a user from JSON credentials in the request body, creates a session on success, and writes an HTTP JSON response.
-// It expects a JSON UserInfo with Email and Password, verifies the credentials against the users table (password compared as an MD5 hex hash), applies a session if the credentials match, and returns 200 on success, 400 for malformed input, 401 for invalid credentials, or 500 for server errors.
 func Login(w http.ResponseWriter, req *http.Request) {
 	var userInfo structs.UserInfo
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
@@ -21,8 +19,8 @@ func Login(w http.ResponseWriter, req *http.Request) {
 	}
 
 	row := database.QueryRow("SELECT username, email, id FROM users WHERE email = ? AND password_hash = ?", userInfo.Email, fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password))))
-
-	var storedUsername, storedEmail, storedID string
+	var storedID int
+	var storedUsername, storedEmail string
 	if err := row.Scan(&storedUsername, &storedEmail, &storedID); err != nil {
 		if err == sql.ErrNoRows {
 			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid username or password"})
