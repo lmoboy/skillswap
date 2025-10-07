@@ -8,6 +8,12 @@ import (
 	"skillswap/backend/utils"
 )
 
+// RetrieveUserInfo handles an HTTP request to fetch a user's complete profile by id (query parameter "q")
+// and writes the user object as JSON to the response.
+// It queries the database for user fields and JSON-encoded arrays for skills, projects, and contacts,
+// unmarshals those arrays into the corresponding struct fields, and returns the assembled user.
+// Responds with HTTP 200 and the user on success, HTTP 404 if the user is not found, and HTTP 500 on database
+// or JSON unmarshalling errors.
 func RetrieveUserInfo(w http.ResponseWriter, req *http.Request) {
 
 	rows, err := database.Query(`

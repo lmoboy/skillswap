@@ -70,6 +70,11 @@ func GetAllSkills() ([]structs.Skill, error) {
 	return skills, nil
 }
 
+// Search decodes a JSON body containing a "query" string and returns up to five users matching the query along with their aggregated skills.
+// 
+// The request body must be JSON with the field `query`. The handler responds with a JSON array of `structs.SearchResult` entries,
+// each containing the user's ID, username, email, and a comma-separated `SkillsFound` string. If the JSON body cannot be decoded,
+// the handler responds with HTTP 200 and a JSON error message. On database/query errors the error is recorded and the handler returns without writing a further response.
 func Search(w http.ResponseWriter, req *http.Request) {
 
 	var requestBody struct {
@@ -126,6 +131,16 @@ func Search(w http.ResponseWriter, req *http.Request) {
 	utils.SendJSONResponse(w, http.StatusOK, results)
 }
 
+// FullSearch searches users by username, email, skill name, or skill description and writes matching users
+// with aggregated skill names to the response as a JSON array of structs.SearchResult.
+//
+// The request must provide a JSON body with a `query` string field; the server performs a wildcard search
+// around that query and returns each matched user's ID, username, email, about-me text, profession,
+// comma-separated skills (may be empty), and join/created timestamp.
+//
+// On JSON decode failure it logs the error and responds with HTTP 200 and a JSON error object
+// (`{"error":"Failed to get shit"}`). On database/query errors it logs the error and returns without
+// writing a success payload.
 func FullSearch(w http.ResponseWriter, req *http.Request) {
 
 	var requestBody struct {
