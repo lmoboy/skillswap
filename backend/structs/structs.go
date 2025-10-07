@@ -29,7 +29,7 @@ type UserProject struct {
 
 type UserSkill struct {
 	Name     string `json:"name"`
-	Verified bool   `json:"verified"`
+	Verified int   `json:"verified"`
 }
 
 type UserContact struct {

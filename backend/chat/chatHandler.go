@@ -11,12 +11,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// NewHub creates a new MessageHub with an initialized client map (capacity 2), a broadcasts channel, and an empty messages slice.
-func NewHub() *MessageHub {
-	return &MessageHub{
-		Clients:    make(map[*websocket.Conn]bool, 2),
-		Broadcasts: make(chan Message),
-		Messages:   make([]Message, 0),
 // WebSocketMessage represents the incoming WebSocket message structure
 type WebSocketMessage struct {
 	Type    string `json:"type"`
@@ -50,7 +44,7 @@ type Hub struct {
 
 // --- HUB IMPLEMENTATION ---
 
-// NewHub creates a Hub with initialized channels and a client registry for managing registrations, unregistrations, and broadcast messages.
+// NewHub initializes and returns a new Hub.
 func NewHub() *Hub {
 	return &Hub{
 		broadcast:  make(chan []byte),
@@ -148,9 +142,9 @@ func (c *Client) readPump() {
 		switch wsMessage.Type {
 		case "post":
 			utils.DebugPrint("Handling POST message with ID:", wsMessage.ID)
-			
+
 			// Insert message into database
-			if(wsMessage.Content == "") {
+			if wsMessage.Content == "" {
 				continue
 			}
 			_, err = database.Execute("INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)", wsMessage.ID, wsMessage.UserID, wsMessage.Content)
@@ -172,12 +166,12 @@ func (c *Client) readPump() {
 				SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location
 				FROM users AS u
 				WHERE u.id = ?`, wsMessage.UserID)
-			
+
 			var sender Message
-			err = row.Scan(&sender.Sender.ID, &sender.Sender.Username, &sender.Sender.Email, 
-				&sender.Sender.ProfilePicture, &sender.Sender.AboutMe, &sender.Sender.Professions, 
+			err = row.Scan(&sender.Sender.ID, &sender.Sender.Username, &sender.Sender.Email,
+				&sender.Sender.ProfilePicture, &sender.Sender.AboutMe, &sender.Sender.Professions,
 				&sender.Sender.Location)
-			
+
 			if err != nil {
 				utils.HandleError(err)
 				continue
@@ -261,67 +255,6 @@ func (c *Client) writePump() {
 	}
 }
 
-// JoinWebSocket upgrades the HTTP request to a WebSocket connection and attaches it to the provided MessageHub for receiving and broadcasting messages.
-func JoinWebSocket(w http.ResponseWriter, req *http.Request, hub *MessageHub) {
-	WSEndpoint(w, req, hub)
-}
-
-// SaveToDBLink decodes a JSON Message from the request body and stores it in the database.
-// On JSON decode failure it responds with HTTP 400 Bad Request.
-// On database save failure it responds with HTTP 500 Internal Server Error.
-// Successful requests produce no response body.
-func SaveToDBLink(w http.ResponseWriter, req *http.Request) {
-	var message Message
-
-	err := json.NewDecoder(req.Body).Decode(&message)
-
-	utils.DebugPrint(message)
-	if err != nil {
-		utils.HandleError(err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	err = SaveMessageToDatabase(message)
-	if err != nil {
-		utils.HandleError(err)
-		http.Error(w, "Failed to save message to database", http.StatusInternalServerError)
-		return
-	}
-}
-
-// SaveMessageToDatabase inserts msg into the `messages` table, persisting its chat_id, sender_id, and content.
-// It returns an error if the database insert fails.
-func SaveMessageToDatabase(msg Message) error {
-	_, err := database.Execute(`
-		INSERT INTO messages (chat_id, sender_id, content)
-		VALUES (?, ?, ?)
-	`, msg.ChatID, msg.Sender.ID, msg.Content)
-	if err != nil {
-		utils.HandleError(err)
-		return err
-	}
-	return nil
-}
-
-// LoadMessagesFromDatabase loads Messages from the database
-
-// RunWebsocket upgrades an HTTP request to a websocket, initializes and starts a MessageHub,
-// loads persisted messages into the hub, and attaches the requesting client to that hub.
-// It sends HTTP 400 if the request body is missing or contains invalid JSON; if loading
-// messages from the database fails the error is logged and the handler returns without
-// attaching the client.
-func RunWebsocket(w http.ResponseWriter, req *http.Request) {
-
-	if req.Body == nil {
-		http.Error(w, "No request body", http.StatusBadRequest)
-		return
-	}
-	var p struct {
-		UsrToken  string `json:"usrtokn"`
-		JoinsRoom string `json:"joinroom"`
-	}
-	err := json.NewDecoder(req.Body).Decode(&p)
 var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 	ReadBufferSize:  1024,
@@ -335,9 +268,6 @@ func StartHub() {
 	globalHub.Run()
 }
 
-// SimpleWebSocketEndpoint upgrades the HTTP request to a WebSocket, registers a new Client with the global hub, and runs the client's I/O pumps.
-// 
-// On successful upgrade it creates a Client with a buffered send channel, registers the client with globalHub, starts writePump in a new goroutine and runs readPump (blocking) until the connection closes. If the WebSocket upgrade fails, the error is logged and the handler returns.
 func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -357,9 +287,6 @@ func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	client.readPump()     // Handles incoming messages (blocking until connection closes)
 }
 
-// CreateChat handles HTTP requests to create a chat between two users.
-//
-// It reads the user IDs from query parameters "u1" and "u2". If a database query to check the chat fails, it responds with HTTP 404 and a JSON error message. On success it inserts a new chat record and responds with HTTP 200 and a JSON object indicating the created chat and the involved user IDs.
 func CreateChat(w http.ResponseWriter, req *http.Request) {
 	var user1_id, user2_id string
 	user1_id = req.URL.Query().Get("u1")
