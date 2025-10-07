@@ -15,6 +15,17 @@ type Chat struct {
 	Created_at string `json:"created_at"`
 }
 
+type ChatWithUserInfo struct {
+	Id                      int    `json:"id"`
+	Initiator               int    `json:"user1_id"`
+	Responder               int    `json:"user2_id"`
+	Created_at              string `json:"created_at"`
+	InitiatorUsername       string `json:"user1_username"`
+	InitiatorProfilePicture string `json:"user1_profile_picture"`
+	ResponderUsername       string `json:"user2_username"`
+	ResponderProfilePicture string `json:"user2_profile_picture"`
+}
+
 type Message struct {
 	ChatID    int              `json:"chat_id"`
 	Sender    structs.UserInfo `json:"sender"`

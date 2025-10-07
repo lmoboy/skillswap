@@ -45,7 +45,7 @@ func Close() error {
 	return db.Close()
 }
 
-func debug(query string, args ...interface{}) {
+func Debug(query string, args ...interface{}) {
 	fmt.Printf("Query: %s\nArgs: %v\n", query, args)
 }
 
