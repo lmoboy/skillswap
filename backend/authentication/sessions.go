@@ -49,17 +49,18 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Not authenticated"})
 		return
 	}
-	row, err := database.Query("SELECT username, email, id FROM users WHERE email = ?", values.Values["email"])
+	row, err := database.Query("SELECT username, email, id, COALESCE(profile_picture, '') FROM users WHERE email = ?", values.Values["email"])
 	var username string = ""
 	var email = ""
 	var id = 0
+	var profilePicture = ""
 	if err != nil {
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to check session"})
 		return
 	}
 	row.Next()
-	err = row.Scan(&username, &email, &id)
+	err = row.Scan(&username, &email, &id, &profilePicture)
 	if err != nil {
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to check session"})
@@ -67,7 +68,7 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 	}
 	defer row.Close()
 	// utils.DebugPrint(values.Values)
-	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"user": username, "email": email, "id": fmt.Sprintf("%d", id)})
+	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"user": username, "email": email, "id": fmt.Sprintf("%d", id), "profile_picture": profilePicture})
 }
 
 // RemoveSession invalidates and removes the current authentication session.

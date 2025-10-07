@@ -87,7 +87,7 @@
                 console.error("Search failed:", error);
             }
             searching = false;
-        }, 500); // 500ms debounce
+        }, 100); // 100ms debounce
     }
 
     onMount(() => {
@@ -102,10 +102,18 @@
     <!-- <AuthDebug /> -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            <div class="flex items-center">
+            <div class="flex items-center space-x-8">
                 <a href="/" class="text-xl font-semibold text-gray-800">
                     SkillSwap
                 </a>
+                <nav class="hidden md:flex items-center space-x-4">
+                    <a
+                        href="/course"
+                        class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                        Courses
+                    </a>
+                </nav>
             </div>
 
             <div
@@ -175,6 +183,22 @@
                                         </a>
                                     </li>
                                 {/each}
+                                <a
+                                    href="/search?q={searchQuery}"
+                                    class="block p-2"
+                                >
+                                    <div
+                                        class="flex items-center space-x-3 hover:bg-gray-100 transition-colors duration-200 h-fit"
+                                    >
+                                        <div class="flex-1 min-w-0">
+                                            <p
+                                                class="text-sm font-medium text-gray-900 truncate"
+                                            >
+                                                See all results
+                                            </p>
+                                        </div>
+                                    </div>
+                                </a>
                             </ul>
                         {:else}
                             <div class="p-4 text-center text-sm text-gray-500">
