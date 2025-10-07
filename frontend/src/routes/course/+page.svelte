@@ -24,7 +24,7 @@
             : courses,
     );
 
-    onMount(async () => {
+    async function fetchCourses() {
         try {
             const response = await fetch("/api/courses", {
                 method: "GET",
@@ -42,6 +42,11 @@
             console.error("Error fetching courses:", error);
             loading = false;
         }
+    }
+
+    onMount(() => {
+        fetchCourses();
+        setInterval(fetchCourses, 5000);
     });
 </script>
 

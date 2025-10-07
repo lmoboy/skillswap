@@ -71,7 +71,7 @@
         >
             <img
                 src={preview ||
-                    "https://randomuser.me/api/portraits/men/33.jpg"}
+                    `/api/profile/${user.user.id}/picture`}
                 alt="Profile Preview"
                 class="w-36 h-36 rounded-full border-4 border-gray-100 shadow-md transition-transform duration-300 hover:scale-105"
             />

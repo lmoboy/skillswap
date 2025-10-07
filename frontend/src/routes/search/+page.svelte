@@ -72,7 +72,7 @@
                                 class="bg-white rounded-xl shadow-lg flex flex-col w-[320px] md:flex-row overflow-hidden mr-4 flex-shrink-0"
                             >
                                 <img
-                                    src={user.user.profile_picture}
+                                    src={`/api/profile/${user.user.id}/picture`}
                                     alt={user.user.username}
                                     class="w-full h-32 md:h-auto md:w-32 object-cover"
                                 />

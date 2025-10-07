@@ -26,7 +26,7 @@
 
     let editing = $state(false);
     let user = $state(data);
-    let availableSkills = $state([]);
+    let availableSkills = $state<{id: number; name: string; description: string}[]>([]);
     const original = user;
     let id = page.params.id;
 
@@ -80,6 +80,16 @@
         });
     };
 
+    const uploadProfilePicture = async (e: Event) => {
+        const input = e.target as HTMLInputElement;
+        if (!input.files?.[0]) return;
+        const formData = new FormData();
+        formData.append("file", input.files[0]);
+        formData.append("user_id", id || "");
+        await fetch("/api/profile/picture", { method: "POST", body: formData });
+        location.reload();
+    };
+
     onMount(async () => {
         fetch("/api/getSkills")
             .then((res) => {
@@ -122,11 +132,18 @@
                         alt={`Profile picture of ${user.username}`}
                         class="w-full h-full rounded-full object-cover border-4 border-white shadow-md"
                     />
-                    <span
-                        class="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full border-2 border-white transform translate-x-1 translate-y-1 flex items-center justify-center text-sm text-white font-bold"
-                    >
-                        ✓
-                    </span>
+                    {#if editing && user.id == $auth?.user?.id}
+                        <label class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full border-2 border-white transform translate-x-1 translate-y-1 flex items-center justify-center text-sm text-white font-bold cursor-pointer hover:bg-blue-700">
+                            📷
+                            <input type="file" accept="image/*" onchange={uploadProfilePicture} class="hidden" />
+                        </label>
+                    {:else}
+                        <span
+                            class="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full border-2 border-white transform translate-x-1 translate-y-1 flex items-center justify-center text-sm text-white font-bold"
+                        >
+                            ✓
+                        </span>
+                    {/if}
                 </div>
                 <div class="text-center md:text-left">
                     <h1 class="text-4xl font-bold text-gray-900">

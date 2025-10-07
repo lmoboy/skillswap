@@ -162,15 +162,18 @@
     socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
         console.log("WebSocket message received:", message);
-        
+
         if (message.type === "new_message") {
             // Add the new message to the appropriate chat
             const chatId = message.chat_id;
-            const chatIndex = chats.findIndex(c => c.id === chatId);
-            
+            const chatIndex = chats.findIndex((c) => c.id === chatId);
+
             if (chatIndex !== -1) {
                 // Add message to the chat
-                chats[chatIndex].messages = [message.message, ...chats[chatIndex].messages];
+                chats[chatIndex].messages = [
+                    message.message,
+                    ...chats[chatIndex].messages,
+                ];
                 chats = chats; // Trigger reactivity
             }
         } else if (message.type === "update") {
@@ -229,12 +232,9 @@
                                         : chat.user1_username}
                                 </span>
                                 {#if chat.messages.length > 0}
-                                    <p
-                                        class="text-sm text-gray-600 truncate"
-                                    >
-                                        {chat.messages[
-                                            chat.messages.length - 1
-                                        ].content}
+                                    <p class="text-sm text-gray-600 truncate">
+                                        {chat.messages[chat.messages.length - 1]
+                                            .content}
                                     </p>
                                 {:else}
                                     <p class="text-sm text-gray-400 italic">
@@ -266,28 +266,39 @@
                 {#if selectedChatIndex >= 0}
                     {#each chats[selectedChatIndex].messages as message}
                         <div
-                            class="flex {message.sender.email === $auth.user?.email ? 'justify-end' : 'justify-start'}"
+                            class="flex {message.sender.email ===
+                            $auth.user?.email
+                                ? 'justify-end'
+                                : 'justify-start'}"
                         >
                             <div
-                                class="flex flex-col max-w-[70%] {message
-                                    .sender.email === $auth.user?.email
+                                class="flex flex-col max-w-[70%] {message.sender
+                                    .email === $auth.user?.email
                                     ? 'items-end'
                                     : 'items-start'}"
                             >
                                 {#if message.sender.email !== $auth.user?.email}
-                                    <span class="text-xs text-gray-500 mb-1 px-2">
+                                    <span
+                                        class="text-xs text-gray-500 mb-1 px-2"
+                                    >
                                         {message.sender.username}
                                     </span>
                                 {/if}
                                 <div
-                                    class="p-3 rounded-lg {message.sender.email === $auth.user?.email
+                                    class="p-3 rounded-lg {message.sender
+                                        .email === $auth.user?.email
                                         ? 'bg-blue-500 text-white rounded-br-none'
                                         : 'bg-gray-200 text-gray-800 rounded-bl-none'}"
                                 >
                                     {message.content}
                                 </div>
                                 <span class="text-xs text-gray-400 mt-1 px-2">
-                                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(
+                                        message.timestamp,
+                                    ).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                    })}
                                 </span>
                             </div>
                         </div>

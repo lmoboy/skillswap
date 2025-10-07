@@ -155,7 +155,7 @@
                                         class="p-2 hover:bg-gray-100 transition-colors duration-200 h-fit"
                                     >
                                         <a
-                                            href={`/profile/${result.user.id}`}
+                                            href={`profile/${result.user.id}`}
                                             class="block"
                                         >
                                             <div
@@ -163,7 +163,7 @@
                                             >
                                                 <img
                                                     class="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"
-                                                    src={`https://via.placeholder.com/${result.user.id}`}
+                                                    src={`/api/profile/${result.user.id}/picture`}
                                                     alt="Profile Picture"
                                                 />
                                                 <div class="flex-1 min-w-0">
@@ -224,11 +224,19 @@
                             aria-label="User menu"
                             aria-expanded={showUserMenu}
                         >
-                            <div
-                                class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600"
-                            >
-                                <User size={16} />
-                            </div>
+                            {#if $auth.user.profile_picture}
+                                <img
+                                    src={$auth.user.profile_picture}
+                                    alt={$auth.user.name}
+                                    class="w-8 h-8 rounded-full object-cover"
+                                />
+                            {:else}
+                                <div
+                                    class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600"
+                                >
+                                    <User size={16} />
+                                </div>
+                            {/if}
                             <span class="font-medium">{$auth.user.name}</span>
                         </button>
 
