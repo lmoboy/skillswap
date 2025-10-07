@@ -55,10 +55,6 @@
         }
     }
 
-    function formatPrice(price: number): string {
-        return price === 0 ? "Free" : `$${price.toFixed(2)}`;
-    }
-
     function formatDate(dateString: string): string {
         if (!dateString) return "";
         const date = new Date(dateString);
@@ -147,21 +143,16 @@
                                     class="w-full h-40 object-cover rounded-lg"
                                 />
                             </div>
-                            <div class="text-3xl font-bold mb-4 text-center">
-                                {formatPrice(course.price)}
-                            </div>
                             <button
                                 class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors mb-3"
                             >
-                                Enroll Now
+                                <a href={`/video/${courseId}/1`} class="block w-full h-full">Start Learning</a>
                             </button>
                             <button
                                 class="w-full border-2 border-blue-600 text-blue-600 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
                             >
                                 Add to Wishlist
                             </button>
-
-                            <div class="mt-6 space-y-3 text-sm">
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-600">Duration</span>
                                     <span

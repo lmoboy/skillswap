@@ -23,9 +23,6 @@
         }
     }
 
-    function formatPrice(price: number): string {
-        return price === 0 ? "Free" : `$${price.toFixed(2)}`;
-    }
 </script>
 
 <a
@@ -41,7 +38,6 @@
         <div
             class="absolute top-3 right-3 bg-white px-3 py-1 rounded-full text-sm font-bold text-gray-900"
         >
-            {formatPrice(course.price)}
         </div>
         <div class="absolute top-3 left-3">
             <span

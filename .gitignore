@@ -47,3 +47,5 @@ debug/
 
 # Local development files
 local.*
+backend/uploads*
+backend/uploads/*
