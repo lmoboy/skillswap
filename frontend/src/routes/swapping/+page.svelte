@@ -16,6 +16,7 @@
         sender: User;
         content: string;
         timestamp: string;
+        chat_id: number;
     };
 
     type ChatMeta = {
@@ -33,19 +34,20 @@
         messages: Message[];
     };
 
-    let newMessage = $state("");
     let chats: ChatWithMessages[] = $state([]);
     let selectedChatIndex: number = $state(-1);
+    let ws: WebSocket | null = null;
+    let newMessage: string = $state("");
 
     async function updateChat() {
         const uid = $auth.user?.id;
         if (!uid) return;
 
+        // Load existing chats
         const resp = await fetch(`/api/getChats?uid=${uid}`);
         const chatMetas: ChatMeta[] = await resp.json();
 
         const chatPromises = chatMetas.map(async (cm) => {
-            console.log(cm);
             const res2 = await fetch(`/api/getChatInfo?cid=${cm.id}`);
             const body2 = await res2.json();
             const msgs: Message[] = body2.messages ?? [];
@@ -64,8 +66,41 @@
 
         if (chats.length > 0) {
             selectedChatIndex = 0;
+            // connectWebSocket(chats[0].id);
         }
     });
+
+    function connectWebSocket(chatId: number) {
+        if (ws) ws.close();
+
+        ws = new WebSocket(`/api/chat`);
+
+        ws.onopen = () => {
+            ws?.send(
+                JSON.stringify({
+                    usrtokn: $auth.user?.id,
+                    joinroom: chatId,
+                }),
+            );
+        };
+
+        ws.onmessage = (event) => {
+            const message: Message = JSON.parse(event.data);
+            if (
+                selectedChatIndex >= 0 &&
+                chats[selectedChatIndex].id === message.chat_id
+            ) {
+                chats[selectedChatIndex].messages = [
+                    ...chats[selectedChatIndex].messages,
+                    message,
+                ];
+            }
+        };
+
+        ws.onclose = () => {
+            console.log("WebSocket disconnected");
+        };
+    }
 
     function selectChat(i: number) {
         selectedChatIndex = i;
@@ -168,9 +203,9 @@
                     >Chats</span
                 >
                 <div class="flex flex-col gap-3">
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     {#each chats as chat, i}
-                        <!-- svelte-ignore event_directive_deprecated -->
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <div
                             class={`${selectedChatIndex == i ? "bg-gray-200" : ""} flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer`}

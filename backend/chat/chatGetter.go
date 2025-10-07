@@ -78,3 +78,33 @@ func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 	}
 	utils.SendJSONResponse(w, http.StatusOK, contents)
 }
+
+
+
+// LoadMessagesFromDatabase loads the latest 100 messages along with each sender's details from the database.
+// It returns a slice of Message populated with sender fields, content, and timestamp, or an error if the query or row scanning fails.
+func LoadMessagesFromDatabase() ([]Message, error) {
+	res, err := database.Query(`
+		SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location, m.content, m.created_at
+		FROM messages AS m
+		JOIN users AS u ON m.sender_id = u.id
+		ORDER BY m.id DESC
+		LIMIT 100`)
+	if err != nil {
+		utils.HandleError(err)
+		return nil, err
+	}
+	defer res.Close()
+
+	var messages []Message
+	for res.Next() {
+		var msg Message
+		err := res.Scan(&msg.Sender.ID, &msg.Sender.Username, &msg.Sender.Email, &msg.Sender.ProfilePicture, &msg.Sender.AboutMe, &msg.Sender.Professions, &msg.Sender.Location, &msg.Content, &msg.TimeStamp)
+		if err != nil {
+			utils.HandleError(err)
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
+}
