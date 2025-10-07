@@ -32,7 +32,7 @@ func GetSkillIDFromName(name string) (int64, error) {
 	defer db.Close()
 
 	var id int64
-	err = db.QueryRow("SELECT id FROM skills WHERE name = ?", name).Scan(&id)
+	err = db.QueryRow("SELECT id FROM skills WHERE NAME LIKE ? LIMIT 1", name).Scan(&id)
 	if err != nil {
 		return -1, err
 	}
