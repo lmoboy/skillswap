@@ -57,7 +57,6 @@ export async function login(credentials: { email: string; password: string }): P
         const data = await response.json(); // Parsēt atbildi kā JSON
 
         if (!response.ok) {
-            // Ja atbilde nav veiksmīga, izmest kļūdu
             throw new Error(data.error || 'Pieteikšanās neizdevās (angļu v. Login failed)');
         }
         auth.setStep("Lietotāja iestatīšana... (angļu v. Setting user...)")
@@ -67,6 +66,7 @@ export async function login(credentials: { email: string; password: string }): P
                 name: data.username || '',
                 email: data.email || '',
                 id: data.id || '',
+                profile_picture: data.profile_picture ? data.profile_picture : '',
             });
 
             auth.setStep("Lietotājs iestatīts, pārbauda autentifikāciju... (angļu v. User set, checking auth...)")
@@ -214,6 +214,7 @@ export async function checkAuth(): Promise<boolean> {
                 name: data.user || '',
                 email: data.email || '',
                 id: data.id || '',
+                profile_picture: data.profile_picture ? data.profile_picture : '',
             });
             return true;
         }
