@@ -4,6 +4,7 @@ export interface User {
     name: string;
     email: string;
     id: number;
+    profile_picture?: string;
 }
 
 interface AuthState {
