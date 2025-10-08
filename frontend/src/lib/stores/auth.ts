@@ -69,10 +69,27 @@ function createAuthStore() {
                 return state;
             });
             return isAuth;
+        },
+        /** Wait until user is available or timeout */
+        waitForUser: (timeoutMs = 5000): Promise<User> => {
+            return new Promise((resolve, reject) => {
+                let unsub: () => void;
+                const timer = setTimeout(() => {
+                    if (unsub) unsub();
+                    reject(new Error("Timed out waiting for user"));
+                }, timeoutMs);
+
+                unsub = subscribe(state => {
+                    if (!state.loading && state.user) {
+                        clearTimeout(timer);
+                        unsub();
+                        resolve(state.user);
+                    }
+                });
+            });
         }
     };
 }
 
 export const auth = createAuthStore();
-
 export const { setUser, clearUser } = auth;

@@ -16,10 +16,10 @@
     let course = $state<CourseDetail | null>(null);
     let loading = $state(true);
     let error = $state<string | null>(null);
+    let courseId = $state();
 
     onMount(async () => {
-        const courseId = $page.params.id;
-
+        courseId = $page.params.id;
         try {
             const response = await fetch(`/api/course?id=${courseId}`, {
                 method: "GET",
@@ -146,220 +146,221 @@
                             <button
                                 class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors mb-3"
                             >
-                                <a href={`/video/${courseId}/1`} class="block w-full h-full">Start Learning</a>
+                                <a
+                                    href={`/course/${courseId}/1`}
+                                    class="block w-full h-full"
+                                    >Start Learning</a
+                                >
                             </button>
                             <button
                                 class="w-full border-2 border-blue-600 text-blue-600 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
                             >
                                 Add to Wishlist
                             </button>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-gray-600">Duration</span>
-                                    <span
-                                        class="font-medium flex items-center gap-1"
-                                    >
-                                        <Clock class="w-4 h-4" />
-                                        {course.duration_hours} hours
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-gray-600">Students</span>
-                                    <span
-                                        class="font-medium flex items-center gap-1"
-                                    >
-                                        <Users class="w-4 h-4" />
-                                        {course.current_students}/{course.max_students}
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-gray-600">Skill</span>
-                                    <span
-                                        class="font-medium flex items-center gap-1"
-                                    >
-                                        <TrendingUp class="w-4 h-4" />
-                                        {course.skill_name}
-                                    </span>
-                                </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Duration</span>
+                                <span
+                                    class="font-medium flex items-center gap-1"
+                                >
+                                    <Clock class="w-4 h-4" />
+                                    {course.duration_hours} hours
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Students</span>
+                                <span
+                                    class="font-medium flex items-center gap-1"
+                                >
+                                    <Users class="w-4 h-4" />
+                                    {course.current_students}/{course.max_students}
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Skill</span>
+                                <span
+                                    class="font-medium flex items-center gap-1"
+                                >
+                                    <TrendingUp class="w-4 h-4" />
+                                    {course.skill_name}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Main Content -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="md:col-span-2 space-y-8">
-                    <!-- Course Modules -->
-                    {#if course.modules && course.modules.length > 0}
-                        <div class="bg-white rounded-xl shadow-md p-6">
-                            <h2
-                                class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2"
-                            >
-                                <BookOpen class="w-6 h-6 text-blue-600" />
-                                Course Curriculum
-                            </h2>
-                            <div class="space-y-3">
-                                {#each course.modules as module, index}
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="md:col-span-2 space-y-8">
+                <!-- Course Modules -->
+                {#if course.modules && course.modules.length > 0}
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2
+                            class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2"
+                        >
+                            <BookOpen class="w-6 h-6 text-blue-600" />
+                            Course Curriculum
+                        </h2>
+                        <div class="space-y-3">
+                            {#each course.modules as module, index}
+                                <div
+                                    class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                                >
                                     <div
-                                        class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                                        class="flex items-start justify-between"
                                     >
-                                        <div
-                                            class="flex items-start justify-between"
-                                        >
-                                            <div class="flex-1">
-                                                <div
-                                                    class="flex items-center gap-3 mb-2"
+                                        <div class="flex-1">
+                                            <div
+                                                class="flex items-center gap-3 mb-2"
+                                            >
+                                                <span
+                                                    class="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold"
                                                 >
-                                                    <span
-                                                        class="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold"
-                                                    >
-                                                        {index + 1}
-                                                    </span>
-                                                    <h3
-                                                        class="font-semibold text-gray-900"
-                                                    >
-                                                        {module.title}
-                                                    </h3>
-                                                </div>
-                                                <p
-                                                    class="text-sm text-gray-600 ml-11"
-                                                >
-                                                    {module.description}
-                                                </p>
-                                            </div>
-                                            <ChevronRight
-                                                class="w-5 h-5 text-gray-400"
-                                            />
-                                        </div>
-                                    </div>
-                                {/each}
-                            </div>
-                        </div>
-                    {/if}
-
-                    <!-- Reviews Section -->
-                    {#if course.reviews && course.reviews.length > 0}
-                        <div class="bg-white rounded-xl shadow-md p-6">
-                            <h2
-                                class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2"
-                            >
-                                <Star
-                                    class="w-6 h-6 text-yellow-400 fill-yellow-400"
-                                />
-                                Student Reviews
-                            </h2>
-                            <div class="space-y-6">
-                                {#each course.reviews as review}
-                                    <div
-                                        class="border-b border-gray-200 pb-6 last:border-0"
-                                    >
-                                        <div
-                                            class="flex items-start justify-between mb-3"
-                                        >
-                                            <div>
-                                                <h4
+                                                    {index + 1}
+                                                </span>
+                                                <h3
                                                     class="font-semibold text-gray-900"
                                                 >
-                                                    {review.student_name}
-                                                </h4>
-                                                <div
-                                                    class="flex items-center gap-2 mt-1"
-                                                >
-                                                    <div class="flex gap-1">
-                                                        {#each renderStars(review.rating) as filled}
-                                                            <Star
-                                                                class={`w-4 h-4 ${filled ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
-                                                            />
-                                                        {/each}
-                                                    </div>
-                                                    <span
-                                                        class="text-sm text-gray-500"
-                                                    >
-                                                        {formatDate(
-                                                            review.created_at,
-                                                        )}
-                                                    </span>
+                                                    {module.title}
+                                                </h3>
+                                            </div>
+                                            <p
+                                                class="text-sm text-gray-600 ml-11"
+                                            >
+                                                {module.description}
+                                            </p>
+                                        </div>
+                                        <ChevronRight
+                                            class="w-5 h-5 text-gray-400"
+                                        />
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+
+                <!-- Reviews Section -->
+                {#if course.reviews && course.reviews.length > 0}
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2
+                            class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2"
+                        >
+                            <Star
+                                class="w-6 h-6 text-yellow-400 fill-yellow-400"
+                            />
+                            Student Reviews
+                        </h2>
+                        <div class="space-y-6">
+                            {#each course.reviews as review}
+                                <div
+                                    class="border-b border-gray-200 pb-6 last:border-0"
+                                >
+                                    <div
+                                        class="flex items-start justify-between mb-3"
+                                    >
+                                        <div>
+                                            <h4
+                                                class="font-semibold text-gray-900"
+                                            >
+                                                {review.student_name}
+                                            </h4>
+                                            <div
+                                                class="flex items-center gap-2 mt-1"
+                                            >
+                                                <div class="flex gap-1">
+                                                    {#each renderStars(review.rating) as filled}
+                                                        <Star
+                                                            class={`w-4 h-4 ${filled ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                                        />
+                                                    {/each}
                                                 </div>
+                                                <span
+                                                    class="text-sm text-gray-500"
+                                                >
+                                                    {formatDate(
+                                                        review.created_at,
+                                                    )}
+                                                </span>
                                             </div>
                                         </div>
-                                        <p class="text-gray-700">
-                                            {review.review_text}
-                                        </p>
                                     </div>
-                                {/each}
-                            </div>
+                                    <p class="text-gray-700">
+                                        {review.review_text}
+                                    </p>
+                                </div>
+                            {/each}
                         </div>
-                    {/if}
-                </div>
+                    </div>
+                {/if}
+            </div>
 
-                <!-- Sidebar -->
-                <div class="md:col-span-1">
-                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">
-                            What you'll learn
-                        </h3>
-                        <ul class="space-y-3">
-                            <li class="flex items-start gap-2">
-                                <Award
-                                    class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
-                                />
-                                <span class="text-sm text-gray-700"
-                                    >Master {course.skill_name} fundamentals</span
-                                >
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <Award
-                                    class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
-                                />
-                                <span class="text-sm text-gray-700"
-                                    >Build real-world projects</span
-                                >
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <Award
-                                    class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
-                                />
-                                <span class="text-sm text-gray-700"
-                                    >Get hands-on experience</span
-                                >
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <Award
-                                    class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
-                                />
-                                <span class="text-sm text-gray-700"
-                                    >Receive instructor feedback</span
-                                >
-                            </li>
-                        </ul>
-
-                        <div class="mt-6 pt-6 border-t border-gray-200">
-                            <h3 class="text-lg font-bold text-gray-900 mb-4">
-                                Instructor
-                            </h3>
-                            <a
-                                href={`/profile/${course.instructor_id}`}
-                                class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+            <!-- Sidebar -->
+            <div class="md:col-span-1">
+                <div class="bg-white rounded-xl shadow-md p-6 sticky top-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">
+                        What you'll learn
+                    </h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start gap-2">
+                            <Award
+                                class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                            />
+                            <span class="text-sm text-gray-700"
+                                >Master {course.skill_name} fundamentals</span
                             >
-                                <div
-                                    class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                                >
-                                    {course.instructor_name
-                                        .charAt(0)
-                                        .toUpperCase()}
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-900">
-                                        {course.instructor_name}
-                                    </p>
-                                    <p class="text-sm text-gray-600">
-                                        View Profile
-                                    </p>
-                                </div>
-                            </a>
-                        </div>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <Award
+                                class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                            />
+                            <span class="text-sm text-gray-700"
+                                >Build real-world projects</span
+                            >
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <Award
+                                class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                            />
+                            <span class="text-sm text-gray-700"
+                                >Get hands-on experience</span
+                            >
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <Award
+                                class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                            />
+                            <span class="text-sm text-gray-700"
+                                >Receive instructor feedback</span
+                            >
+                        </li>
+                    </ul>
+
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">
+                            Instructor
+                        </h3>
+                        <a
+                            href={`/profile/${course.instructor_id}`}
+                            class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <div
+                                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
+                            >
+                                {course.instructor_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-900">
+                                    {course.instructor_name}
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    View Profile
+                                </p>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>

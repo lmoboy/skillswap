@@ -1,108 +1,278 @@
 <script>
-// @ts-nocheck
+    // @ts-nocheck
 
-    import { Mic, PhoneOff, Share2, VideoOff, Send } from "lucide-svelte";
+    import { onMount } from "svelte";
+    import { Mic, PhoneOff, Share2, VideoOff } from "lucide-svelte";
     import VideoDebug from "$lib/components/VideoDebug.svelte";
     import { auth } from "$lib/stores/auth";
 
+    // Component-level variables bound to DOM elements
+    let localVideo; // Will be bound to the local video element
+    let remoteVideo; // Will be bound to the remote video element
+
+    // WebRTC and state variables
     let localStream;
     let peerConnection;
+    let ws;
+    let roomId = "test-room"; // Default room for testing
+    let isInitiator = false;
+
+    // UI State
+    let callStarted = false;
     let isMuted = false;
-    let isVideoStopped = false;
+    let isVideoOff = false; // Used for UI toggle and track disabling
+    let isSharingScreen = false; // Placeholder for future screen sharing logic
 
+    // --- WebRTC Functions ---
+
+    /**
+     * Initializes the media stream, sets up the peer connection,
+     * connects to the signaling server, and starts the session.
+     */
     async function joinSession() {
-        const name = $auth.user.name;
+        if (callStarted) return;
+        if (!$auth.user) joinSession();
+        const name = $auth.user.name || "Anonymous";
 
-        
-        peerConnection = new RTCPeerConnection({
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        });
+        try {
+            // 1. Get local media (Video and Audio)
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true,
+            });
 
-        localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-        });
-        localStream
-            .getTracks()
-            .forEach((track) => peerConnection.addTrack(track, localStream));
-
-        const localVideo = document.createElement("video");
-        localVideo.srcObject = localStream;
-        localVideo.autoplay = true;
-        localVideo.muted = true;
-
-        const ws = new WebSocket(`/api/video`);
-
-        ws.onopen = () => {
-            console.log("Connected to the signaling server");
-            ws.send(JSON.stringify({ type: "join", name: name }));
-        };
-
-        ws.onmessage = async (message) => {
-            const data = JSON.parse(message.data);
-            switch (data.type) {
-                case "offer":
-                    await peerConnection.setRemoteDescription(
-                        new RTCSessionDescription(data.offer),
-                    );
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    ws.send(JSON.stringify({ type: "answer", answer: answer }));
-                    break;
-                case "answer":
-                    await peerConnection.setRemoteDescription(
-                        new RTCSessionDescription(data.answer),
-                    );
-                    break;
-                case "candidate":
-                    await peerConnection.addIceCandidate(
-                        new RTCIceCandidate(data.candidate),
-                    );
-                    break;
-                default:
-                    break;
+            // Set the local video source
+            if (localVideo) {
+                localVideo.srcObject = localStream;
             }
-        };
 
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                ws.send(
-                    JSON.stringify({
-                        type: "candidate",
-                        candidate: event.candidate,
-                    }),
+            // 2. Setup RTCPeerConnection
+            peerConnection = new RTCPeerConnection({
+                iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+            });
+
+            // Add local tracks to the peer connection
+            localStream
+                .getTracks()
+                .forEach((track) =>
+                    peerConnection.addTrack(track, localStream),
                 );
-            }
-        };
 
-        peerConnection.ontrack = (event) => {
-            addRemoteStream(event.streams[0]);
-        };
+            // 3. Setup WebSocket Signaling
+            ws = new WebSocket(`/api/video?room=${roomId}`);
+
+            ws.onopen = () => {
+                console.log("Connected to the signaling server.");
+
+                // If we're the initiator (first in room), create offer
+                // For demo purposes, we'll assume the first user is the initiator
+                // In a real app, you'd coordinate this via the server
+                setTimeout(() => {
+                    if (isInitiator) {
+                        console.log("Creating OFFER as initiator");
+                        createOffer();
+                    }
+                }, 1000);
+            };
+
+            // 4. Handle ICE Candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && ws.readyState === WebSocket.OPEN) {
+                    console.log("Sending ICE Candidate");
+                    ws.send(
+                        JSON.stringify({
+                            type: "candidate",
+                            data: event.candidate,
+                        }),
+                    );
+                }
+            };
+
+            // 5. Handle Remote Tracks (Receiving Stream)
+            peerConnection.ontrack = (event) => {
+                console.log("Remote track received.");
+
+                if (remoteVideo && event.streams && event.streams[0]) {
+                    console.log("Remote stream received.");
+                    remoteVideo.srcObject = event.streams[0];
+                }
+            };
+
+            // 6. Handle Signaling Messages
+            ws.onmessage = async (message) => {
+                const data = JSON.parse(message.data);
+                if (!data || !data.type) return;
+
+                console.log("Received signaling message:", data.type, data);
+
+                switch (data.type) {
+                    case "offer":
+                        console.log("Received OFFER");
+                        isInitiator = false;
+                        await peerConnection.setRemoteDescription(
+                            new RTCSessionDescription(data.data),
+                        );
+                        // Create and send ANSWER
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        console.log("Sending ANSWER");
+                        ws.send(
+                            JSON.stringify({
+                                type: "answer",
+                                data: answer,
+                            }),
+                        );
+                        break;
+                    case "answer":
+                        console.log("Received ANSWER");
+                        await peerConnection.setRemoteDescription(
+                            new RTCSessionDescription(data.data),
+                        );
+                        break;
+                    case "candidate":
+                        console.log("Received ICE Candidate");
+                        // Ensure remote description is set before adding candidate
+                        if (peerConnection.remoteDescription) {
+                            await peerConnection.addIceCandidate(
+                                new RTCIceCandidate(data.data),
+                            );
+                        } else {
+                            // Candidate received before offer/answer, typically stored and added later
+                            console.warn(
+                                "ICE Candidate received before Remote Description was set.",
+                            );
+                        }
+                        break;
+                    default:
+                        console.log("Unknown message type:", data.type);
+                        break;
+                }
+            };
+
+            callStarted = true;
+        } catch (error) {
+            console.error("Error joining session:", error);
+            alert(`Failed to start video session: ${error.message}`);
+            // Clean up if setup fails
+            endCall();
+        }
     }
 
+    /**
+     * Creates and sends an SDP offer to initiate the WebRTC connection.
+     */
+    async function createOffer() {
+        try {
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            console.log("Sending OFFER");
+            ws.send(
+                JSON.stringify({
+                    type: "offer",
+                    data: offer,
+                }),
+            );
+        } catch (error) {
+            console.error("Error creating offer:", error);
+        }
+    }
+
+    /**
+     * Toggles the enabled state of the local audio track.
+     */
     function toggleMute() {
-        localStream
-            .getAudioTracks()
-            .forEach(
-                (track) =>
-                    (track.enabled = !track.enabled),
-            );
-        isMuted = !isMuted;
+        if (!localStream) return;
+
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            isMuted = !isMuted;
+        }
     }
 
+    /**
+     * Toggles the enabled state of the local video track.
+     * Note: Changed variable from isVideoStopped to isVideoOff for consistency.
+     */
     function toggleVideo() {
-        localStream.getVideoTracks().forEach(
-                (track) =>
-                    (track.enabled = !track.enabled),
-            );
-        isVideoStopped = !isVideoStopped;
+        if (!localStream) return;
+
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            isVideoOff = !isVideoOff;
+        }
     }
 
-    function addRemoteStream(stream) {
-        const remoteVideo = document.createElement("video");
-        remoteVideo.srcObject = stream;
-        remoteVideo.autoplay = true;
+    /**
+     * Stops the media streams and closes the connections.
+     */
+    function endCall() {
+        if (localStream) {
+            localStream.getTracks().forEach((track) => track.stop());
+            localStream = null;
+        }
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+
+        // Clear video elements
+        if (localVideo) localVideo.srcObject = null;
+        if (remoteVideo) remoteVideo.srcObject = null;
+
+        callStarted = false;
+        console.log("Call ended and connections closed.");
     }
+
+    // Placeholder function for screen sharing
+    async function toggleScreenShare() {
+        if (isSharingScreen) {
+            // Stop sharing (re-add camera track)
+            console.log("Stopping screen share...");
+            // TODO: Logic to replace screen track with camera track
+            isSharingScreen = false;
+        } else {
+            // Start sharing
+            try {
+                const screenStream =
+                    await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: true,
+                    });
+                // TODO: Logic to replace camera track with screen track
+                console.log("Starting screen share...");
+                isSharingScreen = true;
+            } catch (err) {
+                console.error("Error starting screen share:", err);
+            }
+        }
+    }
+
+    // Automatically join the session when the component mounts
+    onMount(() => {
+        // Only attempt to join if the user is authenticated (auth store check)
+        if (
+            auth
+                .waitForUser()
+                .then(() => true)
+                .catch(() => false)
+        ) {
+            joinSession();
+        } else {
+            // Handle case where user is not logged in or auth is not ready
+            console.warn("User not authenticated. Cannot join session.");
+        }
+
+        // Clean up on component destruction
+        return () => {
+            endCall();
+        };
+    });
 </script>
 
 <div class="min-h-screen bg-gray-50 flex flex-col">
@@ -121,6 +291,13 @@
                         playsinline
                         muted
                     ></video>
+                    {#if !localStream || isVideoOff}
+                        <div
+                            class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90"
+                        >
+                            <span class="text-white text-sm">Camera Off</span>
+                        </div>
+                    {/if}
                 </div>
 
                 <div
@@ -133,25 +310,22 @@
                         playsinline
                         muted={false}
                     ></video>
-                    <!-- {#if !remoteVideo?.srcObject}
+
+                    {#if !remoteVideo?.srcObject}
                         <div
                             class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white"
                         >
                             <div class="text-center">
                                 <div class="text-xl font-semibold mb-2">
-                                    Waiting for video stream...
+                                    {#if callStarted}
+                                        Waiting for partner to connect...
+                                    {:else}
+                                        Connecting...
+                                    {/if}
                                 </div>
-                                <div class="text-sm">
-                                    Status: {statusMessage}
-                                </div>
-                                {#if errorMessage}
-                                    <div class="text-red-400 mt-2 text-sm">
-                                        {errorMessage}
-                                    </div>
-                                {/if}
                             </div>
                         </div>
-                    {/if} -->
+                    {/if}
                 </div>
 
                 <div
@@ -159,7 +333,8 @@
                 >
                     <button
                         on:click={toggleMute}
-                        class={`p-3 rounded-full ${isMuted ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
+                        disabled={!callStarted}
+                        class={`p-3 rounded-full ${isMuted ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors disabled:opacity-50`}
                         aria-label={isMuted ? "Unmute" : "Mute"}
                     >
                         <Mic size={20} class={isMuted ? "line-through" : ""} />
@@ -167,26 +342,28 @@
 
                     <button
                         on:click={toggleVideo}
-                        class={`p-3 rounded-full ${isVideoOff ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
+                        disabled={!callStarted}
+                        class={`p-3 rounded-full ${isVideoOff ? "bg-red-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors disabled:opacity-50`}
                         aria-label={isVideoOff
                             ? "Turn on camera"
                             : "Turn off camera"}
                     >
                         <VideoOff
                             size={20}
-                            class={isVideoOff ? "line-through" : ""}
+                            class={isVideoOff ? "" : "stroke-white"}
                         />
                     </button>
 
-                    <!-- <button
+                    <button
                         on:click={toggleScreenShare}
-                        class={`p-3 rounded-full ${isSharingScreen ? "bg-blue-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`}
+                        disabled={!callStarted}
+                        class={`p-3 rounded-full ${isSharingScreen ? "bg-blue-500" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors disabled:opacity-50`}
                         aria-label={isSharingScreen
                             ? "Stop sharing screen"
                             : "Share screen"}
                     >
                         <Share2 size={20} />
-                    </button> -->
+                    </button>
 
                     <button
                         on:click={endCall}
@@ -201,7 +378,7 @@
     </main>
 
     <div class="p-4 border-t border-gray-200 bg-white">
-        <details class="group" open>
+        <details class="group">
             <summary
                 class="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 flex items-center"
             >
