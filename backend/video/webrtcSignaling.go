@@ -29,7 +29,8 @@ type Room struct {
 
 // HandleWebSocket handles WebSocket connections for WebRTC signaling.
 // It upgrades HTTP connections to WebSocket, manages room-based peer connections,
-// and relays signaling messages between clients in the same room.
+// HandleWebSocket upgrades an HTTP request to a WebSocket, places the connection into a room (created if needed), and relays signaling messages between clients in the same room.
+// The room is determined by the "room" query parameter; each incoming JSON message is annotated with the RoomID and the sender's remote address before being broadcast to other room members. If the room parameter is missing the request is rejected; if the room's broadcast channel is full, the message is dropped and the sender is unregistered.
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := VideoUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -130,7 +131,8 @@ func (room *Room) run() {
 }
 
 // getConnByAddr finds a connection by its remote address string.
-// It searches through all rooms to find a WebSocket connection matching the given address.
+// getConnByAddr searches all rooms and returns the first websocket connection whose RemoteAddr string equals the provided addr.
+// If no matching connection is found, it returns nil.
 func getConnByAddr(addr string) *websocket.Conn {
 	RoomsMutex.RLock()
 	defer RoomsMutex.RUnlock()
