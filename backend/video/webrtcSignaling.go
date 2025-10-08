@@ -1,3 +1,9 @@
+// Package video provides WebRTC signaling and video handling functionality.
+//
+// This package contains:
+// - WebSocket signaling server for peer-to-peer WebRTC connections
+// - Video upload and streaming capabilities
+// - Room-based message routing for multiple users
 package video
 
 import (
@@ -21,10 +27,9 @@ type Room struct {
 	Broadcast  chan Message
 }
 
-// Message represents a WebSocket message for signaling
-
-
-// HandleWebSocket handles WebSocket connections for WebRTC signaling
+// HandleWebSocket handles WebSocket connections for WebRTC signaling.
+// It upgrades HTTP connections to WebSocket, manages room-based peer connections,
+// and relays signaling messages between clients in the same room.
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := VideoUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -84,7 +89,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// run handles the room's message broadcasting
+// run handles the room's message broadcasting and client management.
+// It listens for client registration, unregistration, and message broadcasting,
+// managing the lifecycle of WebSocket connections within a room.
 func (room *Room) run() {
 	for {
 		select {
@@ -122,7 +129,8 @@ func (room *Room) run() {
 	}
 }
 
-// getConnByAddr finds a connection by its remote address string
+// getConnByAddr finds a connection by its remote address string.
+// It searches through all rooms to find a WebSocket connection matching the given address.
 func getConnByAddr(addr string) *websocket.Conn {
 	RoomsMutex.RLock()
 	defer RoomsMutex.RUnlock()
