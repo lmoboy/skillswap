@@ -12,6 +12,7 @@ import (
 	"skillswap/backend/structs"
 	"skillswap/backend/users"
 	"skillswap/backend/utils"
+	"skillswap/backend/video"
 
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
@@ -63,7 +64,7 @@ func main() {
 	server.HandleFunc("/api/createChat", chat.CreateChat)
 	server.HandleFunc("/api/getChats", chat.GetChatsFromUserID)
 	server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromUID)
-	// server.HandleFunc("/api/video", websocket.JoinWebSocket).Methods("GET")
+	server.HandleFunc("/api/video", video.HandleWebSocket).Methods("GET")
 
 	server.HandleFunc("/api/courses", courses.GetAllCourses).Methods("GET")
 	server.HandleFunc("/api/course", courses.GetCourseByID).Methods("GET")

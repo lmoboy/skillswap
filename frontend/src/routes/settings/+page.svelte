@@ -9,7 +9,7 @@
     // Šī mainīgā glabās attēla priekšskatījuma URL (angļu v. preview URL).
     let preview = $state("");
     // Lietotāja vārds, kas piesaistīts ievades laukam.
-    let name = $auth?.user?.name
+    let name = $auth?.user?.name;
     // Lietotāja e-pasts, kas piesaistīts ievades laukam.
     let email = $auth?.user?.email;
     // Lietotāja preferences, kas piesaistītas teksta laukam (angļu v. textarea).
@@ -70,8 +70,7 @@
             class="flex-shrink-0 flex flex-col items-center gap-6 p-4 sm:p-8 border-b lg:border-r lg:border-b-0 border-gray-200 lg:w-1/3"
         >
             <img
-                src={preview ||
-                    `/api/profile/${user.user.id}/picture`}
+                src={preview || `/api/profile/${authState.user?.id}/picture`}
                 alt="Profile Preview"
                 class="w-36 h-36 rounded-full border-4 border-gray-100 shadow-md transition-transform duration-300 hover:scale-105"
             />

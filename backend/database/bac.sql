@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   aboutme TEXT DEFAULT "",
   profession TEXT DEFAULT "",
   location VARCHAR(191) DEFAULT "",
+  swaps INT NOT NULL DEFAULT 2,
 
   password_hash VARCHAR(255) NOT NULL,
 

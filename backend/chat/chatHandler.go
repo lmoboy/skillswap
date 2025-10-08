@@ -268,6 +268,7 @@ func StartHub() {
 	globalHub.Run()
 }
 
+// SimpleWebSocketEndpoint handles the WebSocket endpoint for the chat application. It upgrades the incoming HTTP request to a WebSocket connection and runs the client's read and write pumps.
 func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

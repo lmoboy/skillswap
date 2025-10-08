@@ -14,9 +14,13 @@ import (
 
 func UploadProfilePicture(w http.ResponseWriter, req *http.Request) {
 	_ = req.ParseMultipartForm(4 << 20)
-	file, _, _ := req.FormFile("file")
+	file, fileHeader, _ := req.FormFile("file")
 	defer file.Close()
-
+	if utils.CheckType(filepath.Ext(fileHeader.Filename), []string{".jpg", ".jpeg", ".png"}) {
+		utils.DebugPrint("type not accepted")
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid file type"})
+		return
+	}
 	userID := req.FormValue("user_id")
 	_ = os.MkdirAll(filepath.Join("uploads", "users"), 0o755)
 	path := filepath.Join("uploads", "users", fmt.Sprintf("%s.jpg", userID))

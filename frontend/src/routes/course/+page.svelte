@@ -54,7 +54,7 @@
     <div class=" text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-                Explore Our Courses
+                Explore User Courses
             </h1>
             <p class="text-lg text-gray-500 mb-8">
                 Learn new skills from expert instructors and grow your career
@@ -75,6 +75,13 @@
                     />
                 </div>
             </div>
+
+            <a
+                href={`course/add`}
+                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-all"
+            >
+                Upload your own course
+            </a>
         </div>
     </div>
 

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
 func SendJSONResponse(w http.ResponseWriter, statusCode int, payload interface{}) {
@@ -13,7 +16,13 @@ func SendJSONResponse(w http.ResponseWriter, statusCode int, payload interface{}
 	json.NewEncoder(w).Encode(payload)
 }
 
+func CheckType(toCheck string, toAllow []string) bool {
+	return !strings.Contains(strings.Join(toAllow, ","), toCheck)
+}
 
+func GenerateUUID() string {
+	return uuid.New().String()
+}
 func DebugPrint(message ...any) {
 	_, filename, line, _ := runtime.Caller(1)
 	fmt.Printf("%s:%d (%s)\n", filename, line, message)
