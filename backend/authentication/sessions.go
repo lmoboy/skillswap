@@ -12,8 +12,9 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-// Use a simple key for session store
-var store = sessions.NewCookieStore([]byte("simple-session-key-12345"))
+// Use a simple key for session Store
+var Authenticated = false
+var Store = sessions.NewCookieStore([]byte("simple-session-key-12345"))
 
 func ApplySession(w http.ResponseWriter, req *http.Request, userInfo *structs.UserInfo) error {
 	if userInfo == nil || userInfo.Email == "" {
@@ -21,9 +22,10 @@ func ApplySession(w http.ResponseWriter, req *http.Request, userInfo *structs.Us
 	}
 
 	utils.DebugPrint("Applying session for user", userInfo)
-	session, err := store.New(req, "authentication")
+	session, err := Store.New(req, "authentication")
 	if err != nil {
 		utils.DebugPrint("Create session failed", err)
+		Authenticated = false
 		return err
 	}
 	session.ID = fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Email+time.Now().String())))
@@ -32,6 +34,7 @@ func ApplySession(w http.ResponseWriter, req *http.Request, userInfo *structs.Us
 
 	if err := session.Save(req, w); err != nil {
 		utils.DebugPrint(err)
+		Authenticated = false
 		return err
 	}
 
@@ -39,13 +42,15 @@ func ApplySession(w http.ResponseWriter, req *http.Request, userInfo *structs.Us
 }
 
 func CheckSession(w http.ResponseWriter, req *http.Request) {
-	values, err := store.Get(req, "authentication")
+	values, err := Store.Get(req, "authentication")
 	if err != nil {
+		Authenticated = false
 		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session"})
 		return
 	}
 
 	if values.Values["authenticated"] != true {
+		Authenticated = false
 		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Not authenticated"})
 		return
 	}
@@ -55,6 +60,7 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 	var id = 0
 	var profilePicture = ""
 	if err != nil {
+		Authenticated = false
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to check session"})
 		return
@@ -62,12 +68,14 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 	row.Next()
 	err = row.Scan(&username, &email, &id, &profilePicture)
 	if err != nil {
+		Authenticated = false
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to check session"})
 		return
 	}
 	defer row.Close()
 	// utils.DebugPrint(values.Values)
+	Authenticated = true
 	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"user": username, "email": email, "id": fmt.Sprintf("%d", id), "profile_picture": profilePicture})
 }
 
@@ -78,17 +86,19 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 // On success, the session is invalidated and the function returns nil.
 func RemoveSession(w http.ResponseWriter, req *http.Request) error {
 
-	session, err := store.Get(req, "authentication")
+	session, err := Store.Get(req, "authentication")
 	if err != nil {
+		Authenticated = false
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid session"})
 		return fmt.Errorf("invalid session")
 	}
 	session.Options.MaxAge = -1
 	if err := session.Save(req, w); err != nil {
+		Authenticated = false
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save session"})
 		return fmt.Errorf("failed to save session")
 	}
 	// utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"message": "BAIIII"})
-
+	Authenticated = false
 	return nil
 }

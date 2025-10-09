@@ -3,10 +3,17 @@ package courses
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"skillswap/backend/database"
 	"skillswap/backend/utils"
-	"strconv"
 )
 
 // GetAllCourses returns all published courses
@@ -285,6 +292,145 @@ func GetCoursesByInstructor(w http.ResponseWriter, r *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to process courses"})
 		return
 	}
-
 	utils.SendJSONResponse(w, http.StatusOK, courses)
+}
+func AddCourse(w http.ResponseWriter, r *http.Request) {
+	// Limit upload size (e.g., 200 MB)
+	r.Body = http.MaxBytesReader(w, r.Body, 20000<<20)
+	utils.DebugPrint("THE UPLOAD HITT!!!!")
+	if err := r.ParseMultipartForm(20000 << 20); err != nil {
+	utils.DebugPrint("THE FILE TOO BIG!!!!")
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "File too large or invalid form data"})
+		return
+	}
+
+	// Extract text fields
+	title := strings.TrimSpace(r.FormValue("title"))
+	description := strings.TrimSpace(r.FormValue("description"))
+	skillName := strings.TrimSpace(r.FormValue("skill_name"))
+	durationMinutesStr := r.FormValue("duration_minutes")
+	utils.DebugPrint("THE SECOND HITT!!!!")
+
+	if title == "" || description == "" || skillName == "" || durationMinutesStr == "" {
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
+		return
+	}
+	utils.DebugPrint("THE THIRD HITT!!!!")
+
+	durationMinutes, err := strconv.Atoi(durationMinutesStr)
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid duration value"})
+		return
+	}
+
+	// TODO: Replace with session user or auth context
+	instructorID := int64(1)
+	utils.DebugPrint("THE FOURTH HITT!!!!")
+	// Resolve skill name → skill_id
+	var skillID int64
+	err = database.QueryRow("SELECT id FROM skills WHERE name = ?", skillName).Scan(&skillID)
+	if err == sql.ErrNoRows {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid skill name"})
+		return
+	} else if err != nil {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch skill"})
+		return
+	}
+
+	// Handle preview photo upload
+	var thumbnailURL string
+	previewFile, previewHeader, err := r.FormFile("preview_photo")
+	if err == nil {
+		defer previewFile.Close()
+
+		// Validate preview photo file type
+		if !utils.CheckType(filepath.Ext(previewHeader.Filename), []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}) {
+			utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid preview photo file type. Only images are allowed."})
+			return
+		}
+
+		uploadDir := "./uploads/course_thumbnails"
+		os.MkdirAll(uploadDir, os.ModePerm)
+
+		filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(previewHeader.Filename))
+		filePath := filepath.Join(uploadDir, filename)
+
+		out, err := os.Create(filePath)
+		if err != nil {
+			utils.HandleError(err)
+			utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save preview photo"})
+			return
+		}
+		defer out.Close()
+		io.Copy(out, previewFile)
+
+		thumbnailURL = "/uploads/course_thumbnails/" + filename
+	}
+	utils.DebugPrint("THE FIFTH HITT!!!!")
+	// Insert course into DB
+	res, err := database.Execute(`
+		INSERT INTO courses (title, description, instructor_id, skill_id, duration_hours, thumbnail_url, status)
+		VALUES (?, ?, ?, ?, ?, ?, 'Draft')
+	`, title, description, instructorID, skillID, durationMinutes/60, thumbnailURL)
+	if err != nil {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create course"})
+		return
+	}
+	utils.DebugPrint("THE SIXTH HITT!!!!")
+	courseID, _ := res.LastInsertId()
+	utils.DebugPrint("THE SEVENTH HITT!!!!")
+	// Handle multiple course files
+	files := r.MultipartForm.File["course_files"]
+	if len(files) > 0 {
+		uploadDir := "./uploads/courses"
+		os.MkdirAll(uploadDir, os.ModePerm)
+
+		for _, fileHeader := range files {
+			// Validate course file type - allow common course content types
+			fileExt := filepath.Ext(fileHeader.Filename)
+			allowedCourseTypes := []string{".mp4", ".avi", ".mov", ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".txt", ".zip", ".jpg", ".jpeg", ".png", ".gif"}
+			if !utils.CheckType(fileExt, allowedCourseTypes) {
+				utils.DebugPrint("Course file type not allowed:", fileExt)
+				continue // Skip this file but continue with others
+			}
+
+			utils.DebugPrint("THE FILE IS UPLOADING!!!!!!!")
+			file, err := fileHeader.Open()
+			if err != nil {
+				utils.HandleError(err)
+				continue
+			}
+			defer file.Close()
+
+			filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(fileHeader.Filename))
+			filePath := filepath.Join(uploadDir, filename)
+
+			out, err := os.Create(filePath)
+			if err != nil {
+				utils.HandleError(err)
+				continue
+			}
+			io.Copy(out, file)
+			out.Close()
+
+			// Optionally: store file paths in another table if you track course modules/files
+			_, err = database.Execute(`
+				INSERT INTO course_modules (course_id, title, description, order_index)
+				VALUES (?, ?, ?, ?)
+			`, courseID, fileHeader.Filename, "", 0)
+			if err != nil {
+				utils.HandleError(err)
+			}
+		}
+	}
+	utils.DebugPrint("THE EIGHTH HITT!!!!")
+	utils.SendJSONResponse(w, http.StatusOK, map[string]any{
+		"message":    "Course uploaded successfully",
+		"course_id":  courseID,
+		"thumbnail":  thumbnailURL,
+		"skill_name": skillName,
+	})
 }

@@ -25,6 +25,19 @@
     let loading = $state(false);
     let error = $state<string | null>(null);
     let success = $state(false);
+    let availableSkills = $state<
+        { id: number; name: string; description: string }[]
+    >([]);
+
+    onMount(async () => {
+        fetch("/api/getSkills")
+            .then((res) => {
+                return res.json();
+            })
+            .then((res) => {
+                availableSkills = res;
+            });
+    });
 
     // Form submission handler
     async function handleSubmit(event: Event) {
@@ -56,7 +69,7 @@
 
         try {
             // Replace with your actual backend endpoint for course submission
-            const response = await fetch("/api/courses/add", {
+            const response = await fetch("/api/course/add", {
                 method: "POST",
                 body: data,
                 credentials: "include",
@@ -185,13 +198,16 @@
                             class="block text-sm font-medium text-gray-700"
                             >Skill Taught</label
                         >
-                        <input
-                            type="text"
+                        <select
                             id="skill_name"
                             bind:value={formData.skill_name}
                             required
                             class="mt-1 block w-full border text-gray-500 border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
-                        />
+                        >
+                            {#each availableSkills as skill}
+                                <option value={skill.name}>{skill.name}</option>
+                            {/each}
+                        </select>
                     </div>
 
                     <div>
