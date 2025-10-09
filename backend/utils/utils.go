@@ -16,8 +16,11 @@ func SendJSONResponse(w http.ResponseWriter, statusCode int, payload interface{}
 	json.NewEncoder(w).Encode(payload)
 }
 
+// CheckType validates if a file type is in the allowed list
+// Returns true if the file type is allowed, false if blocked
 func CheckType(toCheck string, toAllow []string) bool {
-	return !strings.Contains(strings.Join(toAllow, ","), toCheck)
+	allowedTypesStr := strings.Join(toAllow, ",")
+	return strings.Contains(allowedTypesStr, toCheck)
 }
 
 func GenerateUUID() string {

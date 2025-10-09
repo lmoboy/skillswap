@@ -71,7 +71,7 @@ func GetAllSkills() ([]structs.Skill, error) {
 }
 
 // Search decodes a JSON body containing a "query" string and returns up to five users matching the query along with their aggregated skills.
-// 
+//
 // The request body must be JSON with the field `query`. The handler responds with a JSON array of `structs.SearchResult` entries,
 // each containing the user's ID, username, email, and a comma-separated `SkillsFound` string. If the JSON body cannot be decoded,
 // the handler responds with HTTP 200 and a JSON error message. On database/query errors the error is recorded and the handler returns without writing a further response.
@@ -84,7 +84,7 @@ func Search(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		utils.HandleError(err)
 
-		utils.SendJSONResponse(w, http.StatusOK, map[string]string{"error": "Failed to get shit"})
+		utils.SendJSONResponse(w, http.StatusOK, map[string]string{"error": "Failed to get data"})
 		return
 	}
 
@@ -150,7 +150,7 @@ func FullSearch(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		utils.HandleError(err)
 
-		utils.SendJSONResponse(w, http.StatusOK, map[string]string{"error": "Failed to get shit"})
+		utils.SendJSONResponse(w, http.StatusOK, map[string]string{"error": "Failed to get data"})
 		return
 	}
 
@@ -162,10 +162,10 @@ func FullSearch(w http.ResponseWriter, req *http.Request) {
             u.id,
             u.username,
             u.email,
-			u.aboutme,
-			u.profession,
+            u.aboutme,
+            u.profession,
             COALESCE(GROUP_CONCAT(s.name SEPARATOR ', '), '') AS skills_found,
-			u.created_at
+            u.created_at
         FROM users AS u
         LEFT JOIN user_skills AS us ON u.id = us.user_id
         LEFT JOIN skills AS s ON us.skill_id = s.id
