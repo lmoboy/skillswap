@@ -25,7 +25,7 @@
         showDropdown = false,
         results = [],
         loading = false,
-        class: className = ""
+        class: className = "",
     }: Props = $props();
 
     let searchQuery = $state("");
@@ -62,7 +62,8 @@
 
 <svelte:window
     onclick={(e) => {
-        if (searchContainer && !searchContainer.contains(e.target as Node)) {
+        const target = e.target as Node;
+        if (searchContainer && !searchContainer.contains(target)) {
             closeDropdown();
         }
     }}
@@ -70,7 +71,9 @@
 
 <div class="relative w-full {className}" bind:this={searchContainer}>
     <div class="relative">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div
+            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+        >
             <Search class="h-4 w-4 text-gray-400" />
         </div>
         <input
@@ -96,8 +99,13 @@
             {:else if results && results.length > 0}
                 <ul class="divide-y divide-gray-200">
                     {#each results as result (result.user.id)}
-                        <li class="p-2 hover:bg-gray-100 transition-colors duration-200">
-                            <a href={`/profile/${result.user.id}`} class="block">
+                        <li
+                            class="p-2 hover:bg-gray-100 transition-colors duration-200"
+                        >
+                            <a
+                                href={`/profile/${result.user.id}`}
+                                class="block"
+                            >
                                 <div class="flex items-center space-x-3">
                                     <img
                                         class="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"
@@ -105,11 +113,16 @@
                                         alt="Profile Picture"
                                     />
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 truncate">
+                                        <p
+                                            class="text-sm font-medium text-gray-900 truncate"
+                                        >
                                             {result.user.username}
                                         </p>
-                                        <p class="text-xs text-gray-500 truncate">
-                                            Skills: {result.skills_found || "N/A"}
+                                        <p
+                                            class="text-xs text-gray-500 truncate"
+                                        >
+                                            Skills: {result.skills_found ||
+                                                "N/A"}
                                         </p>
                                     </div>
                                 </div>
@@ -117,10 +130,15 @@
                         </li>
                     {/each}
                     <li>
-                        <a href="/search?q={searchQuery}" class="block p-2 hover:bg-gray-100">
+                        <a
+                            href="/search?q={searchQuery}"
+                            class="block p-2 hover:bg-gray-100"
+                        >
                             <div class="flex items-center space-x-3">
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 truncate">
+                                    <p
+                                        class="text-sm font-medium text-gray-900 truncate"
+                                    >
                                         See all results
                                     </p>
                                 </div>

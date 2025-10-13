@@ -9,9 +9,9 @@
     // Šī mainīgā glabās attēla priekšskatījuma URL (angļu v. preview URL).
     let preview = $state("");
     // Lietotāja vārds, kas piesaistīts ievades laukam.
-    let name = $auth?.user?.name;
+    let name = $state($auth?.user?.name || "");
     // Lietotāja e-pasts, kas piesaistīts ievades laukam.
-    let email = $auth?.user?.email;
+    let email = $state($auth?.user?.email || "");
     // Lietotāja preferences, kas piesaistītas teksta laukam (angļu v. textarea).
     let preferences = $state("Daily email, weekly reports...");
     // Parole, kas piesaistīta paroles ievades laukam.
@@ -19,17 +19,17 @@
     // Būla vērtība, kas norāda, vai 2FA ir iespējota (angļu v. enabled).
     let is2FAEnabled = $state(false);
     // Objekts, kas glabās autentifikācijas stāvokli (angļu v. auth state).
-    let authState: {
-        user: { name: string; email: string } | null;
+    let authState = $state<{
+        user: { name: string; email: string; id?: string | number } | null;
         isAuthenticated: boolean;
         loading: boolean;
         error: string | null;
-    } = {
+    }>({
         user: null,
         isAuthenticated: false,
         loading: true,
         error: null,
-    };
+    });
 
     // Abonēt autentifikācijas stāvokļa izmaiņas un atjaunināt 'authState'.
     const unsubscribe = auth.subscribe((state) => {

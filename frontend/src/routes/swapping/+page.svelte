@@ -166,8 +166,8 @@
         };
     }
 
-    onMount(async () => {
-        await updateChat();
+    onMount(() => {
+        updateChat();
         initializeWebSocket();
 
         return () => {

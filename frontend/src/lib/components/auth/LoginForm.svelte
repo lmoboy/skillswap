@@ -1,7 +1,6 @@
 <script lang="ts">
     import { login } from "$lib/api/auth";
     import { goto } from "$app/navigation";
-    import Input from "$lib/components/common/Input.svelte";
     import Button from "$lib/components/common/Button.svelte";
     import { validateEmail, validateRequired } from "$lib/utils/validation";
 
@@ -10,10 +9,7 @@
         class?: string;
     };
 
-    let {
-        onSuccess,
-        class: className = ""
-    }: Props = $props();
+    let { onSuccess, class: className = "" }: Props = $props();
 
     let email = $state("");
     let password = $state("");
@@ -48,7 +44,10 @@
                 goto("/");
             }
         } catch (err: unknown) {
-            generalError = err instanceof Error ? err.message : "Login failed. Please try again.";
+            generalError =
+                err instanceof Error
+                    ? err.message
+                    : "Login failed. Please try again.";
         } finally {
             loading = false;
         }
@@ -71,29 +70,61 @@
             </div>
         {/if}
 
-        <Input
-            bind:value={email}
-            type="email"
-            label="Email"
-            placeholder="Enter your email"
-            error={emailError}
-            required
-            autocomplete="username"
-            disabled={loading}
-            oninput={clearEmailError}
-        />
+        <div class="w-full">
+            <label
+                for="email"
+                class="block text-sm font-medium text-gray-700 mb-2"
+            >
+                Email
+                <span class="text-red-500">*</span>
+            </label>
+            <input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                required
+                autocomplete="username"
+                disabled={loading}
+                bind:value={email}
+                oninput={clearEmailError}
+                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''}"
+            />
+            {#if emailError}
+                <p class="mt-1 text-sm text-red-600">
+                    {emailError}
+                </p>
+            {/if}
+        </div>
 
-        <Input
-            bind:value={password}
-            type="password"
-            label="Password"
-            placeholder="Enter your password"
-            error={passwordError}
-            required
-            autocomplete="current-password"
-            disabled={loading}
-            oninput={clearPasswordError}
-        />
+        <div class="w-full">
+            <label
+                for="password"
+                class="block text-sm font-medium text-gray-700 mb-2"
+            >
+                Password
+                <span class="text-red-500">*</span>
+            </label>
+            <input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                required
+                autocomplete="current-password"
+                disabled={loading}
+                bind:value={password}
+                oninput={clearPasswordError}
+                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''}"
+            />
+            {#if passwordError}
+                <p class="mt-1 text-sm text-red-600">
+                    {passwordError}
+                </p>
+            {/if}
+        </div>
 
         <Button
             type="submit"
@@ -109,7 +140,10 @@
         <div class="text-center">
             <p class="text-sm text-gray-600">
                 Don't have an account?
-                <a href="/auth/register" class="text-blue-600 hover:text-blue-700 font-medium">
+                <a
+                    href="/auth/register"
+                    class="text-blue-600 hover:text-blue-700 font-medium"
+                >
                     Sign up
                 </a>
             </p>

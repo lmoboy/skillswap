@@ -16,11 +16,7 @@
         class?: string;
     };
 
-    let {
-        user,
-        onLogout,
-        class: className = ""
-    }: Props = $props();
+    let { user, onLogout, class: className = "" }: Props = $props();
 
     let showMenu = $state(false);
     let menuContainer: HTMLElement;
@@ -43,7 +39,8 @@
 
 <svelte:window
     onclick={(e) => {
-        if (menuContainer && !menuContainer.contains(e.target as Node)) {
+        const target = e.target as Node;
+        if (menuContainer && !menuContainer.contains(target)) {
             closeMenu();
         }
     }}
