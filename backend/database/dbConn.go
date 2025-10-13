@@ -1,11 +1,11 @@
 package database
 
-
 import (
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"skillswap/backend/utils"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -18,11 +18,12 @@ func Init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	utils.DebugPrint("Database connected")
 	err = db.Ping()
 	if err != nil {
 		log.Fatal(err)
 	}
+	utils.DebugPrint("Database ping successful")
 }
 
 func GetDatabase() (*sql.DB, error) {

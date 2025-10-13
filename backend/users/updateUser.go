@@ -11,6 +11,8 @@ import (
 func UpdateUser(w http.ResponseWriter, req *http.Request) {
 	var payload structs.UserInfo
 	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+		utils.HandleError(err)
+
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-146"})
 		return
 	}
@@ -50,9 +52,9 @@ func addSkill(user structs.UserInfo, skill structs.UserSkill) {
 		utils.HandleError(err)
 		return
 	}
-	database.Debug("INSERT INTO user_skills (user_id, skill_id) VALUES (%v, %v)", user.ID, skillId)
+	database.Debug("INSERT INTO user_skills (user_id, skill_id, verified) VALUES (%v, %v, %v)", user.ID, skillId, skill.Verified)
 
-	_, err = database.Query("INSERT INTO user_skills (user_id, skill_id) VALUES (?,?)", user.ID, skillId)
+	_, err = database.Query("INSERT INTO user_skills (user_id, skill_id, verified) VALUES (?,?,?)", user.ID, skillId, skill.Verified)
 	if err != nil {
 		utils.HandleError(err)
 		return

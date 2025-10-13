@@ -4,7 +4,7 @@
     import { page } from "$app/stores";
     import { Frown } from "lucide-svelte";
     import { onMount } from "svelte";
-    import CourseCard from "$lib/components/CourseCard.svelte";
+    import CourseCard from "$lib/components/course/CourseCard.svelte";
 
     let users = $state([]);
     let courses = $state([]);

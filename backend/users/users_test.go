@@ -43,7 +43,7 @@ func TestUpdateUser(t *testing.T) {
 				Email:    "test@example.com",
 				AboutMe:  "Updated bio",
 				Skills: []structs.UserSkill{
-					{Name: "JavaScript", Verified: 1},
+					{Name: "JavaScript", Verified: true},
 				},
 				Projects: []structs.UserProject{
 					{Name: "Test Project", Description: "A test project", Link: "https://example.com"},
@@ -55,8 +55,8 @@ func TestUpdateUser(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name: "Invalid JSON",
-			userInfo: structs.UserInfo{},
+			name:           "Invalid JSON",
+			userInfo:       structs.UserInfo{},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -390,7 +390,7 @@ func TestRetrieveUserInfo(t *testing.T) {
 	} else {
 		found := false
 		for _, skill := range userInfo.Skills {
-			if skill.Name == "JavaScript" && skill.Verified == 1 {
+			if skill.Name == "JavaScript" && skill.Verified == true {
 				found = true
 				break
 			}

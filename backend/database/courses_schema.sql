@@ -15,13 +15,13 @@ CREATE TABLE IF NOT EXISTS courses (
   status ENUM('Draft', 'Published', 'Archived') NOT NULL DEFAULT 'Draft',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  
+
   PRIMARY KEY (id),
   CONSTRAINT fk_courses_instructor
     FOREIGN KEY (instructor_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_courses_skill
     FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE,
-    
+
   KEY idx_courses_instructor (instructor_id),
   KEY idx_courses_skill (skill_id),
   KEY idx_courses_status (status),
@@ -35,11 +35,11 @@ CREATE TABLE IF NOT EXISTS course_modules (
   description TEXT,
   order_index INT UNSIGNED NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  
+
   PRIMARY KEY (id),
   CONSTRAINT fk_course_modules_course
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-    
+
   KEY idx_course_modules_course (course_id),
   KEY idx_course_modules_order (course_id, order_index)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -51,13 +51,13 @@ CREATE TABLE IF NOT EXISTS course_enrollments (
   enrolled_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   completed_at TIMESTAMP NULL DEFAULT NULL,
   progress INT UNSIGNED DEFAULT 0,
-  
+
   PRIMARY KEY (id),
   CONSTRAINT fk_course_enrollments_course
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
   CONSTRAINT fk_course_enrollments_student
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
-    
+
   UNIQUE KEY uq_enrollment (course_id, student_id),
   KEY idx_course_enrollments_student (student_id),
   KEY idx_course_enrollments_course (course_id)
@@ -70,13 +70,13 @@ CREATE TABLE IF NOT EXISTS course_reviews (
   rating INT UNSIGNED NOT NULL CHECK (rating >= 1 AND rating <= 5),
   review_text TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  
+
   PRIMARY KEY (id),
   CONSTRAINT fk_course_reviews_course
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
   CONSTRAINT fk_course_reviews_student
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
-    
+
   UNIQUE KEY uq_review (course_id, student_id),
   KEY idx_course_reviews_course (course_id),
   KEY idx_course_reviews_rating (rating)

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import CourseCard from "$lib/components/CourseCard.svelte";
+    import CourseCard from "$lib/components/course/CourseCard.svelte";
     import type { Course } from "$lib/types/course";
     import { Search, Filter } from "lucide-svelte";
 
@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1a2">
         {#if loading}
             <div class="flex items-center justify-center py-20">
                 <div
