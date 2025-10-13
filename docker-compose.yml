@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+   mysql:
+      image: mysql:8.0
+      container_name: skillswap-mysql
+      environment:
+         - MYSQL_ROOT_PASSWORD=rootpassword
+         - MYSQL_DATABASE=skillswap
+         - MYSQL_USER=skillswap
+         - MYSQL_PASSWORD=skillswap
+      volumes:
+         - mysql-data:/var/lib/mysql
+      networks:
+         - skillswap-network
+      restart: unless-stopped
+      healthcheck:
+         test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+         timeout: 20s
+         retries: 10
+
+   backend:
+      build:
+         context: ./backend
+         dockerfile: Dockerfile
+      container_name: skillswap-backend
+      ports:
+         - '0.0.0.0:8080:8080'
+      environment:
+         - DB_URL=skillswap:skillswap@tcp(mysql:3306)/skillswap?parseTime=true
+      volumes:
+         - backend-uploads:/root/uploads
+      depends_on:
+         mysql:
+            condition: service_healthy
+      networks:
+         - skillswap-network
+      restart: unless-stopped
+
+   frontend:
+      build:
+         context: ./frontend
+         dockerfile: Dockerfile
+      container_name: skillswap-frontend
+      ports:
+         - '0.0.0.0:3000:3000'
+      environment:
+         - ORIGIN=http://0.0.0.0:3000
+         - BODY_SIZE_LIMIT=Infinity
+         - BACKEND_URL=http://backend:8080
+      depends_on:
+         - backend
+      networks:
+         - skillswap-network
+      restart: unless-stopped
+
+networks:
+   skillswap-network:
+      driver: bridge
+
+volumes:
+   mysql-data:
+   backend-uploads:

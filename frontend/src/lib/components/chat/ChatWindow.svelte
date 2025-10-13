@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { Message } from "$lib/types/chat";
-    import MessageBubble from "./MessageBubble.svelte";
     import MessageInput from "./MessageInput.svelte";
     import { formatTime } from "$lib/utils/formatting";
     import LoadingSpinner from "$lib/components/common/LoadingSpinner.svelte";

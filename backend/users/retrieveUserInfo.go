@@ -80,6 +80,8 @@ GROUP BY u.id, u.username, u.email, u.profile_picture, u.aboutme, u.location, u.
 	// Unmarshal JSON arrays into structs
 	if err := json.Unmarshal(skillsJSON, &user.Skills); err != nil {
 		utils.HandleError(err)
+		// Log the actual JSON data for debugging
+		utils.DebugPrint("Failed to unmarshal skills JSON: " + string(skillsJSON))
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to parse skills data"})
 		return
 	}

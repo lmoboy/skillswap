@@ -22,12 +22,15 @@ type Course struct {
 }
 
 type CourseModule struct {
-	ID          int64  `json:"id"`
-	CourseID    int64  `json:"course_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	OrderIndex  int    `json:"order_index"`
-	CreatedAt   string `json:"created_at"`
+	ID            int64  `json:"id"`
+	CourseID      int64  `json:"course_id"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	VideoURL      string `json:"video_url"`
+	VideoDuration int    `json:"video_duration"`
+	ThumbnailURL  string `json:"thumbnail_url"`
+	OrderIndex    int    `json:"order_index"`
+	CreatedAt     string `json:"created_at"`
 }
 
 type CourseEnrollment struct {
@@ -40,13 +43,13 @@ type CourseEnrollment struct {
 }
 
 type CourseReview struct {
-	ID           int64  `json:"id"`
-	CourseID     int64  `json:"course_id"`
-	StudentID    int64  `json:"student_id"`
-	StudentName  string `json:"student_name"`
-	Rating       int    `json:"rating"`
-	ReviewText   string `json:"review_text"`
-	CreatedAt    string `json:"created_at"`
+	ID          int64  `json:"id"`
+	CourseID    int64  `json:"course_id"`
+	StudentID   int64  `json:"student_id"`
+	StudentName string `json:"student_name"`
+	Rating      int    `json:"rating"`
+	ReviewText  string `json:"review_text"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type CourseDetail struct {

@@ -13,7 +13,6 @@ func GetUserIDFromEmail(email string) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-	defer db.Close()
 
 	var id int64
 	err = db.QueryRow("SELECT id FROM users WHERE email = ?", email).Scan(&id)
@@ -29,7 +28,6 @@ func GetSkillIDFromName(name string) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-	defer db.Close()
 
 	var id int64
 	err = db.QueryRow("SELECT id FROM skills WHERE NAME LIKE ? LIMIT 1", name).Scan(&id)
@@ -45,7 +43,6 @@ func GetAllSkills() ([]structs.Skill, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 
 	rows, err := db.Query("SELECT id, name, description FROM skills")
 	if err != nil {
@@ -102,7 +99,7 @@ func Search(w http.ResponseWriter, req *http.Request) {
         LEFT JOIN skills AS s ON us.skill_id = s.id
         WHERE u.username LIKE ? OR u.email LIKE ? OR s.name LIKE ? OR s.description LIKE ?
         GROUP BY u.id, u.username, u.email
-        ORDER BY u.id 
+        ORDER BY u.id
 		LIMIT 5
     `, searchQuery, searchQuery, searchQuery, searchQuery)
 	if err != nil {
@@ -171,7 +168,7 @@ func FullSearch(w http.ResponseWriter, req *http.Request) {
         LEFT JOIN skills AS s ON us.skill_id = s.id
         WHERE u.username LIKE ? OR u.email LIKE ? OR s.name LIKE ? OR s.description LIKE ?
         GROUP BY u.id, u.username, u.email
-        ORDER BY u.id 
+        ORDER BY u.id
     `, searchQuery, searchQuery, searchQuery, searchQuery)
 	if err != nil {
 		utils.HandleError(err)

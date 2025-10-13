@@ -6,10 +6,15 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
 
+    let err = $state("");
+    let takingLong = $state(false);
+
     onMount(async () => {
         // Get the user ID from route parameters
         const targetUserId = $page.params.id;
-
+        setTimeout(() => {
+            takingLong = true;
+        }, 5000);
         if (!targetUserId) {
             console.error("No target user ID found in route parameters");
             await goto("/swapping");
@@ -41,6 +46,8 @@
                 await goto("/swapping");
             }
         } catch (error) {
+            err = error;
+
             // Handle network or other errors
             console.error("Error creating chat:", error);
             await goto("/swapping");
@@ -50,9 +57,22 @@
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50">
     <div class="text-center">
-        <div
-            class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
-        ></div>
-        <p class="mt-4 text-gray-600">Creating chat...</p>
+        {#if err}
+            <div class="text-red-600">
+                <p class="font-semibold">Error creating chat:</p>
+                <p class="mt-2">{err}</p>
+            </div>
+        {:else}
+            <div
+                class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+            ></div>
+            <p class="mt-4 text-gray-600">Creating chat...</p>
+            {#if takingLong}
+                <p in:fade class="mt-4 text-gray-600">
+                    It would appear that the request is taking longer than
+                    expected.
+                </p>
+            {/if}
+        {/if}
     </div>
 </div>

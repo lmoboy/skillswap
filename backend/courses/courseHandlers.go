@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"skillswap/backend/authentication"
 	"skillswap/backend/database"
 	"skillswap/backend/utils"
 )
@@ -115,7 +116,7 @@ func GetCourseByID(w http.ResponseWriter, r *http.Request) {
 
 	// Get course modules
 	moduleRows, err := database.Query(`
-		SELECT id, course_id, title, description, order_index, created_at
+		SELECT id, course_id, title, description, COALESCE(video_url, ''), video_duration, COALESCE(thumbnail_url, ''), order_index, created_at
 		FROM course_modules
 		WHERE course_id = ?
 		ORDER BY order_index ASC
@@ -127,7 +128,7 @@ func GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		var modules []CourseModule
 		for moduleRows.Next() {
 			var module CourseModule
-			err := moduleRows.Scan(&module.ID, &module.CourseID, &module.Title, &module.Description, &module.OrderIndex, &module.CreatedAt)
+			err := moduleRows.Scan(&module.ID, &module.CourseID, &module.Title, &module.Description, &module.VideoURL, &module.VideoDuration, &module.ThumbnailURL, &module.OrderIndex, &module.CreatedAt)
 			if err == nil {
 				modules = append(modules, module)
 			}
@@ -295,27 +296,26 @@ func GetCoursesByInstructor(w http.ResponseWriter, r *http.Request) {
 	utils.SendJSONResponse(w, http.StatusOK, courses)
 }
 func AddCourse(w http.ResponseWriter, r *http.Request) {
-	// Limit upload size (e.g., 200 MB)
-	r.Body = http.MaxBytesReader(w, r.Body, 20000<<20)
-	utils.DebugPrint("THE UPLOAD HITT!!!!")
-	if err := r.ParseMultipartForm(20000 << 20); err != nil {
-		utils.DebugPrint("THE FILE TOO BIG!!!!")
+	// Limit upload size (e.g., 500 MB for videos)
+	r.Body = http.MaxBytesReader(w, r.Body, 500<<20)
+	utils.DebugPrint("Course upload started")
+
+	if err := r.ParseMultipartForm(500 << 20); err != nil {
+		utils.DebugPrint("File too large or invalid form data")
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "File too large or invalid form data"})
 		return
 	}
 
-	// Extract text fields
+	// Extract course basic fields
 	title := strings.TrimSpace(r.FormValue("title"))
 	description := strings.TrimSpace(r.FormValue("description"))
 	skillName := strings.TrimSpace(r.FormValue("skill_name"))
 	durationMinutesStr := r.FormValue("duration_minutes")
-	utils.DebugPrint("THE SECOND HITT!!!!")
 
 	if title == "" || description == "" || skillName == "" || durationMinutesStr == "" {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
 		return
 	}
-	utils.DebugPrint("THE THIRD HITT!!!!")
 
 	durationMinutes, err := strconv.Atoi(durationMinutesStr)
 	if err != nil {
@@ -323,9 +323,25 @@ func AddCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Replace with session user or auth context
-	instructorID := int64(1)
-	utils.DebugPrint("THE FOURTH HITT!!!!")
+	session, err := authentication.Store.Get(r, "authentication")
+	if err != nil || session.Values["authenticated"] != true {
+		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Authentication required"})
+		return
+	}
+
+	email, ok := session.Values["email"].(string)
+	if !ok {
+		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session"})
+		return
+	}
+	utils.DebugPrint(email)
+	instructorID, err := database.GetUserIDFromEmail(email)
+	if err != nil {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to get user ID"})
+		return
+	}
+
 	// Resolve skill name → skill_id
 	var skillID int64
 	err = database.QueryRow("SELECT id FROM skills WHERE name = ?", skillName).Scan(&skillID)
@@ -339,7 +355,7 @@ func AddCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle preview photo upload
+	// Handle course thumbnail upload
 	var thumbnailURL string
 	previewFile, previewHeader, err := r.FormFile("preview_photo")
 	if err == nil {
@@ -368,7 +384,7 @@ func AddCourse(w http.ResponseWriter, r *http.Request) {
 
 		thumbnailURL = "/uploads/course_thumbnails/" + filename
 	}
-	utils.DebugPrint("THE FIFTH HITT!!!!")
+
 	// Insert course into DB
 	res, err := database.Execute(`
 		INSERT INTO courses (title, description, instructor_id, skill_id, duration_hours, thumbnail_url, status)
@@ -379,58 +395,117 @@ func AddCourse(w http.ResponseWriter, r *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create course"})
 		return
 	}
-	utils.DebugPrint("THE SIXTH HITT!!!!")
+
 	courseID, _ := res.LastInsertId()
-	utils.DebugPrint("THE SEVENTH HITT!!!!")
-	// Handle multiple course files
-	files := r.MultipartForm.File["course_files"]
-	if len(files) > 0 {
-		uploadDir := "./uploads/courses"
-		os.MkdirAll(uploadDir, os.ModePerm)
+	utils.DebugPrint(fmt.Sprintf("Course created with ID: %d", courseID))
 
-		for _, fileHeader := range files {
-			// Validate course file type - allow common course content types
-			fileExt := filepath.Ext(fileHeader.Filename)
-			allowedCourseTypes := []string{".mp4", ".avi", ".mov", ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".txt", ".zip", ".jpg", ".jpeg", ".png", ".gif"}
-			if !utils.CheckType(fileExt, allowedCourseTypes) {
-				utils.DebugPrint("Course file type not allowed:", fileExt)
-				continue // Skip this file but continue with others
+	// Parse module data from form
+	modulesJSON := r.FormValue("modules")
+	if modulesJSON != "" {
+		var modules []struct {
+			Title         string `json:"title"`
+			Description   string `json:"description"`
+			OrderIndex    int    `json:"order_index"`
+			VideoDuration int    `json:"video_duration"`
+		}
+
+		err = json.Unmarshal([]byte(modulesJSON), &modules)
+		if err != nil {
+			utils.HandleError(err)
+			utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid modules data format"})
+			return
+		}
+
+		// Create directories for uploads
+		videoUploadDir := "./uploads/courses/videos"
+		moduleThumbnailDir := "./uploads/courses/module_thumbnails"
+		os.MkdirAll(videoUploadDir, os.ModePerm)
+		os.MkdirAll(moduleThumbnailDir, os.ModePerm)
+
+		// Process each module
+		for i, module := range modules {
+			var videoURL, moduleThumbnailURL string
+
+			// Handle video file upload for this module
+			videoFieldName := fmt.Sprintf("module_%d_video", i)
+			videoFile, videoHeader, err := r.FormFile(videoFieldName)
+			if err == nil {
+				defer videoFile.Close()
+
+				// Validate video file type
+				videoExt := filepath.Ext(videoHeader.Filename)
+				if !utils.CheckType(videoExt, []string{".mp4", ".avi", ".mov", ".webm", ".mkv"}) {
+					utils.DebugPrint(fmt.Sprintf("Invalid video type for module %d: %s", i, videoExt))
+					continue
+				}
+
+				videoFilename := fmt.Sprintf("%d_module_%d_%s", time.Now().UnixNano(), i, filepath.Base(videoHeader.Filename))
+				videoPath := filepath.Join(videoUploadDir, videoFilename)
+
+				out, err := os.Create(videoPath)
+				if err != nil {
+					utils.HandleError(err)
+					continue
+				}
+				io.Copy(out, videoFile)
+				out.Close()
+
+				videoURL = "/uploads/courses/videos/" + videoFilename
 			}
 
-			utils.DebugPrint("THE FILE IS UPLOADING!!!!!!!")
-			file, err := fileHeader.Open()
-			if err != nil {
-				utils.HandleError(err)
-				continue
+			// Handle optional module thumbnail
+			thumbnailFieldName := fmt.Sprintf("module_%d_thumbnail", i)
+			thumbFile, thumbHeader, err := r.FormFile(thumbnailFieldName)
+			if err == nil {
+				defer thumbFile.Close()
+
+				thumbExt := filepath.Ext(thumbHeader.Filename)
+				if utils.CheckType(thumbExt, []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}) {
+					thumbFilename := fmt.Sprintf("%d_module_%d_thumb_%s", time.Now().UnixNano(), i, filepath.Base(thumbHeader.Filename))
+					thumbPath := filepath.Join(moduleThumbnailDir, thumbFilename)
+
+					out, err := os.Create(thumbPath)
+					if err == nil {
+						io.Copy(out, thumbFile)
+						out.Close()
+						moduleThumbnailURL = "/uploads/courses/module_thumbnails/" + thumbFilename
+					}
+				}
 			}
-			defer file.Close()
 
-			filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(fileHeader.Filename))
-			filePath := filepath.Join(uploadDir, filename)
-
-			out, err := os.Create(filePath)
-			if err != nil {
-				utils.HandleError(err)
-				continue
-			}
-			io.Copy(out, file)
-			out.Close()
-
-			// Optionally: store file paths in another table if you track course modules/files
+			// Insert module into database
 			_, err = database.Execute(`
-				INSERT INTO course_modules (course_id, title, description, order_index)
-				VALUES (?, ?, ?, ?)
-			`, courseID, fileHeader.Filename, "", 0)
+				INSERT INTO course_modules (course_id, title, description, video_url, video_duration, thumbnail_url, order_index)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+			`, courseID, module.Title, module.Description, videoURL, module.VideoDuration, moduleThumbnailURL, module.OrderIndex)
+
 			if err != nil {
 				utils.HandleError(err)
+				utils.DebugPrint(fmt.Sprintf("Failed to insert module %d: %v", i, err))
+			} else {
+				utils.DebugPrint(fmt.Sprintf("Module %d inserted successfully", i))
 			}
 		}
 	}
-	utils.DebugPrint("THE EIGHTH HITT!!!!")
+
 	utils.SendJSONResponse(w, http.StatusOK, map[string]any{
 		"message":    "Course uploaded successfully",
 		"course_id":  courseID,
 		"thumbnail":  thumbnailURL,
 		"skill_name": skillName,
 	})
+}
+
+func ServeModuleVideo(w http.ResponseWriter, r *http.Request) {
+	videoPath := r.URL.Query().Get("path")
+	if videoPath == "" {
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Video path required"})
+		return
+	}
+	if !strings.HasPrefix(videoPath, "/uploads/courses/videos/") {
+		utils.SendJSONResponse(w, http.StatusForbidden, map[string]string{"error": "Invalid path"})
+		return
+	}
+	filePath := "." + videoPath
+	http.ServeFile(w, r, filePath)
 }

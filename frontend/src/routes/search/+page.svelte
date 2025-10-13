@@ -47,8 +47,8 @@
 </script>
 
 <div class={`flex flex-col h-fit min-h-screen bg-gray-50 text-gray-800`}>
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h1 class="text-xl font-semibold">Search Results</h1>
+    <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+        <h1 class="text-lg sm:text-xl font-semibold">Search Results</h1>
     </div>
     {#if loading}
         <p
@@ -57,50 +57,52 @@
             Loading...
         </p>
     {:else}
-        <div class="flex-1 overflow-y-auto p-4 md:p-6">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6">
             <!-- Courses Section -->
 
             <!-- Users Section -->
-            <section class="mb-8">
-                <h2 class="text-lg font-medium mb-4">
+            <section class="mb-6 sm:mb-8">
+                <h2 class="text-base sm:text-lg font-medium mb-3 sm:mb-4">
                     People you might like to swap with
                 </h2>
-                <div class="flex w-full flex-nowrap overflow-x-auto gap-4">
+                <div
+                    class="flex w-full flex-nowrap overflow-x-auto gap-3 sm:gap-4 pb-2"
+                >
                     {#if users != null && users.length > 0}
                         {#each users as user}
                             <div
-                                class="bg-white rounded-xl shadow-lg flex flex-col w-[320px] md:flex-row overflow-hidden mr-4 flex-shrink-0"
+                                class="bg-white rounded-lg sm:rounded-xl shadow-lg flex flex-col w-[280px] sm:w-[320px] md:flex-row overflow-hidden flex-shrink-0"
                             >
                                 <img
                                     src={`/api/profile/${user.user.id}/picture`}
                                     alt={user.user.username}
-                                    class="w-full h-32 md:h-auto md:w-32 object-cover"
+                                    class="w-full h-28 sm:h-32 md:h-auto md:w-32 object-cover"
                                 />
                                 <div
-                                    class="p-4 flex flex-col justify-between w-full"
+                                    class="p-3 sm:p-4 flex flex-col justify-between w-full"
                                 >
                                     <div>
                                         <h3
-                                            class="text-md font-bold text-gray-900"
+                                            class="text-sm sm:text-md font-bold text-gray-900"
                                         >
                                             {user.user.username}
                                         </h3>
                                         <p
-                                            class="text-sm text-gray-500 line-clamp-2"
+                                            class="text-xs sm:text-sm text-gray-500 line-clamp-2"
                                         >
                                             {user.user.aboutme}
                                         </p>
                                     </div>
                                     <div
-                                        class="flex justify-between items-center mt-2 text-sm text-gray-500"
+                                        class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2 text-xs sm:text-sm text-gray-500"
                                     >
-                                        <span
-                                            >Joined in: {user.user
+                                        <span class="truncate max-w-full"
+                                            >Joined: {user.user
                                                 .created_at}</span
                                         >
                                         <a
                                             href="/swapping/{user.user.id}"
-                                            class="bg-amber-300 text-gray-900 rounded-full px-4 py-2 font-medium hover:bg-amber-400 transition-colors"
+                                            class="bg-amber-300 text-gray-900 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium hover:bg-amber-400 transition-colors whitespace-nowrap"
                                             >Swap</a
                                         >
                                     </div>
@@ -118,26 +120,30 @@
                 </div>
             </section>
 
-            <hr class="my-6 border-t border-gray-200" />
+            <hr class="my-4 sm:my-6 border-t border-gray-200" />
 
             <section>
-                <h2 class="text-lg font-medium mb-4">
+                <h2 class="text-base sm:text-lg font-medium mb-3 sm:mb-4">
                     Explore all users if you had something else in mind
                 </h2>
                 <div class="flex flex-wrap w-full h-full">
                     {#if courses != null && courses.length > 0}
-                        <section class="mb-8">
-                            <h2 class="text-lg font-medium mb-4">
+                        <section class="mb-6 sm:mb-8">
+                            <h2
+                                class="text-base sm:text-lg font-medium mb-3 sm:mb-4"
+                            >
                                 Courses matching your search
                             </h2>
-                            <div class="flex flex-wrap gap-6 w-full h-full">
+                            <div
+                                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 w-full"
+                            >
                                 {#each courses as course}
                                     <CourseCard {course} />
                                 {/each}
                             </div>
                         </section>
 
-                        <hr class="my-6 border-t border-gray-200" />
+                        <hr class="my-4 sm:my-6 border-t border-gray-200" />
                     {/if}
                 </div>
             </section>

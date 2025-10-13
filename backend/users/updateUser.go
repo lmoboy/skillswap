@@ -54,7 +54,7 @@ func addSkill(user structs.UserInfo, skill structs.UserSkill) {
 	}
 	database.Debug("INSERT INTO user_skills (user_id, skill_id, verified) VALUES (%v, %v, %v)", user.ID, skillId, skill.Verified)
 
-	_, err = database.Query("INSERT INTO user_skills (user_id, skill_id, verified) VALUES (?,?,?)", user.ID, skillId, skill.Verified)
+	_, err = database.Query("INSERT INTO user_skills (user_id, skill_id, verified) VALUES (?,?,?)", user.ID, skillId, bool(skill.Verified))
 	if err != nil {
 		utils.HandleError(err)
 		return
