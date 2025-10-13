@@ -14,16 +14,8 @@ var TestDB *sql.DB
 
 // SetupTestDB initializes a test database connection and creates test schema
 func SetupTestDB() error {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, password, host, port, dbname)
-
 	var err error
-	TestDB, err = sql.Open("mysql", dsn)
+	TestDB, err = sql.Open("mysql", os.Getenv("DB_URL"))
 	if err != nil {
 		return fmt.Errorf("failed to connect to test database: %v", err)
 	}

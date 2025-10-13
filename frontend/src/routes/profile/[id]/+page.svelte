@@ -9,6 +9,14 @@
         MailIcon,
         X,
         ArrowRight,
+        Plus,
+        Edit3,
+        Save,
+        XCircle,
+        Camera,
+        MapPin,
+        ExternalLink,
+        AlertCircle,
     } from "lucide-svelte";
     import { onMount } from "svelte";
 
@@ -26,22 +34,104 @@
 
     let editing = $state(false);
     let user = $state(data);
-    let availableSkills = $state<{id: number; name: string; description: string}[]>([]);
-    const original = user;
+    let availableSkills = $state<
+        { id: number; name: string; description: string }[]
+    >([]);
+    let original = $state();
+
+    $effect(() => {
+        original = structuredClone(user);
+    });
     let id = page.params.id;
+
+    // Form validation states
+    let projectFormErrors = $state({ name: "", description: "", link: "" });
+    let contactFormErrors = $state({ name: "", link: "" });
+    let showAddProjectForm = $state(false);
+    let showAddContactForm = $state(false);
 
     $effect(() => {
         id;
         user = data;
     });
 
-    const handleCancel = () => {
-        user = original;
+    const validateProjectForm = () => {
+        const errors = { name: "", description: "", link: "" };
 
+        if (!newProjectName.trim()) {
+            errors.name = "Project name is required";
+        }
+        if (!newProjectDescription.trim()) {
+            errors.description = "Project description is required";
+        }
+        if (!newProjectLink.trim()) {
+            errors.link = "Project link is required";
+        } else if (!isValidUrl(newProjectLink)) {
+            errors.link = "Please enter a valid URL";
+        }
+
+        projectFormErrors = errors;
+        return !Object.values(errors).some((error) => error);
+    };
+
+    const validateContactForm = () => {
+        const errors = { name: "", link: "" };
+
+        if (!newContactName.trim()) {
+            errors.name = "Contact name is required";
+        }
+        if (!newContactLink.trim()) {
+            errors.link = "Contact link is required";
+        } else if (
+            newContactIcon === "email" &&
+            !isValidEmail(newContactLink)
+        ) {
+            errors.link = "Please enter a valid email address";
+        } else if (newContactIcon !== "email" && !isValidUrl(newContactLink)) {
+            errors.link = "Please enter a valid URL";
+        }
+
+        contactFormErrors = errors;
+        return !Object.values(errors).some((error) => error);
+    };
+
+    const isValidUrl = (url: string) => {
+        try {
+            new URL(url.startsWith("http") ? url : `https://${url}`);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    const isValidEmail = (email: string) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    };
+
+    const handleCancel = () => {
+        if (original) {
+            user = structuredClone(original);
+        }
         editing = false;
+        resetForms();
+    };
+
+    const resetForms = () => {
+        newProjectName = "";
+        newProjectDescription = "";
+        newProjectLink = "";
+        newSkillName = "";
+        newContactName = "";
+        newContactLink = "";
+        newContactIcon = "email";
+        showAddProjectForm = false;
+        showAddContactForm = false;
+        projectFormErrors = { name: "", description: "", link: "" };
+        contactFormErrors = { name: "", link: "" };
     };
 
     const handleUpdate = () => {
+        console.log(JSON.stringify(user));
         fetch("/api/updateUser", {
             method: "POST",
             headers: {
@@ -54,30 +144,88 @@
             })
             .then((res) => {
                 console.log(res);
+                editing = false;
+                resetForms();
             });
     };
 
     const addProject = () => {
+        if (!validateProjectForm()) return;
+
+        if (!user.projects) user.projects = [];
+
         user.projects.push({
-            name: newProjectName,
-            description: newProjectDescription,
-            link: newProjectLink,
+            name: newProjectName.trim(),
+            description: newProjectDescription.trim(),
+            link: newProjectLink.startsWith("http")
+                ? newProjectLink
+                : `https://${newProjectLink}`,
         });
+
+        newProjectName = "";
+        newProjectDescription = "";
+        newProjectLink = "";
+        showAddProjectForm = false;
+        projectFormErrors = { name: "", description: "", link: "" };
     };
 
     const addSkill = () => {
+        if (!newSkillName.trim()) return;
+
+        if (!user.skills) user.skills = [];
+
+        // Check if skill already exists
+        const skillExists = user.skills.some(
+            (skill: any) =>
+                skill.name.toLowerCase() === newSkillName.toLowerCase(),
+        );
+        if (skillExists) return;
+
         user.skills.push({
             name: newSkillName,
             verified: false,
         });
+
+        newSkillName = "";
     };
 
     const addContact = () => {
+        if (!validateContactForm()) return;
+
+        if (!user.contacts) user.contacts = [];
+
+        let link = newContactLink.trim();
+        if (newContactIcon !== "email" && !link.startsWith("http")) {
+            link = `https://${link}`;
+        }
+
         user.contacts.push({
-            name: newContactName,
-            link: newContactLink,
+            name: newContactName.trim(),
+            link: link,
             icon: newContactIcon,
         });
+
+        newContactName = "";
+        newContactLink = "";
+        newContactIcon = "email";
+        showAddContactForm = false;
+        contactFormErrors = { name: "", link: "" };
+    };
+
+    const removeProject = (index: number) => {
+        user.projects = user.projects.filter(
+            (_: any, i: number) => i !== index,
+        );
+    };
+
+    const removeSkill = (index: number) => {
+        user.skills = user.skills.filter((_: any, i: number) => i !== index);
+    };
+
+    const removeContact = (index: number) => {
+        user.contacts = user.contacts.filter(
+            (_: any, i: number) => i !== index,
+        );
     };
 
     const uploadProfilePicture = async (e: Event) => {
@@ -99,363 +247,685 @@
                 availableSkills = res;
             });
     });
-
-
-    function removeContact(id: any): any {
-        user.contacts = user.contacts.filter((contact: { id: any; }) => contact.id !== id);
-    }
 </script>
 
-<div class="bg-gray-100 min-h-screen p-8">
-    <!-- <Debug {data} /> -->
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
     {#if !data}
-        <div class="flex items-center justify-center">
-            <div
-                class="spinner-border animate-spin text-gray-500"
-                role="status"
-            >
-                <span class="visually-hidden">Loading...</span>
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="text-center">
+                <div
+                    class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+                ></div>
+                <p class="mt-4 text-gray-600">Loading profile...</p>
             </div>
         </div>
     {:else}
-        <div
-            class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-8 space-y-8"
-        >
-            <header
-                class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-8 pb-8 border-b border-gray-200"
-            >
-                <div class="relative w-32 h-32 flex-shrink-0">
-                    <img
-                        src={user.profile_picture === "noPicture"
-                            ? "/default-avatar.png"
-                            : `/api/profile/${id}/picture`}
-                        alt={`Profile picture of ${user.username}`}
-                        class="w-full h-full rounded-full object-cover border-4 border-white shadow-md"
-                    />
-                    {#if editing && user.id == $auth?.user?.id}
-                        <label class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full border-2 border-white transform translate-x-1 translate-y-1 flex items-center justify-center text-sm text-white font-bold cursor-pointer hover:bg-blue-700">
-                            📷
-                            <input type="file" accept="image/*" onchange={uploadProfilePicture} class="hidden" />
-                        </label>
-                    {:else}
-                        <span
-                            class="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full border-2 border-white transform translate-x-1 translate-y-1 flex items-center justify-center text-sm text-white font-bold"
-                        >
-                            ✓
-                        </span>
-                    {/if}
-                </div>
-                <div class="text-center md:text-left">
-                    <h1 class="text-4xl font-bold text-gray-900">
-                        {user.username}
-                    </h1>
-                    {#if user.profession}
-                        {#if editing}
-                            <input
-                                type="text"
-                                bind:value={user.profession}
-                                class="text-gray-600 text-lg"
-                            />
-                        {:else}
-                            <p class="text-gray-600 text-lg">
-                                {user.profession}
-                            </p>
-                        {/if}
-                    {/if}
-                    {#if editing}
-                        <p class="text-sm text-gray-500 mt-2">
-                            📍
-                            <input
-                                type="text"
-                                bind:value={user.location}
-                                class="text-sm text-gray-500 mt-2"
-                            />
-                        </p>
-                    {:else}
-                        <p class="text-sm text-gray-500 mt-2">
-                            📍 {user.location}
-                        </p>
-                    {/if}
-                </div>
+        <div class="container mx-auto px-4 py-8 max-w-7xl">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <!-- Header Section -->
                 <div
-                    class="flex-grow flex justify-center md:justify-end space-x-4"
+                    class="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-12"
                 >
-                    <a
-                        href={`/swapping/${id}`}
-                        class="px-6 py-2 rounded-full bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-                    >
-                        Message
-                    </a>
-                    {#if user.id == $auth?.user?.id}
-                        {#if editing}
-                            <button
-                                onclick={handleUpdate}
-                                class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
+                    <div class="flex flex-col lg:flex-row items-center gap-8">
+                        <!-- Profile Picture -->
+                        <div class="relative">
+                            <div
+                                class="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white shadow-lg"
                             >
-                                Save
-                            </button>
-                            <button
-                                onclick={handleCancel}
-                                class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
-                            >
-                                Cancel
-                            </button>
-                        {:else}
-                            <button
-                                onclick={() => (editing = !editing)}
-                                class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
-                            >
-                                Edit Profile
-                            </button>
-                        {/if}
-                    {/if}
-                </div>
-            </header>
+                                <img
+                                    src={user.profile_picture === "noPicture"
+                                        ? "/default-avatar.svg"
+                                        : `/api/profile/${id}/picture`}
+                                    alt={`Profile picture of ${user.username}`}
+                                    class="w-full h-full object-cover"
+                                />
+                            </div>
+                            {#if editing && user.id == $auth?.user?.id}
+                                <label
+                                    class="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                                >
+                                    <Camera class="w-4 h-4 text-gray-600" />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onchange={uploadProfilePicture}
+                                        class="hidden"
+                                    />
+                                </label>
+                            {/if}
+                        </div>
 
-            <main class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <section class="md:col-span-2 space-y-6">
-                    <div class="bg-gray-50 rounded-lg p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                            About Me
-                        </h2>
-                        {#if editing}
-                            <p class="text-gray-700 leading-relaxed">
+                        <!-- Profile Info -->
+                        <div class="flex-1 text-center lg:text-left text-white">
+                            <h1 class="text-4xl lg:text-5xl font-bold mb-2">
+                                {user.username}
+                            </h1>
+
+                            {#if editing}
                                 <input
                                     type="text"
-                                    bind:value={user.aboutme}
-                                    class="text-gray-600 w-full h-full text-lg"
+                                    bind:value={user.profession}
+                                    placeholder="Your profession"
+                                    class="bg-white/20 border-white/30 text-white placeholder-white/70 rounded-lg px-4 py-2 mb-3 w-full max-w-md backdrop-blur-sm"
                                 />
-                            </p>
-                        {:else}
-                            <p class="text-gray-700 leading-relaxed">
-                                {user.aboutme}
-                            </p>
-                        {/if}
-                    </div>
-
-                    <div class="bg-gray-50 rounded-lg p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                            Projects
-                        </h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            {#if user.projects != null && user.projects.length > 0}
-                                {#if editing}
-                                    <div
-                                        class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition"
-                                    >
-                                        <h3
-                                            class="font-bold text-lg text-gray-800"
-                                        >
-                                            New Project
-                                        </h3>
-                                        <p class="text-sm text-gray-600 mt-1">
-                                            Add a new project to your profile.
-                                        </p>
-                                        <input
-                                            type="text"
-                                            bind:value={newProjectName}
-                                            placeholder="Project Name"
-                                            class="w-full border border-gray-300 rounded-md px-3 py-2 mt-2"
-                                        />
-                                        <input
-                                            type="text"
-                                            bind:value={newProjectDescription}
-                                            placeholder="Project Description"
-                                            class="w-full border border-gray-300 rounded-md px-3 py-2 mt-2"
-                                        />
-                                        <input
-                                            type="text"
-                                            bind:value={newProjectLink}
-                                            placeholder="Project Link"
-                                            class="w-full border border-gray-300 rounded-md px-3 py-2 mt-2"
-                                        />
-                                        <button
-                                            onclick={addProject}
-                                            class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
-                                        >
-                                            Add Project
-                                        </button>
-                                    </div>
-                                    {#each user.projects as { name, description, link }}
-                                        <div
-                                            class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition"
-                                        >
-                                            {#if editing}
-                                                <button
-                                                    class="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                                                >
-                                                    <X />
-                                                </button>
-                                            {/if}
-                                            <h3
-                                                class="font-bold text-lg text-gray-800"
-                                            >
-                                                {name}
-                                            </h3>
-                                            <p
-                                                class="text-sm text-gray-600 mt-1"
-                                            >
-                                                {description}
-                                            </p>
-                                            <a
-                                                href={`${link}`}
-                                                class="text-blue-500 text-sm mt-2 block hover:underline"
-                                                >View Project →</a
-                                            >
-                                        </div>
-                                    {/each}
-                                {:else}
-                                    <p
-                                        class="text-gray-600 w-full justify-center"
-                                    >
-                                        No projects found.
-                                    </p>
-                                {/if}
+                            {:else if user.profession}
+                                <p class="text-xl text-blue-100 mb-3">
+                                    {user.profession}
+                                </p>
                             {/if}
-                        </div>
-                    </div>
-                </section>
 
-                <aside class="md:col-span-1 space-y-6">
-                    <div class="bg-gray-50 rounded-lg p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                            Skills
-                        </h2>
-                        <div class="flex flex-wrap gap-2">
-                            {#if user.skills && user.skills.length > 0}
-                                {#if editing}
-                                    <div class="relative">
-                                        <select
-                                            class="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 leading-tight focus:outline-none focus:shadow-outline"
-                                            bind:value={newSkillName}
-                                        >
-                                            <option value=""
-                                                >Select a skill to add</option
-                                            >
-                                            {#each availableSkills as skill}
-                                                <option value={skill.name}
-                                                    >{skill.name}</option
-                                                >
-                                            {/each}
-                                        </select>
-                                        <div
-                                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700"
-                                        >
-                                            <ArrowRight />
-                                        </div>
-                                        <button
-                                            onclick={addSkill}
-                                            class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
-                                        >
-                                            Add Skill
-                                        </button>
-                                    </div>
-                                {/if}
-                                {#each user.skills as skill}
-                                    <span
-                                        class="bg-blue-200 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
-                                        >{skill.name}&nbsp;{skill.verified
-                                            ? "✓"
-                                            : ""}</span
-                                    >
-                                {/each}
-                            {:else}
-                                <p class="text-gray-600">No skills found.</p>
-                            {/if}
-                        </div>
-                    </div>
-
-                    <div class="bg-gray-50 rounded-lg p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                            Contact
-                        </h2>
-                        <ul class="space-y-4 text-gray-600">
                             {#if editing}
-                                <div class="flex items-center space-x-2">
+                                <div
+                                    class="flex items-center justify-center lg:justify-start gap-2"
+                                >
+                                    <MapPin class="w-4 h-4" />
                                     <input
                                         type="text"
-                                        bind:value={newContactName}
-                                        class="text-gray-600 w-full h-full text-lg"
+                                        bind:value={user.location}
+                                        placeholder="Your location"
+                                        class="bg-white/20 border-white/30 text-white placeholder-white/70 rounded-lg px-3 py-1 backdrop-blur-sm"
                                     />
-                                    <input
-                                        type="text"
-                                        bind:value={newContactLink}
-                                        class="text-gray-600 w-full h-full text-lg"
-                                    />
-                                    <input
-                                        type="text"
-                                        bind:value={newContactIcon}
-                                        class="text-gray-600 w-full h-full text-lg"
-                                    />
-                                    <button
-                                        onclick={addContact}
-                                        class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
-                                    >
-                                        Add Contact
-                                    </button>
+                                </div>
+                            {:else if user.location}
+                                <div
+                                    class="flex items-center justify-center lg:justify-start gap-2 text-blue-100"
+                                >
+                                    <MapPin class="w-4 h-4" />
+                                    <span>{user.location}</span>
                                 </div>
                             {/if}
-                            {#if user.contacts && user.contacts.length > 0}
-                                {#each user.contacts as contact}
-                                    <li class="flex items-center space-x-2">
-                                        {#if editing}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-wrap gap-3">
+                            {#if user.id !== $auth?.user?.id}
+                                <a
+                                    href={`/swapping/${id}`}
+                                    class="bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2"
+                                >
+                                    <MailIcon class="w-4 h-4" />
+                                    Message
+                                </a>
+                            {/if}
+
+                            {#if user.id == $auth?.user?.id}
+                                {#if editing}
+                                    <button
+                                        onclick={handleUpdate}
+                                        class="bg-green-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-green-600 transition-colors flex items-center gap-2"
+                                    >
+                                        <Save class="w-4 h-4" />
+                                        Save Changes
+                                    </button>
+                                    <button
+                                        onclick={handleCancel}
+                                        class="bg-white/20 text-white px-6 py-3 rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2"
+                                    >
+                                        <XCircle class="w-4 h-4" />
+                                        Cancel
+                                    </button>
+                                {:else}
+                                    <button
+                                        onclick={() => (editing = true)}
+                                        class="bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2"
+                                    >
+                                        <Edit3 class="w-4 h-4" />
+                                        Edit Profile
+                                    </button>
+                                {/if}
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Main Content -->
+                        <div class="lg:col-span-2 space-y-8">
+                            <!-- About Section -->
+                            <section class="bg-gray-50 rounded-xl p-6">
+                                <h2
+                                    class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2"
+                                >
+                                    <User class="w-6 h-6 text-blue-600" />
+                                    About Me
+                                </h2>
+                                {#if editing}
+                                    <textarea
+                                        bind:value={user.aboutme}
+                                        placeholder="Tell us about yourself..."
+                                        rows="4"
+                                        class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                    ></textarea>
+                                {:else if user.aboutme && user.aboutme.trim()}
+                                    <p class="text-gray-700 leading-relaxed">
+                                        {user.aboutme}
+                                    </p>
+                                {:else}
+                                    <div class="text-center py-8">
+                                        <AlertCircle
+                                            class="w-12 h-12 text-gray-300 mx-auto mb-3"
+                                        />
+                                        <p class="text-gray-500">
+                                            No description available
+                                        </p>
+                                        {#if user.id == $auth?.user?.id}
                                             <button
-                                                onclick={() =>
-                                                    removeContact(contact.id)}
-                                                class="px-6 py-2 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition"
+                                                onclick={() => (editing = true)}
+                                                class="text-blue-600 hover:text-blue-700 mt-2 font-medium"
                                             >
-                                                Remove
+                                                Add a description
                                             </button>
                                         {/if}
-                                        {#if contact.icon === "email"}
-                                            <MailIcon
-                                                class="w-5 h-5 text-gray-500"
-                                            />
-                                            <span
-                                                >{contact.name}: {contact.link}</span
+                                    </div>
+                                {/if}
+                            </section>
+
+                            <!-- Projects Section -->
+                            <section class="bg-gray-50 rounded-xl p-6">
+                                <div
+                                    class="flex items-center justify-between mb-6"
+                                >
+                                    <h2
+                                        class="text-2xl font-bold text-gray-900 flex items-center gap-2"
+                                    >
+                                        <ExternalLink
+                                            class="w-6 h-6 text-blue-600"
+                                        />
+                                        Projects
+                                    </h2>
+                                    {#if editing && !showAddProjectForm}
+                                        <button
+                                            onclick={() =>
+                                                (showAddProjectForm = true)}
+                                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <Plus class="w-4 h-4" />
+                                            Add Project
+                                        </button>
+                                    {/if}
+                                </div>
+
+                                {#if editing && showAddProjectForm}
+                                    <div
+                                        class="bg-white rounded-lg p-6 mb-6 border-2 border-blue-200"
+                                    >
+                                        <h3
+                                            class="font-semibold text-gray-900 mb-4"
+                                        >
+                                            Add New Project
+                                        </h3>
+                                        <div class="space-y-4">
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    bind:value={newProjectName}
+                                                    placeholder="Project name"
+                                                    class="w-full text-gray-800 border rounded-lg px-4 py-3 {projectFormErrors.name
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                {#if projectFormErrors.name}
+                                                    <p
+                                                        class="text-red-500 text-sm mt-1"
+                                                    >
+                                                        {projectFormErrors.name}
+                                                    </p>
+                                                {/if}
+                                            </div>
+                                            <div>
+                                                <textarea
+                                                    bind:value={
+                                                        newProjectDescription
+                                                    }
+                                                    placeholder="Project description"
+                                                    rows="3"
+                                                    class="w-full text-gray-800 border rounded-lg px-4 py-3 {projectFormErrors.description
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                                ></textarea>
+                                                {#if projectFormErrors.description}
+                                                    <p
+                                                        class="text-red-500 text-sm mt-1"
+                                                    >
+                                                        {projectFormErrors.description}
+                                                    </p>
+                                                {/if}
+                                            </div>
+                                            <div>
+                                                <input
+                                                    type="url"
+                                                    bind:value={newProjectLink}
+                                                    placeholder="Project URL"
+                                                    class="w-full text-gray-800 border rounded-lg px-4 py-3 {projectFormErrors.link
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                {#if projectFormErrors.link}
+                                                    <p
+                                                        class="text-red-500 text-sm mt-1"
+                                                    >
+                                                        {projectFormErrors.link}
+                                                    </p>
+                                                {/if}
+                                            </div>
+                                            <div class="flex gap-3">
+                                                <button
+                                                    onclick={addProject}
+                                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                                >
+                                                    <Plus class="w-4 h-4" />
+                                                    Add Project
+                                                </button>
+                                                <button
+                                                    onclick={() => {
+                                                        showAddProjectForm = false;
+                                                        projectFormErrors = {
+                                                            name: "",
+                                                            description: "",
+                                                            link: "",
+                                                        };
+                                                    }}
+                                                    class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/if}
+
+                                {#if user.projects && user.projects.length > 0}
+                                    <div
+                                        class="grid grid-cols-1 sm:grid-cols-2 gap-6"
+                                    >
+                                        {#each user.projects as project, index}
+                                            <div
+                                                class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow relative"
                                             >
-                                        {:else if contact.icon === "twitter"}
-                                            <Twitter
-                                                class="w-5 h-5 text-gray-500"
-                                            />
-                                            <a
-                                                href={contact.link}
-                                                class="text-blue-500 hover:underline"
+                                                {#if editing}
+                                                    <button
+                                                        onclick={() =>
+                                                            removeProject(
+                                                                index,
+                                                            )}
+                                                        class="absolute top-3 right-3 text-red-500 hover:text-red-700 transition-colors"
+                                                    >
+                                                        <X class="w-5 h-5" />
+                                                    </button>
+                                                {/if}
+                                                <h3
+                                                    class="font-bold text-lg text-gray-900 mb-2"
+                                                >
+                                                    {project.name}
+                                                </h3>
+                                                <p
+                                                    class="text-gray-600 text-sm mb-4 leading-relaxed"
+                                                >
+                                                    {project.description}
+                                                </p>
+                                                <a
+                                                    href={project.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+                                                >
+                                                    View Project
+                                                    <ExternalLink
+                                                        class="w-4 h-4"
+                                                    />
+                                                </a>
+                                            </div>
+                                        {/each}
+                                    </div>
+                                {:else}
+                                    <div class="text-center py-12">
+                                        <ExternalLink
+                                            class="w-16 h-16 text-gray-300 mx-auto mb-4"
+                                        />
+                                        <p
+                                            class="text-gray-500 text-lg font-medium mb-2"
+                                        >
+                                            No projects yet
+                                        </p>
+                                        <p class="text-gray-400 mb-4">
+                                            Share your work and showcase your
+                                            skills
+                                        </p>
+                                        {#if user.id == $auth?.user?.id && !editing}
+                                            <button
+                                                onclick={() => (editing = true)}
+                                                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
                                             >
-                                                {contact.name}
-                                            </a>
-                                        {:else if contact.icon === "linkedin"}
-                                            <Linkedin
-                                                class="w-5 h-5 text-gray-500"
-                                            />
-                                            <a
-                                                href={contact.link}
-                                                class="text-blue-500 hover:underline"
-                                            >
-                                                {contact.name}
-                                            </a>
-                                        {:else}
-                                            <User
-                                                class="w-5 h-5 text-gray-500"
-                                            />
-                                            <a
-                                                href={contact.link}
-                                                class="text-blue-500 hover:underline"
-                                            >
-                                                {contact.name}
-                                            </a>
+                                                <Plus class="w-4 h-4" />
+                                                Add Your First Project
+                                            </button>
                                         {/if}
-                                    </li>
-                                {/each}
-                            {:else}
-                                <li class="text-gray-500">
-                                    No contact information available
-                                </li>
-                            {/if}
-                        </ul>
+                                    </div>
+                                {/if}
+                            </section>
+                        </div>
+
+                        <!-- Sidebar -->
+                        <div class="lg:col-span-1 space-y-8">
+                            <!-- Skills Section -->
+                            <section class="bg-gray-50 rounded-xl p-6">
+                                <h2
+                                    class="text-2xl font-bold text-gray-900 mb-4"
+                                >
+                                    Skills
+                                </h2>
+
+                                {#if editing}
+                                    <div class="mb-4">
+                                        <div class="flex gap-2">
+                                            <select
+                                                bind:value={newSkillName}
+                                                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            >
+                                                <option value=""
+                                                    >Select a skill</option
+                                                >
+                                                {#each availableSkills as skill}
+                                                    {#if !user.skills?.some((s: any) => s.name === skill.name)}
+                                                        <option
+                                                            value={skill.name}
+                                                            >{skill.name}</option
+                                                        >
+                                                    {/if}
+                                                {/each}
+                                            </select>
+                                            <button
+                                                onclick={addSkill}
+                                                disabled={!newSkillName}
+                                                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <Plus class="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                {/if}
+
+                                {#if user.skills && user.skills.length > 0}
+                                    <div class="flex flex-wrap gap-2">
+                                        {#each user.skills as skill, index}
+                                            <span
+                                                class="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-full text-sm font-medium"
+                                            >
+                                                {skill.name}
+                                                {#if skill.verified}
+                                                    <span class="text-green-600"
+                                                        >✓</span
+                                                    >
+                                                {/if}
+                                                {#if editing}
+                                                    <button
+                                                        onclick={() =>
+                                                            removeSkill(index)}
+                                                        class="text-red-500 hover:text-red-700 ml-1"
+                                                    >
+                                                        <X class="w-3 h-3" />
+                                                    </button>
+                                                {/if}
+                                            </span>
+                                        {/each}
+                                    </div>
+                                {:else}
+                                    <div class="text-center py-8">
+                                        <div
+                                            class="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center"
+                                        >
+                                            <span class="text-2xl">🎯</span>
+                                        </div>
+                                        <p
+                                            class="text-gray-500 font-medium mb-2"
+                                        >
+                                            No skills listed
+                                        </p>
+                                        <p class="text-gray-400 text-sm mb-4">
+                                            Add your skills to attract
+                                            collaborators
+                                        </p>
+                                        {#if user.id == $auth?.user?.id && !editing}
+                                            <button
+                                                onclick={() => (editing = true)}
+                                                class="text-blue-600 hover:text-blue-700 font-medium"
+                                            >
+                                                Add skills
+                                            </button>
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </section>
+
+                            <!-- Contact Section -->
+                            <section class="bg-gray-50 rounded-xl p-6">
+                                <div
+                                    class="flex items-center justify-between mb-4"
+                                >
+                                    <h2
+                                        class="text-2xl font-bold text-gray-900"
+                                    >
+                                        Contact
+                                    </h2>
+                                    {#if editing && !showAddContactForm}
+                                        <button
+                                            onclick={() =>
+                                                (showAddContactForm = true)}
+                                            class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            <Plus class="w-4 h-4" />
+                                        </button>
+                                    {/if}
+                                </div>
+
+                                {#if editing && showAddContactForm}
+                                    <div
+                                        class="bg-white rounded-lg p-4 mb-4 border-2 border-blue-200"
+                                    >
+                                        <h3
+                                            class="font-semibold text-gray-900 mb-3"
+                                        >
+                                            Add Contact
+                                        </h3>
+                                        <div class="space-y-3">
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    bind:value={newContactName}
+                                                    placeholder="Contact name"
+                                                    class="w-full text-gray-800 border rounded-lg px-3 py-2 text-sm {contactFormErrors.name
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                {#if contactFormErrors.name}
+                                                    <p
+                                                        class="text-red-500 text-xs mt-1"
+                                                    >
+                                                        {contactFormErrors.name}
+                                                    </p>
+                                                {/if}
+                                            </div>
+                                            <div>
+                                                <select
+                                                    bind:value={newContactIcon}
+                                                    class="w-full border text-gray-800 border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                >
+                                                    <option value="email"
+                                                        >Email</option
+                                                    >
+                                                    <option value="twitter"
+                                                        >Twitter</option
+                                                    >
+                                                    <option value="linkedin"
+                                                        >LinkedIn</option
+                                                    >
+                                                    <option value="other"
+                                                        >Other</option
+                                                    >
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <input
+                                                    type={newContactIcon ===
+                                                    "email"
+                                                        ? "email"
+                                                        : "url"}
+                                                    bind:value={newContactLink}
+                                                    placeholder={newContactIcon ===
+                                                    "email"
+                                                        ? "your@email.com"
+                                                        : "https://..."}
+                                                    class="w-full border rounded-lg px-3 py-2 text-sm {contactFormErrors.link
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-300'} text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                {#if contactFormErrors.link}
+                                                    <p
+                                                        class="text-red-500 text-xs mt-1"
+                                                    >
+                                                        {contactFormErrors.link}
+                                                    </p>
+                                                {/if}
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <button
+                                                    onclick={addContact}
+                                                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-1"
+                                                >
+                                                    <Plus class="w-3 h-3" />
+                                                    Add
+                                                </button>
+                                                <button
+                                                    onclick={() => {
+                                                        showAddContactForm = false;
+                                                        contactFormErrors = {
+                                                            name: "",
+                                                            link: "",
+                                                        };
+                                                    }}
+                                                    class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors text-sm"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/if}
+
+                                {#if user.contacts && user.contacts.length > 0}
+                                    <ul class="space-y-3">
+                                        {#each user.contacts as contact, index}
+                                            <li
+                                                class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200"
+                                            >
+                                                {#if editing}
+                                                    <button
+                                                        onclick={() =>
+                                                            removeContact(
+                                                                index,
+                                                            )}
+                                                        class="text-red-500 hover:text-red-700"
+                                                    >
+                                                        <X class="w-4 h-4" />
+                                                    </button>
+                                                {/if}
+
+                                                {#if contact.icon === "email"}
+                                                    <MailIcon
+                                                        class="w-5 h-5 text-gray-500 flex-shrink-0"
+                                                    />
+                                                    <div class="min-w-0 flex-1">
+                                                        <p
+                                                            class="text-sm font-medium text-gray-900"
+                                                        >
+                                                            {contact.name}
+                                                        </p>
+                                                        <a
+                                                            href="mailto:{contact.link}"
+                                                            class="text-sm text-blue-600 hover:text-blue-700 break-all"
+                                                        >
+                                                            {contact.link}
+                                                        </a>
+                                                    </div>
+                                                {:else if contact.icon === "twitter"}
+                                                    <Twitter
+                                                        class="w-5 h-5 text-blue-400 flex-shrink-0"
+                                                    />
+                                                    <div class="min-w-0 flex-1">
+                                                        <a
+                                                            href={contact.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            class="text-sm font-medium text-blue-600 hover:text-blue-700 break-all"
+                                                        >
+                                                            {contact.name}
+                                                        </a>
+                                                    </div>
+                                                {:else if contact.icon === "linkedin"}
+                                                    <Linkedin
+                                                        class="w-5 h-5 text-blue-600 flex-shrink-0"
+                                                    />
+                                                    <div class="min-w-0 flex-1">
+                                                        <a
+                                                            href={contact.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            class="text-sm font-medium text-blue-600 hover:text-blue-700 break-all"
+                                                        >
+                                                            {contact.name}
+                                                        </a>
+                                                    </div>
+                                                {:else}
+                                                    <User
+                                                        class="w-5 h-5 text-gray-500 flex-shrink-0"
+                                                    />
+                                                    <div class="min-w-0 flex-1">
+                                                        <a
+                                                            href={contact.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            class="text-sm font-medium text-blue-600 hover:text-blue-700 break-all"
+                                                        >
+                                                            {contact.name}
+                                                        </a>
+                                                    </div>
+                                                {/if}
+                                            </li>
+                                        {/each}
+                                    </ul>
+                                {:else}
+                                    <div class="text-center py-8">
+                                        <div
+                                            class="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center"
+                                        >
+                                            <MailIcon
+                                                class="w-8 h-8 text-gray-400"
+                                            />
+                                        </div>
+                                        <p
+                                            class="text-gray-500 font-medium mb-2"
+                                        >
+                                            No contact information
+                                        </p>
+                                        <p class="text-gray-400 text-sm mb-4">
+                                            Add ways for people to reach you
+                                        </p>
+                                        {#if user.id == $auth?.user?.id && !editing}
+                                            <button
+                                                onclick={() => (editing = true)}
+                                                class="text-blue-600 hover:text-blue-700 font-medium"
+                                            >
+                                                Add contact info
+                                            </button>
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </section>
+                        </div>
                     </div>
-                </aside>
-            </main>
+                </div>
+            </div>
         </div>
     {/if}
 </div>

@@ -93,34 +93,34 @@ func TestGetSkillIDFromName(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
+		name      string
 		skillName string
-		expected int64
-		hasError bool
+		expected  int64
+		hasError  bool
 	}{
 		{
-			name:     "Existing skill",
+			name:      "Existing skill",
 			skillName: "JavaScript",
-			expected: skillID,
-			hasError: false,
+			expected:  skillID,
+			hasError:  false,
 		},
 		{
-			name:     "Case insensitive search",
+			name:      "Case insensitive search",
 			skillName: "javascript",
-			expected: skillID,
-			hasError: false,
+			expected:  skillID,
+			hasError:  false,
 		},
 		{
-			name:     "Non-existing skill",
+			name:      "Non-existing skill",
 			skillName: "Python",
-			expected: -1,
-			hasError: true,
+			expected:  -1,
+			hasError:  true,
 		},
 		{
-			name:     "Empty skill name",
+			name:      "Empty skill name",
 			skillName: "",
-			expected: -1,
-			hasError: true,
+			expected:  -1,
+			hasError:  true,
 		},
 	}
 

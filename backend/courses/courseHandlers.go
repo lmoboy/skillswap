@@ -19,7 +19,7 @@ import (
 // GetAllCourses returns all published courses
 func GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.Query(`
-		SELECT 
+		SELECT
 			c.id, c.title, c.description, c.instructor_id, u.username as instructor_name,
 			c.skill_id, s.name as skill_name, c.difficulty_level, c.duration_hours,
 			c.max_students, c.current_students, c.price, c.thumbnail_url, c.status,
@@ -83,7 +83,7 @@ func GetCourseByID(w http.ResponseWriter, r *http.Request) {
 	// Get course details
 	var course Course
 	err = database.QueryRow(`
-		SELECT 
+		SELECT
 			c.id, c.title, c.description, c.instructor_id, u.username as instructor_name,
 			c.skill_id, s.name as skill_name, c.difficulty_level, c.duration_hours,
 			c.max_students, c.current_students, c.price, c.thumbnail_url, c.status,
@@ -183,7 +183,7 @@ func SearchCourses(w http.ResponseWriter, r *http.Request) {
 	searchQuery := "%" + requestBody.Query + "%"
 
 	rows, err := database.Query(`
-		SELECT 
+		SELECT
 			c.id, c.title, c.description, c.instructor_id, u.username as instructor_name,
 			c.skill_id, s.name as skill_name, c.difficulty_level, c.duration_hours,
 			c.max_students, c.current_students, c.price, c.thumbnail_url, c.status,
@@ -194,7 +194,7 @@ func SearchCourses(w http.ResponseWriter, r *http.Request) {
 		JOIN users u ON c.instructor_id = u.id
 		JOIN skills s ON c.skill_id = s.id
 		LEFT JOIN course_reviews cr ON c.id = cr.course_id
-		WHERE c.status = 'Published' 
+		WHERE c.status = 'Published'
 		AND (c.title LIKE ? OR c.description LIKE ? OR s.name LIKE ? OR u.username LIKE ?)
 		GROUP BY c.id
 		ORDER BY c.created_at DESC
@@ -248,7 +248,7 @@ func GetCoursesByInstructor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := database.Query(`
-		SELECT 
+		SELECT
 			c.id, c.title, c.description, c.instructor_id, u.username as instructor_name,
 			c.skill_id, s.name as skill_name, c.difficulty_level, c.duration_hours,
 			c.max_students, c.current_students, c.price, c.thumbnail_url, c.status,
@@ -299,7 +299,7 @@ func AddCourse(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 20000<<20)
 	utils.DebugPrint("THE UPLOAD HITT!!!!")
 	if err := r.ParseMultipartForm(20000 << 20); err != nil {
-	utils.DebugPrint("THE FILE TOO BIG!!!!")
+		utils.DebugPrint("THE FILE TOO BIG!!!!")
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "File too large or invalid form data"})
 		return
 	}
@@ -372,7 +372,7 @@ func AddCourse(w http.ResponseWriter, r *http.Request) {
 	// Insert course into DB
 	res, err := database.Execute(`
 		INSERT INTO courses (title, description, instructor_id, skill_id, duration_hours, thumbnail_url, status)
-		VALUES (?, ?, ?, ?, ?, ?, 'Draft')
+		VALUES (?, ?, ?, ?, ?, ?, 'Published')
 	`, title, description, instructorID, skillID, durationMinutes/60, thumbnailURL)
 	if err != nil {
 		utils.HandleError(err)

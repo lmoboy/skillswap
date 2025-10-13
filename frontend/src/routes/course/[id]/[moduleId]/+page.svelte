@@ -59,7 +59,7 @@
 {#if loading}
     <div class="flex items-center justify-center min-h-screen bg-gray-50">
         <div
-            class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+            class="w-12 h-12 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"
         ></div>
     </div>
 {:else if error}
@@ -73,9 +73,9 @@
     <div class="min-h-screen bg-gray-50 p-6">
         <!-- Main Video Container with Red Border -->
         <div class="max-w-6xl mx-auto">
-            <div class="border-4 border-red-500 rounded-lg p-4 mb-6 bg-white">
+            <div class="border-4 drop-shadow-md rounded-md p-4 mb-6 bg-white">
                 <!-- Video Player Section -->
-                <div class="border-4 border-blue-500 rounded-lg p-4 mb-4">
+                <div class="border-4 border-gray-800 rounded-xl mb-4">
                     <!-- Video Player -->
                     <div
                         class="relative bg-black rounded-lg overflow-hidden aspect-video"
@@ -149,7 +149,7 @@
                 </div>
 
                 <!-- Video Info with Green Border -->
-                <div class="border-4 border-green-500 rounded-lg p-4">
+                <div class="border-4 rounded-lg p-4">
                     <h1 class="text-2xl font-bold text-gray-900 mb-2">
                         {course.title}
                     </h1>
@@ -173,9 +173,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
                     <!-- Course Content with Orange Border -->
-                    <div
-                        class="border-4 border-orange-500 rounded-lg p-4 bg-white"
-                    >
+                    <div class="border-4 rounded-lg p-4 bg-white">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">
                             Course Modules
                         </h3>
@@ -212,9 +210,7 @@
 
                 <!-- Sidebar Info with Purple Border -->
                 <div class="lg:col-span-1">
-                    <div
-                        class="border-4 border-purple-500 rounded-lg p-4 bg-white"
-                    >
+                    <div class="border-4 rounded-lg p-4 bg-white">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">
                             What's Next?
                         </h3>
@@ -253,7 +249,8 @@
                             <p class="text-xs text-gray-600">
                                 <strong>Note:</strong> For enhanced video calling
                                 features during live sessions, consider third-party
-                                tools like Zoom or Microsoft Teams.
+                                tools like Zoom or Microsoft Teams due to current
+                                issues with our personal service.
                             </p>
                         </div>
                     </div>

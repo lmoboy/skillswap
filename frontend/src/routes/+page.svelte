@@ -1,6 +1,6 @@
 <script lang="ts">
-    import HeroSection from "$lib/HeroSection.svelte";
-    import WhyUs from "$lib/WhyUs.svelte";
+    import HeroSection from "$lib/components/landing/HeroSection.svelte";
+    import WhyUs from "$lib/components/landing/WhyUs.svelte";
 </script>
 
 <HeroSection />

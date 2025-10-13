@@ -38,6 +38,7 @@ func getSkills(w http.ResponseWriter, req *http.Request) {
 // main initializes the application (database, routes and middleware) and starts the HTTP server.
 // It registers API endpoints for authentication, user, chat and search operations, configures CORS, and listens on localhost:8080 with 15s read and write timeouts.
 func main() {
+
 	database.Init()
 
 	// Start the WebSocket hub for chat functionality
@@ -61,23 +62,21 @@ func main() {
 	server.HandleFunc("/api/fullSearch", database.FullSearch).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
 
-	if authentication.Authenticated {
-		server.HandleFunc("/api/chat", chat.SimpleWebSocketEndpoint)
-		server.HandleFunc("/api/createChat", chat.CreateChat)
-		server.HandleFunc("/api/getChats", chat.GetChatsFromUserID)
-		server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromUID)
-		server.HandleFunc("/api/video", video.HandleWebSocket).Methods("GET")
+	server.HandleFunc("/api/chat", chat.SimpleWebSocketEndpoint)
+	server.HandleFunc("/api/createChat", chat.CreateChat)
+	server.HandleFunc("/api/getChats", chat.GetChatsFromUserID)
+	server.HandleFunc("/api/getChatInfo", chat.GetMessagesFromUID)
+	server.HandleFunc("/api/video", video.HandleWebSocket).Methods("GET")
 
-		server.HandleFunc("/api/courses", courses.GetAllCourses).Methods("GET")
-		server.HandleFunc("/api/course", courses.GetCourseByID).Methods("GET")
-		server.HandleFunc("/api/course/add", courses.AddCourse).Methods("POST")
-		server.HandleFunc("/api/course/upload", courses.UploadCourseAsset).Methods("POST")
-		server.HandleFunc("/api/course/{id}/stream", courses.StreamCourseAsset).Methods("GET")
-		server.HandleFunc("/api/searchCourses", courses.SearchCourses).Methods("POST")
-		server.HandleFunc("/api/coursesByInstructor", courses.GetCoursesByInstructor).Methods("GET")
+	server.HandleFunc("/api/courses", courses.GetAllCourses).Methods("GET")
+	server.HandleFunc("/api/course", courses.GetCourseByID).Methods("GET")
+	server.HandleFunc("/api/course/add", courses.AddCourse).Methods("POST")
+	server.HandleFunc("/api/course/upload", courses.UploadCourseAsset).Methods("POST")
+	server.HandleFunc("/api/course/{id}/stream", courses.StreamCourseAsset).Methods("GET")
+	server.HandleFunc("/api/searchCourses", courses.SearchCourses).Methods("POST")
+	server.HandleFunc("/api/coursesByInstructor", courses.GetCoursesByInstructor).Methods("GET")
 
-		server.HandleFunc("/api/getSkills", getSkills)
-	}
+	server.HandleFunc("/api/getSkills", getSkills)
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
 	// Tā atgriež JSON atbildi ar statusu "pong", kad tiek saņemts GET pieprasījums.
 	server.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
