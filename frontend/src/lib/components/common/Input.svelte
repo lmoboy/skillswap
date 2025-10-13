@@ -1,8 +1,14 @@
 <script lang="ts">
-    type InputType = 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search';
+    type InputType =
+        | "text"
+        | "email"
+        | "password"
+        | "number"
+        | "tel"
+        | "url"
+        | "search";
 
     type Props = {
-        value?: string | number;
         type?: InputType;
         placeholder?: string;
         label?: string;
@@ -23,44 +29,55 @@
     };
 
     let {
-        value = $bindable(''),
-        type = 'text',
-        placeholder = '',
-        label = '',
+        type = "text",
+        placeholder = "",
+        label = "",
         error = null,
         disabled = false,
         required = false,
-        id = '',
-        name = '',
-        autocomplete = '',
-        class: className = '',
+        id = "",
+        name = "",
+        autocomplete = "",
+        class: className = "",
         min,
         max,
         maxlength,
         oninput,
         onchange,
         onfocus,
-        onblur
+        onblur,
     }: Props = $props();
+
+    let value = $state("");
 
     const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
-    const baseClasses = 'w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition';
-    const normalClasses = 'border-gray-300 focus:ring-blue-500 focus:border-blue-500';
-    const errorClasses = 'border-red-300 focus:ring-red-500 focus:border-red-500';
-    const disabledClasses = 'opacity-50 cursor-not-allowed';
+    const baseClasses =
+        "w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition";
+    const normalClasses =
+        "border-gray-300 focus:ring-blue-500 focus:border-blue-500";
+    const errorClasses =
+        "border-red-300 focus:ring-red-500 focus:border-red-500";
+    const disabledClasses = "opacity-50 cursor-not-allowed";
 
-    const inputClasses = $derived(`
+    const inputClasses = $derived(
+        `
         ${baseClasses}
         ${error ? errorClasses : normalClasses}
-        ${disabled ? disabledClasses : ''}
+        ${disabled ? disabledClasses : ""}
         ${className}
-    `.trim().replace(/\s+/g, ' '));
+    `
+            .trim()
+            .replace(/\s+/g, " "),
+    );
 </script>
 
 <div class="w-full">
     {#if label}
-        <label for={inputId} class="block text-sm font-medium text-gray-700 mb-2">
+        <label
+            for={inputId}
+            class="block text-sm font-medium text-gray-700 mb-2"
+        >
             {label}
             {#if required}
                 <span class="text-red-500">*</span>
@@ -75,16 +92,16 @@
         {placeholder}
         {disabled}
         {required}
-        {autocomplete}
+        autocomplete={autocomplete as any}
         {min}
         {max}
         {maxlength}
         bind:value
         class={inputClasses}
-        oninput={oninput}
-        onchange={onchange}
-        onfocus={onfocus}
-        onblur={onblur}
+        {oninput}
+        {onchange}
+        {onfocus}
+        {onblur}
     />
 
     {#if error}

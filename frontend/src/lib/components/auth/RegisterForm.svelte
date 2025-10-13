@@ -1,19 +1,19 @@
 <script lang="ts">
     import { register } from "$lib/api/auth";
     import { goto } from "$app/navigation";
-    import Input from "$lib/components/common/Input.svelte";
     import Button from "$lib/components/common/Button.svelte";
-    import { validateEmail, validatePassword, validateUsername } from "$lib/utils/validation";
+    import {
+        validateEmail,
+        validatePassword,
+        validateUsername,
+    } from "$lib/utils/validation";
 
     type Props = {
         onSuccess?: () => void;
         class?: string;
     };
 
-    let {
-        onSuccess,
-        class: className = ""
-    }: Props = $props();
+    let { onSuccess, class: className = "" }: Props = $props();
 
     let username = $state("");
     let email = $state("");
@@ -51,7 +51,10 @@
                 goto("/auth/login?registered=true");
             }
         } catch (err: unknown) {
-            generalError = err instanceof Error ? err.message : "Registration failed. Please try again.";
+            generalError =
+                err instanceof Error
+                    ? err.message
+                    : "Registration failed. Please try again.";
         } finally {
             loading = false;
         }
@@ -78,44 +81,92 @@
             </div>
         {/if}
 
-        <Input
-            bind:value={username}
-            type="text"
-            label="Username"
-            placeholder="Choose a unique username"
-            error={usernameError}
-            required
-            autocomplete="username"
-            disabled={loading}
-            maxlength={50}
-            oninput={clearUsernameError}
-        />
+        <div class="w-full">
+            <label
+                for="username"
+                class="block text-sm font-medium text-gray-700 mb-2"
+            >
+                Username
+                <span class="text-red-500">*</span>
+            </label>
+            <input
+                id="username"
+                type="text"
+                placeholder="Choose a unique username"
+                required
+                autocomplete="username"
+                disabled={loading}
+                maxlength={50}
+                bind:value={username}
+                oninput={clearUsernameError}
+                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''}"
+            />
+            {#if usernameError}
+                <p class="mt-1 text-sm text-red-600">
+                    {usernameError}
+                </p>
+            {/if}
+        </div>
 
-        <Input
-            bind:value={email}
-            type="email"
-            label="Email"
-            placeholder="Enter your email address"
-            error={emailError}
-            required
-            autocomplete="email"
-            disabled={loading}
-            maxlength={100}
-            oninput={clearEmailError}
-        />
+        <div class="w-full">
+            <label
+                for="email"
+                class="block text-sm font-medium text-gray-700 mb-2"
+            >
+                Email
+                <span class="text-red-500">*</span>
+            </label>
+            <input
+                id="email"
+                type="email"
+                placeholder="Enter your email address"
+                required
+                autocomplete="email"
+                disabled={loading}
+                maxlength={100}
+                bind:value={email}
+                oninput={clearEmailError}
+                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''}"
+            />
+            {#if emailError}
+                <p class="mt-1 text-sm text-red-600">
+                    {emailError}
+                </p>
+            {/if}
+        </div>
 
-        <Input
-            bind:value={password}
-            type="password"
-            label="Password"
-            placeholder="Create a strong password (min 8 characters)"
-            error={passwordError}
-            required
-            autocomplete="new-password"
-            disabled={loading}
-            maxlength={50}
-            oninput={clearPasswordError}
-        />
+        <div class="w-full">
+            <label
+                for="password"
+                class="block text-sm font-medium text-gray-700 mb-2"
+            >
+                Password
+                <span class="text-red-500">*</span>
+            </label>
+            <input
+                id="password"
+                type="password"
+                placeholder="Create a strong password (min 8 characters)"
+                required
+                autocomplete="new-password"
+                disabled={loading}
+                maxlength={50}
+                bind:value={password}
+                oninput={clearPasswordError}
+                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''}"
+            />
+            {#if passwordError}
+                <p class="mt-1 text-sm text-red-600">
+                    {passwordError}
+                </p>
+            {/if}
+        </div>
 
         <Button
             type="submit"
@@ -131,7 +182,10 @@
         <div class="text-center">
             <p class="text-sm text-gray-600">
                 Already have an account?
-                <a href="/auth/login" class="text-blue-600 hover:text-blue-700 font-medium">
+                <a
+                    href="/auth/login"
+                    class="text-blue-600 hover:text-blue-700 font-medium"
+                >
                     Sign in
                 </a>
             </p>

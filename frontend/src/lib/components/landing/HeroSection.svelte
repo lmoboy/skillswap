@@ -6,7 +6,7 @@
         Share2,
         VideoOff,
     } from "lucide-svelte";
-    import { auth } from "./stores/auth";
+    import { auth } from "$lib/stores/auth";
 </script>
 
 <section class="w-full min-h-screen flex items-center justify-center bg-white">
