@@ -1,5 +1,5 @@
 <script lang="ts">
-   import { onMount } from 'svelte'
+   import { onMount, onDestroy } from 'svelte'
    import { auth } from '$lib/stores/auth'
    import type {
       ChatWithMessages,
@@ -9,9 +9,8 @@
    import ChatList from '$lib/components/chat/ChatList.svelte'
    import ChatWindow from '$lib/components/chat/ChatWindow.svelte'
    import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
-   import { ReconnectingWebSocket } from '$lib/utils/websocket-helper'
 
-   let socket: any = null
+   let socket: WebSocket | null = null
    let chats = $state<ChatWithMessages[]>([])
    let selectedChatIndex = $state<number>(-1)
    let selectedChat = $derived(
@@ -20,6 +19,19 @@
    let newMessage = $state('')
    let loading = $state(true)
    let connectionStatus = $state('disconnected')
+   let reconnectAttempts = 0
+   let maxReconnectAttempts = 10
+   let reconnectTimeout: number | null = null
+
+   function getWebSocketUrl(): string {
+      if (typeof window !== 'undefined') {
+         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+         const host = window.location.hostname
+         const port = '8080'
+         return `${protocol}//${host}:${port}/api/chat`
+      }
+      return 'ws://localhost:8080/api/chat'
+   }
 
    async function updateChat() {
       const uid = $auth.user?.id
@@ -53,49 +65,78 @@
          socket.close()
       }
 
-      socket = new ReconnectingWebSocket('api/chat')
+      const wsUrl = getWebSocketUrl()
+      console.log('Connecting to WebSocket:', wsUrl)
 
-      socket.onopen = () => {
-         console.log('WebSocket connected')
-         connectionStatus = 'connected'
-         if (selectedChat) {
-            socket?.send({
-               type: 'update',
-               id: selectedChat.id,
-            })
-         }
-      }
+      try {
+         socket = new WebSocket(wsUrl)
 
-      socket.onmessage = (event: { data: string; }) => {
-         try {
-            const message: WebSocketChatMessage = JSON.parse(event.data)
-            console.log('WebSocket message received:', message)
-
-            if (message.type === 'new_message' && message.message) {
-               const chatId = message.chat_id
-               const chatIndex = chats.findIndex((c) => c.id === chatId)
-
-               if (chatIndex !== -1) {
-                  chats[chatIndex].messages = [
-                     ...chats[chatIndex].messages,
-                     message.message,
-                  ]
-               }
-            } else if (message.type === 'update') {
-               updateChat()
+         socket.onopen = () => {
+            console.log('WebSocket connected')
+            connectionStatus = 'connected'
+            reconnectAttempts = 0
+            if (selectedChat) {
+               socket?.send(
+                  JSON.stringify({
+                     type: 'update',
+                     id: selectedChat.id,
+                  }),
+               )
             }
-         } catch (error) {
-            console.error('Error processing WebSocket message:', error)
          }
-      }
 
-      socket.onclose = (e: any) => {
-         console.log('WebSocket closed:', e)
-         connectionStatus = 'disconnected'
-      }
+         socket.onmessage = (event) => {
+            try {
+               const message: WebSocketChatMessage = JSON.parse(event.data)
+               console.log('WebSocket message received:', message)
 
-      socket.onerror = (error: any) => {
-         console.error('WebSocket error:', error)
+               if (message.type === 'new_message' && message.message) {
+                  const chatId = message.chat_id
+                  const chatIndex = chats.findIndex((c) => c.id === chatId)
+
+                  if (chatIndex !== -1) {
+                     chats[chatIndex].messages = [
+                        ...chats[chatIndex].messages,
+                        message.message,
+                     ]
+                  }
+               } else if (message.type === 'update') {
+                  updateChat()
+               }
+            } catch (error) {
+               console.error('Error processing WebSocket message:', error)
+            }
+         }
+
+         socket.onclose = (e) => {
+            console.log('WebSocket closed:', e.code, e.reason)
+            connectionStatus = 'disconnected'
+
+            // Attempt to reconnect
+            if (reconnectAttempts < maxReconnectAttempts) {
+               reconnectAttempts++
+               const delay = Math.min(
+                  1000 * Math.pow(2, reconnectAttempts - 1),
+                  30000,
+               )
+               console.log(
+                  `Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`,
+               )
+
+               reconnectTimeout = window.setTimeout(() => {
+                  initializeWebSocket()
+               }, delay)
+            } else {
+               console.error('Max reconnection attempts reached')
+            }
+         }
+
+         socket.onerror = (error) => {
+            console.error('WebSocket error:', error)
+            connectionStatus = 'error'
+         }
+      } catch (error) {
+         console.error('Failed to create WebSocket:', error)
          connectionStatus = 'error'
       }
    }
@@ -103,10 +144,12 @@
    function selectChat(chatId: number, index: number) {
       selectedChatIndex = index
       if (socket && socket.readyState === WebSocket.OPEN) {
-         socket.send({
-            type: 'update',
-            id: chatId,
-         })
+         socket.send(
+            JSON.stringify({
+               type: 'update',
+               id: chatId,
+            }),
+         )
       }
    }
 
@@ -124,24 +167,6 @@
             content: message,
          }),
       )
-
-      // Optimistically add message to UI
-      // const optimisticMessage: Message = {
-      //     sender: {
-      //         id: $auth.user?.id || 0,
-      //         username: $auth.user?.name || "",
-      //         email: $auth.user?.email || "",
-      //         profile_picture: $auth.user?.profile_picture || "",
-      //     },
-      //     content: message,
-      //     timestamp: new Date().toISOString(),
-      //     chat_id: selectedChat.id,
-      // };
-
-      // chats[selectedChatIndex].messages = [
-      //     ...chats[selectedChatIndex].messages,
-      //     optimisticMessage,
-      // ];
    }
 
    function handleAttachment() {
@@ -164,11 +189,15 @@
    onMount(() => {
       updateChat()
       initializeWebSocket()
+   })
 
-      return () => {
-         if (socket) {
-            socket.close()
-         }
+   onDestroy(() => {
+      if (reconnectTimeout) {
+         clearTimeout(reconnectTimeout)
+      }
+      if (socket) {
+         reconnectAttempts = maxReconnectAttempts // Prevent reconnection
+         socket.close()
       }
    })
 </script>
@@ -194,7 +223,7 @@
          <div class="lg:col-span-4 flex flex-col h-full gap-4">
             <!-- Video Call Preview -->
             <div
-               class="bg-gray-800 rounded-xl shadow-lg h-48 lg:h-64 flex-shrink-0 overflow-hidden"
+               class="bg-gray-800 rounded-xl shadow-lg h-48 lg:h-64 flex-shrink-0 overflow-hidden relative"
             >
                <div
                   class="h-full w-full flex items-center justify-center text-white"
@@ -221,6 +250,19 @@
                         Video calling feature coming soon
                      </p>
                   </div>
+               </div>
+               <!-- Connection Status Badge -->
+               <div class="absolute top-4 right-4">
+                  <span
+                     class="px-3 py-1 rounded-full text-xs font-medium {connectionStatus ===
+                     'connected'
+                        ? 'bg-green-500 text-white'
+                        : connectionStatus === 'error'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-yellow-500 text-white'}"
+                  >
+                     {connectionStatus}
+                  </span>
                </div>
             </div>
 
