@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"skillswap/backend/utils"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -24,6 +25,14 @@ func Init() {
 		log.Fatal(err)
 	}
 	utils.DebugPrint("Database ping successful")
+	res, err := db.Query("SELECT * FROM users")
+	if err != nil {
+		log.Fatal(err.Error())
+		if strings.Contains(err.Error(), "doesn't exist"){
+			Migrate(db)
+		}
+	}
+	res.Close()
 }
 
 func GetDatabase() (*sql.DB, error) {

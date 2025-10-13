@@ -390,7 +390,7 @@ func TestRetrieveUserInfo(t *testing.T) {
 	} else {
 		found := false
 		for _, skill := range userInfo.Skills {
-			if skill.Name == "JavaScript" && skill.Verified == true {
+			if skill.Name == "JavaScript" && bool(skill.Verified) == true {
 				found = true
 				break
 			}

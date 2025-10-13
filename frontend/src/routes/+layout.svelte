@@ -18,11 +18,11 @@
     });
 </script>
 
-<div class="flex flex-col min-h-screen relative">
+<div class="flex flex-col min-h-dvh relative">
     <!-- <AuthDebug /> -->
 
-    <Header />
-    <main class="flex-grow">
+    <Header class="shrink-0" />
+    <main class="flex-1 w-full overflow-auto">
         <slot />
     </main>
     <Footer />

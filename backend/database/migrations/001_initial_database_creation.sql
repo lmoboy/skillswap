@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(50) NOT NULL,
   email VARCHAR(191) NOT NULL,
   profile_picture VARCHAR(255) DEFAULT "noPicture",
-  aboutme TEXT DEFAULT "",
-  profession TEXT DEFAULT "",
+  aboutme TEXT,
+  profession TEXT,
   location VARCHAR(191) DEFAULT "",
   swaps INT NOT NULL DEFAULT 2,
 
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS skills (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(100) NOT NULL,
-  description TEXT DEFAULT "",
+  description TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_skills_name (name)
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS messages (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   chat_id BIGINT UNSIGNED NOT NULL,
   sender_id BIGINT UNSIGNED NOT NULL,
-  content TEXT DEFAULT "",
+  content TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY (id),
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS user_projects (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
   name VARCHAR(191) NOT NULL,
-  description TEXT DEFAULT "",
+  description TEXT,
   link VARCHAR(255) DEFAULT "",
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -153,6 +153,9 @@ CREATE TABLE IF NOT EXISTS course_modules (
   course_id BIGINT UNSIGNED NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT,
+  video_url VARCHAR(500),
+  video_duration INT UNSIGNED DEFAULT 0,
+  thumbnail_url VARCHAR(500),
   order_index INT UNSIGNED NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

@@ -41,6 +41,11 @@ func main() {
 
 	database.Init()
 
+	db, err := database.GetDatabase()
+	if err == nil {
+		database.Migrate(db)
+	}
+
 	// Start the WebSocket hub for chat functionality
 	go chat.StartHub()
 
@@ -73,8 +78,11 @@ func main() {
 	server.HandleFunc("/api/course/add", courses.AddCourse).Methods("POST")
 	server.HandleFunc("/api/course/upload", courses.UploadCourseAsset).Methods("POST")
 	server.HandleFunc("/api/course/{id}/stream", courses.StreamCourseAsset).Methods("GET")
+	server.HandleFunc("/api/course/video", courses.ServeModuleVideo).Methods("GET")
 	server.HandleFunc("/api/searchCourses", courses.SearchCourses).Methods("POST")
 	server.HandleFunc("/api/coursesByInstructor", courses.GetCoursesByInstructor).Methods("GET")
+
+	server.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 
 	server.HandleFunc("/api/getSkills", getSkills)
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
@@ -91,12 +99,12 @@ func main() {
 	server.Use(c.Handler)
 
 	// Reģistrē rūteri kā galveno HTTP apstrādātāju.
-	http.Handle("/", server)
+	go http.Handle("/", server)
 
 	// Izveido un konfigurē HTTP serveri.
 	serve := &http.Server{
-		Handler: server,           // Norāda, ka šis serveris izmantos mūsu iepriekš definēto rūteri.
-		Addr:    "localhost:8080", // Serveris klausīsies uz šīs adreses un porta.
+		Handler: server,         // Norāda, ka šis serveris izmantos mūsu iepriekš definēto rūteri.
+		Addr:    "0.0.0.0:8080", // Serveris klausīsies uz šīs adreses un porta.
 
 		// Iestata maksimālo laiku, cik ilgi serveris gaidīs pieprasījuma ķermeņa nolasīšanu un atbildes uzrakstīšanu.
 		WriteTimeout: 15 * time.Second,

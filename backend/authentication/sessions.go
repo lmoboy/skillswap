@@ -16,6 +16,16 @@ import (
 var Authenticated = false
 var Store = sessions.NewCookieStore([]byte("simple-session-key-12345"))
 
+func init() {
+	Store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
 func ApplySession(w http.ResponseWriter, req *http.Request, userInfo *structs.UserInfo) error {
 	if userInfo == nil || userInfo.Email == "" {
 		return fmt.Errorf("user info and email are required")
@@ -65,7 +75,12 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to check session"})
 		return
 	}
-	row.Next()
+	defer row.Close()
+	if !row.Next() {
+		Authenticated = false
+		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "User not found"})
+		return
+	}
 	err = row.Scan(&username, &email, &id, &profilePicture)
 	if err != nil {
 		Authenticated = false
@@ -73,7 +88,6 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to check session"})
 		return
 	}
-	defer row.Close()
 	// utils.DebugPrint(values.Values)
 	Authenticated = true
 	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"user": username, "email": email, "id": fmt.Sprintf("%d", id), "profile_picture": profilePicture})
