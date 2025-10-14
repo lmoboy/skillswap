@@ -41,7 +41,7 @@ func UpdateUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Verify user is updating their own profile
-	if payload.ID != sessionUserID {
+	if int64(payload.ID) != sessionUserID {
 		utils.SendJSONResponse(w, http.StatusForbidden, map[string]string{"error": "You can only update your own profile"})
 		return
 	}
@@ -52,14 +52,14 @@ func UpdateUser(w http.ResponseWriter, req *http.Request) {
 	database.Execute("DELETE FROM user_contacts WHERE user_id = ?", payload.ID)
 
 	// Update basic user info if provided
-	if payload.AboutMe != "" || payload.Profession != "" || payload.Location != "" {
+	if payload.AboutMe != "" || payload.Professions != "" || payload.Location != "" {
 		_, err = database.Execute(`
 			UPDATE users 
 			SET aboutme = COALESCE(NULLIF(?, ''), aboutme),
 			    profession = COALESCE(NULLIF(?, ''), profession),
 			    location = COALESCE(NULLIF(?, ''), location)
 			WHERE id = ?
-		`, payload.AboutMe, payload.Profession, payload.Location, payload.ID)
+		`, payload.AboutMe, payload.Professions, payload.Location, payload.ID)
 		if err != nil {
 			utils.HandleError(err)
 			utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to update user info"})
