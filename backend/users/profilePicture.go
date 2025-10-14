@@ -14,7 +14,11 @@ import (
 
 func UploadProfilePicture(w http.ResponseWriter, req *http.Request) {
 	_ = req.ParseMultipartForm(4 << 20)
-	file, fileHeader, _ := req.FormFile("file")
+	file, fileHeader, err := req.FormFile("file")
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "No file provided"})
+		return
+	}
 	defer file.Close()
 	if !utils.CheckType(filepath.Ext(fileHeader.Filename), []string{".jpg", ".jpeg", ".png"}) {
 		utils.DebugPrint("type not accepted")
