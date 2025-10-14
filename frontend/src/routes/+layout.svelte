@@ -4,17 +4,24 @@
     import Footer from "$lib/components/layout/Footer.svelte";
 
     import "../app.css";
-    import { onMount } from "svelte";
-    import { checkAuth } from "$lib/api/auth";
+    import { auth } from "$lib/stores/auth";
     import Cookies from "$lib/components/ui/Cookies.svelte";
 
-    onMount(async () => {
-        try {
-            await checkAuth();
-        } catch (error) {
-            console.error("Error checking auth:", error);
-        }
-    });
+    // Get data from universal load function
+    let { data } = $props();
+
+    // Initialize auth store with data from load function
+    if (data?.user) {
+        auth.setUser({
+            name: data.user.name,
+            email: data.user.email,
+            id: data.user.id,
+            profile_picture: data.user.profile_picture || '',
+        });
+    } else {
+        // No user found, set loading to false
+        auth.setLoading(false);
+    }
 </script>
 
 <div class="flex flex-col min-h-dvh relative">
