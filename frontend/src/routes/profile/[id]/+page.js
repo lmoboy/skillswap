@@ -19,13 +19,15 @@ export async function load({ params, fetch: eventFetch }) {
       if (response.ok) {
         return response.json();
       }
+      throw error(response.status, `Failed to fetch user: ${response.statusText}`);
     })
-    .catch((error) => {
-      console.log(error);
+    .catch((err) => {
+      console.log(err);
+      throw error(500, err.message || "Error fetching user");
     });
 
   if (!user) {
-    throw error(403, "Error fetching user user");
+    throw error(404, "User not found");
   }
 
   return user;
