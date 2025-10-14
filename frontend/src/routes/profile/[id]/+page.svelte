@@ -1,6 +1,5 @@
 <script lang="ts">
     import { page } from "$app/state";
-    import Debug from "$lib/components/Debug.svelte";
     import { auth } from "$lib/stores/auth.js";
     import {
         User,

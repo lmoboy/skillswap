@@ -167,3 +167,12 @@ export function formatPrice(price: number, currency: string = 'USD'): string {
         currency: currency
     }).format(price);
 }
+
+/**
+ * Formats seconds to MM:SS format
+ */
+export function formatVideoTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
