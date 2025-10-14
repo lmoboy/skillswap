@@ -27,11 +27,7 @@
       <div class="absolute inset-0 bg-gradient-to-b from-white/80 via-white/60 to-white/90"></div>
    </div>
 
-   <!-- Animated Geometric Shapes -->
-   <div class="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-   <div class="absolute top-40 right-10 w-72 h-72 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-   <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
-   
+
    <!-- Grid Pattern Overlay -->
    <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 </div>
@@ -39,23 +35,6 @@
 <section
    class="w-full min-h-screen relative flex items-center justify-center py-12 sm:py-16"
 >
-   <!-- Floating Decorative Icons -->
-   <div class="absolute top-1/4 left-[10%] animate-float">
-      <div class="bg-white/80 backdrop-blur-sm p-3 rounded-2xl shadow-lg">
-         <Sparkles class="w-6 h-6 text-purple-500" />
-      </div>
-   </div>
-   <div class="absolute top-1/3 right-[15%] animate-float-delayed">
-      <div class="bg-white/80 backdrop-blur-sm p-3 rounded-2xl shadow-lg">
-         <Zap class="w-6 h-6 text-blue-500" />
-      </div>
-   </div>
-   <div class="absolute bottom-1/4 left-[15%] animate-float-slow">
-      <div class="bg-white/80 backdrop-blur-sm p-3 rounded-2xl shadow-lg">
-         <Users class="w-6 h-6 text-pink-500" />
-      </div>
-   </div>
-
    <div class="container relative z-10 mx-auto px-4 sm:px-6 md:px-12">
       <div
          class="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12 backdrop-blur-xl border border-white/50 rounded-3xl p-8 sm:p-12 bg-white/70 shadow-2xl"
