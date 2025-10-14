@@ -44,9 +44,9 @@ services:
       dockerfile: Dockerfile
     container_name: skillswap-frontend
     ports:
-      - "0.0.0.0:3000:3000"
+      - "0.0.0.0:80:3000"
     environment:
-      - ORIGIN=http://89.117.50.20:3000
+      - ORIGIN=http://89.117.50.20
       - BODY_SIZE_LIMIT=Infinity
       - BACKEND_URL=http://backend:8080
     depends_on:
