@@ -36,12 +36,14 @@
         loading = true;
 
         try {
-            await login({ email, password });
+            const response = await login({ email, password });
 
             if (onSuccess) {
                 onSuccess();
             } else {
-                goto("/");
+                // Redirect to the return URL or default to home
+                const redirectUrl = response.returnUrl || "/";
+                goto(redirectUrl);
             }
         } catch (err: unknown) {
             generalError =

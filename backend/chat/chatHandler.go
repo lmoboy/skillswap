@@ -304,17 +304,46 @@ func CreateChat(w http.ResponseWriter, req *http.Request) {
 	var user1_id, user2_id string
 	user1_id = req.URL.Query().Get("u1")
 	user2_id = req.URL.Query().Get("u2")
-	utils.DebugPrint(user1_id, user2_id)
-	res := database.QueryRow("SELECT * FROM chats WHERE user1_id = ? AND user2_id = ?", user1_id, user2_id)
-	utils.DebugPrint(res.Err())
-	if res.Err() != nil {
-		utils.DebugPrint(res.Err())
-		utils.SendJSONResponse(w, http.StatusNotFound, "somethng happned")
+	
+	if user1_id == "" || user2_id == "" {
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Both user IDs are required"})
+		return
+	}
+	
+	utils.DebugPrint("Creating chat between:", user1_id, user2_id)
+	
+	// Check if chat already exists
+	var existingChatID int
+	err := database.QueryRow("SELECT id FROM chats WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)", 
+		user1_id, user2_id, user2_id, user1_id).Scan(&existingChatID)
+	
+	if err == nil {
+		// Chat already exists
+		utils.SendJSONResponse(w, http.StatusOK, map[string]interface{}{
+			"status":  "Chat already exists",
+			"chat_id": existingChatID,
+		})
 		return
 	}
 
-	utils.DebugPrint(req.URL.RawQuery)
-
-	database.Execute("INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)", user1_id, user2_id)
-	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "Created a new chat with users " + user1_id + " and " + user2_id})
+	// Create new chat
+	result, err := database.Execute("INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)", user1_id, user2_id)
+	if err != nil {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create chat"})
+		return
+	}
+	
+	chatID, err := result.LastInsertId()
+	if err != nil {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to get chat ID"})
+		return
+	}
+	
+	utils.SendJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"status":  "Created a new chat",
+		"chat_id": chatID,
+		"users":   []string{user1_id, user2_id},
+	})
 }

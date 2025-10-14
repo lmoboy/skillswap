@@ -21,18 +21,6 @@
             return;
         }
 
-        // Wait for auth to be available
-        if (!$auth.user) {
-            try {
-                await auth.waitForUser(5000);
-            } catch (error) {
-                console.error("Auth not available:", error);
-                err = "Authentication required. Please log in.";
-                await goto("/auth/login");
-                return;
-            }
-        }
-
         console.log(
             `Creating chat between user ${$auth.user.id} and target user ${targetUserId}`,
         );

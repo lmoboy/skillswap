@@ -15,10 +15,9 @@
             const response = await fetch(`/api/course?id=${courseId}`);
             if (!response.ok) throw new Error("Failed to fetch course");
             course = await response.json();
+            loading = false;
         } catch (err) {
             error = "Failed to load course";
-            console.error("Error loading course:", err);
-        } finally {
             loading = false;
         }
     });
