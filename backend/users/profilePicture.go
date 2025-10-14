@@ -26,11 +26,21 @@ func UploadProfilePicture(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	userID := req.FormValue("user_id")
-	_ = os.MkdirAll(filepath.Join("uploads", "users"), 0o755)
+	if err := os.MkdirAll(filepath.Join("uploads", "users"), 0o755); err != nil {
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create upload directory"})
+		return
+	}
 	path := filepath.Join("uploads", "users", fmt.Sprintf("%s.jpg", userID))
-	dst, _ := os.Create(path)
+	dst, err := os.Create(path)
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create file"})
+		return
+	}
 	defer dst.Close()
-	io.Copy(dst, file)
+	if _, err := io.Copy(dst, file); err != nil {
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save file"})
+		return
+	}
 
 	publicPath := fmt.Sprintf("/api/profile/%s/picture", userID)
 	database.Execute("UPDATE users SET profile_picture = ? WHERE id = ?", publicPath, userID)
