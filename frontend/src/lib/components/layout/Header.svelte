@@ -84,7 +84,14 @@
                     Courses
                 </a>
             </nav>
-
+            <nav class="hidden md:flex items-center space-x-4">
+                <a
+                    href="/swapping"
+                    class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium hover:bg-gray-50 rounded-md transition-colors"
+                >
+                    Swapping
+                </a>
+            </nav>
             <!-- Desktop Search -->
             <div
                 class="hidden md:flex flex-1 items-center justify-center max-w-md mx-4"
