@@ -13,7 +13,11 @@ import (
 
 func UploadCourseVideo(w http.ResponseWriter, req *http.Request) {
 	_ = req.ParseMultipartForm(4 << 20)
-	file, fileHeader, _ := req.FormFile("file") // Get fileHeader
+	file, fileHeader, err := req.FormFile("file") // Get fileHeader
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "No file provided"})
+		return
+	}
 	defer file.Close()
 
 	courseID := req.FormValue("course_id")
