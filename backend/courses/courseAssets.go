@@ -30,11 +30,21 @@ func UploadCourseAsset(w http.ResponseWriter, req *http.Request) {
 
     courseID := req.FormValue("course_id")
     dir := filepath.Join("uploads", "courses", courseID)
-    _ = os.MkdirAll(dir, 0o755)
+    if err := os.MkdirAll(dir, 0o755); err != nil {
+        utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create upload directory"})
+        return
+    }
     path := filepath.Join(dir, header.Filename)
-    dst, _ := os.Create(path)
+    dst, err := os.Create(path)
+    if err != nil {
+        utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create file"})
+        return
+    }
     defer dst.Close()
-    io.Copy(dst, file)
+    if _, err := io.Copy(dst, file); err != nil {
+        utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save file"})
+        return
+    }
 
     utils.SendJSONResponse(w, http.StatusOK, map[string]string{"path": fmt.Sprintf("/api/course/%s/stream?file=%s", courseID, header.Filename)})
 }
