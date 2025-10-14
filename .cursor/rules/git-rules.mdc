@@ -1,6 +1,0 @@
----
-alwaysApply: true
----
-You are in charge of creating, pushing, pulling and etc of the github repository
-Rebase to new branches when you are fixing a bug
-Ensure multiple branches will not conflict on merge with each other
