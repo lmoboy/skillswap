@@ -204,15 +204,15 @@
    })
 </script>
 
-<div class="h-screen w-full p-4 bg-gray-100">
+<div class="h-screen w-full p-2 sm:p-4 bg-gray-100">
    {#if loading}
       <div class="flex items-center justify-center h-full">
          <LoadingSpinner size="xl" text="Loading conversations..." />
       </div>
    {:else}
-      <div class="grid grid-cols-1 lg:grid-cols-5 h-full gap-4">
-         <!-- Chat List -->
-         <div class="lg:col-span-1 h-full">
+      <div class="grid grid-cols-1 lg:grid-cols-5 h-full gap-2 sm:gap-4">
+         <!-- Chat List - Hidden on mobile when chat selected -->
+         <div class="lg:col-span-1 h-full {selectedChat ? 'hidden lg:block' : ''}">
             <ChatList
                {chats}
                selectedChatId={selectedChat?.id || null}
@@ -222,18 +222,18 @@
          </div>
 
          <!-- Chat Window + Video -->
-         <div class="lg:col-span-4 flex flex-col h-full gap-4">
-            <!-- Video Call Preview -->
+         <div class="lg:col-span-4 flex flex-col h-full gap-2 sm:gap-4 {selectedChat ? '' : 'hidden lg:flex'}">
+            <!-- Video Call Preview - Hidden on mobile -->
             <div
-               class="bg-gray-800 rounded-xl shadow-lg h-48 lg:h-64 flex-shrink-0 overflow-hidden relative"
+               class="bg-gray-800 rounded-xl shadow-lg h-32 sm:h-48 lg:h-64 flex-shrink-0 overflow-hidden relative hidden sm:block"
             >
                <div
                   class="h-full w-full flex items-center justify-center text-white"
                >
-                  <div class="text-center">
+                  <div class="text-center px-4">
                      <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        class="h-16 w-16 mx-auto mb-4 opacity-50"
+                        class="h-8 w-8 sm:h-16 sm:w-16 mx-auto mb-2 sm:mb-4 opacity-50"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -245,18 +245,18 @@
                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                         />
                      </svg>
-                     <p class="text-lg font-semibold opacity-75">
+                     <p class="text-sm sm:text-lg font-semibold opacity-75">
                         Video Call Preview
                      </p>
-                     <p class="text-sm opacity-50 mt-1">
+                     <p class="text-xs sm:text-sm opacity-50 mt-1">
                         Video calling feature coming soon
                      </p>
                   </div>
                </div>
                <!-- Connection Status Badge -->
-               <div class="absolute top-4 right-4">
+               <div class="absolute top-2 sm:top-4 right-2 sm:right-4">
                   <span
-                     class="px-3 py-1 rounded-full text-xs font-medium {connectionStatus ===
+                     class="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium {connectionStatus ===
                      'connected'
                         ? 'bg-green-500 text-white'
                         : connectionStatus === 'error'
@@ -269,8 +269,18 @@
             </div>
 
             <!-- Chat Messages -->
-            <div class="flex-1 min-h-0">
+            <div class="flex-1 min-h-0 relative">
                {#if selectedChat}
+                  <!-- Back button for mobile -->
+                  <button
+                     onclick={() => selectedChatIndex = -1}
+                     class="lg:hidden absolute top-2 left-2 z-10 bg-white rounded-full p-2 shadow-md"
+                  >
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                     </svg>
+                  </button>
+                  
                   {@const otherUser = getOtherUserInfo(selectedChat)}
                   <ChatWindow
                      messages={selectedChat.messages}
@@ -285,13 +295,13 @@
                   <div
                      class="h-full bg-white rounded-xl shadow-lg flex items-center justify-center"
                   >
-                     <div class="text-center p-8">
+                     <div class="text-center p-4 sm:p-8">
                         <div
-                           class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+                           class="w-16 h-16 sm:w-24 sm:h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
                         >
                            <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              class="h-12 w-12 text-gray-400"
+                              class="h-8 w-8 sm:h-12 sm:w-12 text-gray-400"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -304,10 +314,10 @@
                               />
                            </svg>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                        <h3 class="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                            Select a conversation
                         </h3>
-                        <p class="text-gray-500">
+                        <p class="text-sm sm:text-base text-gray-500">
                            Choose a conversation from the list to start chatting
                         </p>
                      </div>

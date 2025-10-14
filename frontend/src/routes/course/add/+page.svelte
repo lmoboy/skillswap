@@ -176,28 +176,81 @@
     // Handler for course preview photo
     function handlePreviewPhotoChange(event: Event) {
         const input = event.target as HTMLInputElement;
-        formData.preview_photo_file = input.files ? input.files[0] : null;
-
-        if (formData.preview_photo_file) {
-            preview = URL.createObjectURL(formData.preview_photo_file);
+        const file = input.files ? input.files[0] : null;
+        
+        if (file) {
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                error = 'Invalid file type. Please upload PNG, JPG, or GIF image.';
+                input.value = '';
+                return;
+            }
+            
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                error = 'File size too large. Maximum size is 5MB.';
+                input.value = '';
+                return;
+            }
+            
+            formData.preview_photo_file = file;
+            preview = URL.createObjectURL(file);
+            error = null;
         }
     }
 
     // Handler for module video file
     function handleModuleVideoChange(event: Event, index: number) {
         const input = event.target as HTMLInputElement;
-        if (input.files && input.files[0]) {
-            formData.modules[index].video_file = input.files[0];
+        const file = input.files ? input.files[0] : null;
+        
+        if (file) {
+            // Validate file type
+            const validTypes = ['video/mp4', 'video/webm', 'video/avi', 'video/quicktime'];
+            if (!validTypes.includes(file.type)) {
+                error = `Invalid video file type for module ${index + 1}. Please upload MP4, WebM, or AVI video.`;
+                input.value = '';
+                return;
+            }
+            
+            // Validate file size (max 500MB)
+            if (file.size > 500 * 1024 * 1024) {
+                error = `Video file for module ${index + 1} is too large. Maximum size is 500MB.`;
+                input.value = '';
+                return;
+            }
+            
+            formData.modules[index].video_file = file;
             formData.modules = formData.modules; // Trigger reactivity
+            error = null;
         }
     }
 
     // Handler for module thumbnail file
     function handleModuleThumbnailChange(event: Event, index: number) {
         const input = event.target as HTMLInputElement;
-        if (input.files && input.files[0]) {
-            formData.modules[index].thumbnail_file = input.files[0];
+        const file = input.files ? input.files[0] : null;
+        
+        if (file) {
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                error = `Invalid thumbnail type for module ${index + 1}. Please upload PNG, JPG, or GIF image.`;
+                input.value = '';
+                return;
+            }
+            
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                error = `Thumbnail for module ${index + 1} is too large. Maximum size is 2MB.`;
+                input.value = '';
+                return;
+            }
+            
+            formData.modules[index].thumbnail_file = file;
             formData.modules = formData.modules; // Trigger reactivity
+            error = null;
         }
     }
 
@@ -226,13 +279,13 @@
     });
 </script>
 
-<div class="min-h-screen bg-gray-50 py-12">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+<div class="min-h-screen bg-gray-50 py-6 sm:py-12">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div class="mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
                 Upload Your Course
             </h1>
-            <p class="text-lg text-gray-500">
+            <p class="text-base sm:text-lg text-gray-500">
                 Share your expertise by creating a comprehensive course with
                 multiple modules and videos.
             </p>
@@ -240,7 +293,7 @@
 
         <form
             onsubmit={handleSubmit}
-            class="bg-white p-8 shadow-lg rounded-lg space-y-8"
+            class="bg-white p-4 sm:p-6 lg:p-8 shadow-lg rounded-lg space-y-6 sm:space-y-8"
         >
             <!-- Course Information Section -->
             <div class="space-y-4">
@@ -324,10 +377,10 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2"
                         >Course Thumbnail *</label
                     >
-                    <div class="mt-1 flex items-center space-x-4">
+                    <div class="mt-1 space-y-3">
                         <label
                             for="preview-photo-upload"
-                            class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-all flex items-center space-x-2"
+                            class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-all flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-fit"
                         >
                             <Upload class="h-4 w-4" />
                             <span
@@ -345,18 +398,29 @@
                             />
                         </label>
                         {#if formData.preview_photo_file}
-                            <div class="flex-1">
-                                <span class="text-sm text-gray-600 block mb-2">
-                                    {formData.preview_photo_file.name}
-                                </span>
-                                {#if preview}
-                                    <img
-                                        src={preview}
-                                        alt="Course preview"
-                                        class="h-32 w-auto rounded-lg border border-gray-300"
-                                    />
-                                {/if}
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <div class="flex flex-col sm:flex-row gap-4">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-700 mb-1">
+                                            {formData.preview_photo_file.name}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            {Math.round(formData.preview_photo_file.size / 1024)} KB
+                                        </p>
+                                    </div>
+                                    {#if preview}
+                                        <img
+                                            src={preview}
+                                            alt="Course preview"
+                                            class="h-24 sm:h-32 w-auto rounded-lg border border-gray-300 mx-auto sm:mx-0"
+                                        />
+                                    {/if}
+                                </div>
                             </div>
+                        {:else}
+                            <p class="text-xs text-gray-500">
+                                Recommended size: 1200x630px. Accepted formats: PNG, JPG, GIF
+                            </p>
                         {/if}
                     </div>
                 </div>
@@ -508,41 +572,52 @@
                                                 class="block text-sm font-medium text-gray-700 mb-2"
                                                 >Module Video *</label
                                             >
-                                            <label
-                                                for="module-video-{index}"
-                                                class="cursor-pointer bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded transition-all flex items-center space-x-2 w-fit"
-                                            >
-                                                <Upload class="h-4 w-4" />
-                                                <span
-                                                    >{module.video_file
-                                                        ? "Change Video"
-                                                        : "Upload Video"}</span
+                                            <div class="space-y-2">
+                                                <label
+                                                    for="module-video-{index}"
+                                                    class="cursor-pointer bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded transition-all flex items-center space-x-2 w-full sm:w-fit justify-center sm:justify-start"
                                                 >
-                                                <input
-                                                    id="module-video-{index}"
-                                                    type="file"
-                                                    accept="video/*"
-                                                    onchange={(e) =>
-                                                        handleModuleVideoChange(
-                                                            e,
-                                                            index,
-                                                        )}
-                                                    required={!module.video_file}
-                                                    class="sr-only"
-                                                />
-                                            </label>
-                                            {#if module.video_file}
-                                                <p
-                                                    class="text-xs text-gray-600 mt-2"
-                                                >
-                                                    {module.video_file.name}
-                                                    ({Math.round(
-                                                        module.video_file.size /
-                                                            1024 /
-                                                            1024,
-                                                    )} MB)
-                                                </p>
-                                            {/if}
+                                                    <Upload class="h-4 w-4" />
+                                                    <span
+                                                        >{module.video_file
+                                                            ? "Change Video"
+                                                            : "Upload Video"}</span
+                                                    >
+                                                    <input
+                                                        id="module-video-{index}"
+                                                        type="file"
+                                                        accept="video/*"
+                                                        onchange={(e) =>
+                                                            handleModuleVideoChange(
+                                                                e,
+                                                                index,
+                                                            )}
+                                                        required={!module.video_file}
+                                                        class="sr-only"
+                                                    />
+                                                </label>
+                                                {#if module.video_file}
+                                                    <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                                        <div class="flex items-start gap-2">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            <div class="flex-1 min-w-0">
+                                                                <p class="text-sm font-medium text-green-900 truncate">
+                                                                    {module.video_file.name}
+                                                                </p>
+                                                                <p class="text-xs text-green-700 mt-1">
+                                                                    {Math.round(module.video_file.size / 1024 / 1024)} MB
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {:else}
+                                                    <p class="text-xs text-gray-500">
+                                                        Accepted formats: MP4, WebM, AVI
+                                                    </p>
+                                                {/if}
+                                            </div>
                                         </div>
 
                                         <div>
@@ -550,35 +625,48 @@
                                                 class="block text-sm font-medium text-gray-700 mb-2"
                                                 >Module Thumbnail (Optional)</label
                                             >
-                                            <label
-                                                for="module-thumbnail-{index}"
-                                                class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-all flex items-center space-x-2 w-fit"
-                                            >
-                                                <Upload class="h-4 w-4" />
-                                                <span
-                                                    >{module.thumbnail_file
-                                                        ? "Change Thumbnail"
-                                                        : "Upload Thumbnail"}</span
+                                            <div class="space-y-2">
+                                                <label
+                                                    for="module-thumbnail-{index}"
+                                                    class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-all flex items-center space-x-2 w-full sm:w-fit justify-center sm:justify-start"
                                                 >
-                                                <input
-                                                    id="module-thumbnail-{index}"
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onchange={(e) =>
-                                                        handleModuleThumbnailChange(
-                                                            e,
-                                                            index,
-                                                        )}
-                                                    class="sr-only"
-                                                />
-                                            </label>
-                                            {#if module.thumbnail_file}
-                                                <p
-                                                    class="text-xs text-gray-600 mt-2"
-                                                >
-                                                    {module.thumbnail_file.name}
-                                                </p>
-                                            {/if}
+                                                    <Upload class="h-4 w-4" />
+                                                    <span
+                                                        >{module.thumbnail_file
+                                                            ? "Change Thumbnail"
+                                                            : "Upload Thumbnail"}</span
+                                                    >
+                                                    <input
+                                                        id="module-thumbnail-{index}"
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onchange={(e) =>
+                                                            handleModuleThumbnailChange(
+                                                                e,
+                                                                index,
+                                                            )}
+                                                        class="sr-only"
+                                                    />
+                                                </label>
+                                                {#if module.thumbnail_file}
+                                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                                        <div class="flex items-start gap-2">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <div class="flex-1 min-w-0">
+                                                                <p class="text-sm font-medium text-blue-900 truncate">
+                                                                    {module.thumbnail_file.name}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {:else}
+                                                    <p class="text-xs text-gray-500">
+                                                        Accepted formats: PNG, JPG, GIF
+                                                    </p>
+                                                {/if}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

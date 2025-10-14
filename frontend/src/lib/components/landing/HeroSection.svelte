@@ -70,7 +70,7 @@
                class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start"
             >
                <a
-                  href={$auth.isAuthenticated ? '/swapping' : '/signup'}
+                  href={$auth.isAuthenticated ? '/swapping' : '/auth/register'}
                   class="px-6 py-3 sm:px-8 sm:py-4 bg-gray-900 hover:bg-gray-800 text-white text-sm sm:text-base font-medium rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
                >
                   {$auth.isAuthenticated
