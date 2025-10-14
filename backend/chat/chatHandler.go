@@ -147,7 +147,7 @@ func (c *Client) readPump() {
 			if wsMessage.Content == "" {
 				continue
 			}
-			_, err = database.Execute("INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)", wsMessage.ID, wsMessage.UserID, wsMessage.Content)
+			result, err := database.Execute("INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)", wsMessage.ID, wsMessage.UserID, wsMessage.Content)
 
 			if err != nil {
 				utils.HandleError(err)
@@ -161,9 +161,20 @@ func (c *Client) readPump() {
 				continue
 			}
 
+			// Get the inserted message ID
+			messageID, err := result.LastInsertId()
+			if err != nil {
+				utils.HandleError(err)
+				continue
+			}
+
 			// Fetch the complete user information for the sender
 			row := database.QueryRow(`
-				SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location
+				SELECT u.id, u.username, u.email,
+					COALESCE(u.profile_picture, ''),
+					COALESCE(u.aboutme, ''),
+					COALESCE(u.profession, ''),
+					COALESCE(u.location, '')
 				FROM users AS u
 				WHERE u.id = ?`, wsMessage.UserID)
 
@@ -177,11 +188,12 @@ func (c *Client) readPump() {
 				continue
 			}
 
+			sender.Id = int(messageID)
 			sender.Content = wsMessage.Content
 			// Get current timestamp
 			sender.TimeStamp = time.Now().Format("2006-01-02 15:04:05")
 
-			response := map[string]interface{}{
+			response := map[string]any{
 				"type":    "new_message",
 				"chat_id": wsMessage.ID,
 				"message": sender,
@@ -201,7 +213,7 @@ func (c *Client) readPump() {
 				"status":  "processed",
 			}
 			responseBytes, _ := json.Marshal(response)
-
+			utils.DebugPrint(response)
 			// For updates, we'll also broadcast the status to all users
 			c.hub.broadcast <- responseBytes
 

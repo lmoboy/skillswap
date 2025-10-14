@@ -204,7 +204,11 @@ CREATE TABLE IF NOT EXISTS course_reviews (
   KEY idx_course_reviews_course (course_id),
   KEY idx_course_reviews_rating (rating)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+CREATE TABLE IF NOT EXISTS migrations (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			filename VARCHAR(255) NOT NULL UNIQUE,
+			executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
 -- Sample data for courses
 INSERT INTO courses (title, description, instructor_id, skill_id, difficulty_level, duration_hours, max_students, current_students, price, thumbnail_url, status) VALUES
 ('Introduction to Web Development', 'Learn the basics of HTML, CSS, and JavaScript to build your first website.', 1, 1, 'Beginner', 20, 30, 15, 49.99, 'https://images.unsplash.com/photo-1498050108023-c5249f4df085', 'Published'),

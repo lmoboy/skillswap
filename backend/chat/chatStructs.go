@@ -27,9 +27,10 @@ type ChatWithUserInfo struct {
 }
 
 type Message struct {
-	Sender    structs.UserInfo `json:"sender"`
-	Content   string           `json:"content"`
-	TimeStamp string           `json:"timestamp"`
+	Id          int    			 `json:"id"`
+	Sender      structs.UserInfo `json:"sender"`
+	Content     string           `json:"content"`
+	TimeStamp   string           `json:"timestamp"`
 }
 
 type MessageHub struct {

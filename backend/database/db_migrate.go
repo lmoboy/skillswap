@@ -21,6 +21,15 @@ func createMigrationsTable(db *sql.DB) error {
 	return err
 }
 
+func isMigrationExecuted(db *sql.DB, filename string) (bool, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM migrations WHERE filename = ?", filename).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func recordMigration(db *sql.DB, filename string) error {
 	_, err := db.Exec("INSERT INTO migrations (filename) VALUES (?)", filename)
 	return err
@@ -33,7 +42,7 @@ func Migrate(db *sql.DB) error {
 		return err
 	}
 
-	// Get the executable's directory or current working directory
+	// Determine migration directory
 	execPath, err := os.Executable()
 	if err != nil {
 		utils.DebugPrint("failed to get executable path: %v", err)
@@ -41,11 +50,10 @@ func Migrate(db *sql.DB) error {
 	}
 	baseDir := filepath.Dir(execPath)
 
-	// Try to find migrations directory
 	migrationsDir := filepath.Join(baseDir, "migrations")
 	files, err := os.ReadDir(migrationsDir)
 	if err != nil {
-		// Fallback to checking current directory
+		// Fallback: check working directory
 		cwd, _ := os.Getwd()
 		migrationsDir = filepath.Join(cwd, "database", "migrations")
 		files, err = os.ReadDir(migrationsDir)
@@ -59,17 +67,26 @@ func Migrate(db *sql.DB) error {
 		}
 	}
 
+	// Sort and process SQL files
 	var sqlFiles []string
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".sql") {
 			sqlFiles = append(sqlFiles, file.Name())
 		}
 	}
-
 	sort.Strings(sqlFiles)
 
 	for _, filename := range sqlFiles {
-		// Check if migration already executed
+		// Check if migration has already been applied
+		executed, err := isMigrationExecuted(db, filename)
+		if err != nil {
+			utils.DebugPrint("failed to check migration %s: %v", filename, err)
+			return err
+		}
+		if executed {
+			utils.DebugPrint("Skipping already executed migration:", filename)
+			continue
+		}
 
 		filePath := filepath.Join(migrationsDir, filename)
 		utils.DebugPrint("Executing migration:", filePath)
@@ -79,6 +96,7 @@ func Migrate(db *sql.DB) error {
 			return err
 		}
 
+		// Split by semicolon and execute each query
 		queries := strings.Split(string(content), ";")
 		for _, query := range queries {
 			query = strings.TrimSpace(query)
@@ -90,6 +108,12 @@ func Migrate(db *sql.DB) error {
 				utils.DebugPrint("failed to execute migration %s: %v", filename, err)
 				return err
 			}
+		}
+
+		// Record successful migration
+		if err := recordMigration(db, filename); err != nil {
+			utils.DebugPrint("failed to record migration %s: %v", filename, err)
+			return err
 		}
 
 		utils.DebugPrint("Successfully executed migration:", filename)
