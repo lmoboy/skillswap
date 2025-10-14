@@ -1,4 +1,5 @@
 import { error } from "@sveltejs/kit";
+
 /**
  * Load user data for the page by fetching the API endpoint `/api/user?q=<id>`.
  *
