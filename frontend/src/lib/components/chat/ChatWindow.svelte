@@ -68,7 +68,7 @@
     const messageGroups = $derived(groupMessagesByDate(messages));
 </script>
 
-<div class="flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden {className}">
+<div class="max-h-screen flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden {className}">
     <!-- Header -->
     <div class="flex-shrink-0 p-4 border-b border-gray-200 bg-gray-50">
         <div class="flex items-center gap-3">

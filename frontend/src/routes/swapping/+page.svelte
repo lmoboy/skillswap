@@ -40,17 +40,19 @@
       try {
          const resp = await fetch(`/api/getChats?uid=${uid}`)
          const chatMetas = await resp.json()
-
          const chatPromises = chatMetas.map(async (cm: any) => {
+            // console.log(cm)
             const res2 = await fetch(`/api/getChatInfo?cid=${cm.id}`)
+            // console.log(res2)
             const body2 = await res2.json()
+            console.log(body2)
             const msgs: Message[] = body2.messages ?? []
+           
             return {
                ...cm,
                messages: msgs,
             } as ChatWithMessages
          })
-
          const chatsWithMsgs = await Promise.all(chatPromises)
          chats = chatsWithMsgs
          loading = false

@@ -17,7 +17,7 @@ import (
 func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 	chatId := req.URL.Query().Get("cid")
 	res, err := database.Query(`
-	SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location, m.content, m.created_at
+	SELECT u.id, u.username, u.email, COALESCE(u.profile_picture, ''), COALESCE(u.aboutme, ''), COALESCE(u.profession, ''), COALESCE(u.location, ''), m.content, m.created_at
 	FROM messages AS m
 	JOIN chats AS c ON m.chat_id = c.id
 	JOIN users AS u ON m.sender_id = u.id
@@ -34,6 +34,7 @@ func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 		var content Message
 		err := res.Scan(&content.Sender.ID, &content.Sender.Username, &content.Sender.Email, &content.Sender.ProfilePicture, &content.Sender.AboutMe, &content.Sender.Professions, &content.Sender.Location, &content.Content, &content.TimeStamp)
 		if err != nil {
+			utils.HandleError(err)
 			return
 		}
 		contents = append(contents, content)
@@ -85,7 +86,9 @@ func GetChatsFromUserID(w http.ResponseWriter, req *http.Request) {
 // It returns a slice of Message populated with sender fields, content, and timestamp, or an error if the query or row scanning fails.
 func LoadMessagesFromDatabase() ([]Message, error) {
 	res, err := database.Query(`
-		SELECT u.id, u.username, u.email, u.profile_picture, u.aboutme, u.profession, u.location, m.content, m.created_at
+		SELECT u.id, u.username, u.email, 
+		u.profile_picture,
+		COALESCE(u.aboutme, ''), COALESCE(u.profession, ''), COALESCE(u.location, ''), m.content, m.created_at
 		FROM messages AS m
 		JOIN users AS u ON m.sender_id = u.id
 		ORDER BY m.id DESC
