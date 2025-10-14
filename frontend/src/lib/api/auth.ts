@@ -59,29 +59,24 @@ export async function login(credentials: { email: string; password: string }): P
         if (!response.ok) {
             throw new Error(data.error || 'Pieteikšanās neizdevās (angļu v. Login failed)');
         }
-        auth.setStep("Lietotāja iestatīšana... (angļu v. Setting user...)")
-        if (data) {
-            // Ja ir saņemti dati, iestatīt lietotāju (angļu v. user)
-            auth.setUser({
-                name: data.username || '',
-                email: data.email || '',
-                id: data.id || '',
-                profile_picture: data.profile_picture ? data.profile_picture : '',
-            });
 
-            auth.setStep("Lietotājs iestatīts, pārbauda autentifikāciju... (angļu v. User set, checking auth...)")
-            await checkAuth(); // Pārbaudīt lietotāja autentifikāciju (angļu v. check auth)
-        } else {
-            throw new Error('Nederīgs atbildes formāts no servera (angļu v. Invalid response format from server)');
+        auth.setStep("Lietotājs iestatīts, pārbauda autentifikāciju... (angļu v. User set, checking auth...)")
+        // Login endpoint only returns status, get user data from checkAuth
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) {
+            throw new Error('Autentifikācija neizdevās pēc pieteikšanās (angļu v. Authentication failed after login)');
         }
+
         auth.setStep("Pieteikšanās pabeigta (angļu v. Login done)")
 
+        // Wait for user data to be set by checkAuth
+        const currentUser = await auth.waitForUser();
         return {
             status: 'ok',
             user: {
-                name: data.username || '',
-                email: data.email || '',
-                id: data.id || '',
+                name: currentUser.name || '',
+                email: currentUser.email || '',
+                id: currentUser.id.toString() || '',
             }
         };
     } catch (error) {
