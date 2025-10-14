@@ -43,12 +43,14 @@
         loading = true;
 
         try {
-            await register({ username, email, password });
+            const response = await register({ username, email, password });
 
             if (onSuccess) {
                 onSuccess();
             } else {
-                goto("/auth/login?registered=true");
+                // Redirect to the return URL or default to home
+                const redirectUrl = response.returnUrl || "/";
+                goto(redirectUrl);
             }
         } catch (err: unknown) {
             generalError =

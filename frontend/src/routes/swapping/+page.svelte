@@ -35,10 +35,7 @@
 
    async function updateChat() {
       const uid = $auth.user?.id
-      if (!uid) {
-         loading = false
-         return
-      }
+      if (!uid) return
 
       try {
          const resp = await fetch(`/api/getChats?uid=${uid}`)
@@ -58,9 +55,9 @@
          })
          const chatsWithMsgs = await Promise.all(chatPromises)
          chats = chatsWithMsgs
+         loading = false
       } catch (error) {
          console.error('Error loading chats:', error)
-      } finally {
          loading = false
       }
    }

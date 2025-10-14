@@ -323,18 +323,21 @@ func AddCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user from session (middleware ensures authentication)
 	session, err := authentication.Store.Get(r, "authentication")
-	if err != nil || session.Values["authenticated"] != true {
-		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Authentication required"})
+	if err != nil {
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to get session"})
 		return
 	}
 
 	email, ok := session.Values["email"].(string)
-	if !ok {
+	if !ok || email == "" {
 		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session"})
 		return
 	}
-	utils.DebugPrint(email)
+	
+	utils.DebugPrint("User creating course:", email)
 	instructorID, err := database.GetUserIDFromEmail(email)
 	if err != nil {
 		utils.HandleError(err)
