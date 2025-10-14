@@ -75,7 +75,13 @@ func Register(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Account created but failed to log in. Please log in manually"})
 		return
 	}
-
-	// Return user data for the frontend
-	CheckSession(w, req)
+	
+	// Return success response with user data
+	utils.SendJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"status":  "ok",
+		"message": "Registration successful",
+		"user":    userInfo.Username,
+		"email":   userInfo.Email,
+		"id":      userID,
+	})
 }
