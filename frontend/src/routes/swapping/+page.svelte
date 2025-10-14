@@ -16,7 +16,6 @@
    let selectedChat = $derived(
       selectedChatIndex >= 0 ? chats[selectedChatIndex] : null,
    )
-   let newMessage = $state('')
    let loading = $state(true)
    let connectionStatus = $state('disconnected')
    let reconnectAttempts = 0
@@ -71,8 +70,9 @@
       console.log('Connecting to WebSocket:', wsUrl)
 
       try {
-         socket = new WebSocket(wsUrl)
-
+        loading = false 
+        socket = new WebSocket(wsUrl)
+        
          socket.onopen = () => {
             console.log('WebSocket connected')
             connectionStatus = 'connected'
