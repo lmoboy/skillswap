@@ -14,6 +14,8 @@ import (
 
 // VideoUpgrader configures WebSocket upgrade settings for video signaling.
 var VideoUpgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 

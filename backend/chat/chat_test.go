@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"skillswap/backend/database"
@@ -31,13 +30,13 @@ func TestCreateChat(t *testing.T) {
 	// Clear test data and insert test users
 	database.ClearTestData()
 
-	// Insert test users
-	user1ID, err := database.InsertTestUser("user1", "user1@example.com", "password123")
+	// Insert test users (using test-prefixed emails so they get cleaned up)
+	user1ID, err := database.InsertTestUser("testuser1", "testuser1@example.com", "password123")
 	if err != nil {
 		t.Fatalf("Failed to insert test user 1: %v", err)
 	}
 
-	user2ID, err := database.InsertTestUser("user2", "user2@example.com", "password123")
+	user2ID, err := database.InsertTestUser("testuser2", "testuser2@example.com", "password123")
 	if err != nil {
 		t.Fatalf("Failed to insert test user 2: %v", err)
 	}
@@ -64,10 +63,8 @@ func TestCreateChat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create request body
-			body := strings.NewReader(fmt.Sprintf(`{"initiator_id":%d,"responder_id":%d}`, tt.initiatorID, tt.responderID))
-			req := httptest.NewRequest("POST", "/api/createChat", body)
-			req.Header.Set("Content-Type", "application/json")
+			// Create request with query parameters
+			req := httptest.NewRequest("GET", fmt.Sprintf("/api/createChat?u1=%d&u2=%d", tt.initiatorID, tt.responderID), nil)
 
 			// Create response recorder
 			rr := httptest.NewRecorder()
@@ -94,7 +91,7 @@ func TestCreateChat(t *testing.T) {
 
 				// Verify chat was created in database
 				var count int
-				err := database.TestDB.QueryRow("SELECT COUNT(*) FROM chats WHERE initiator = ? AND responder = ?",
+				err := database.TestDB.QueryRow("SELECT COUNT(*) FROM chats WHERE user1_id = ? AND user2_id = ?",
 					tt.initiatorID, tt.responderID).Scan(&count)
 				if err != nil {
 					t.Errorf("Failed to check chat creation: %v", err)
@@ -111,29 +108,29 @@ func TestGetChatsFromUserID(t *testing.T) {
 	// Clear test data and insert test data
 	database.ClearTestData()
 
-	// Insert test users
-	user1ID, err := database.InsertTestUser("user1", "user1@example.com", "password123")
+	// Insert test users (using test-prefixed emails so they get cleaned up)
+	user1ID, err := database.InsertTestUser("testuser1_chats", "testuser1chats@example.com", "password123")
 	if err != nil {
 		t.Fatalf("Failed to insert test user 1: %v", err)
 	}
 
-	user2ID, err := database.InsertTestUser("user2", "user2@example.com", "password123")
+	user2ID, err := database.InsertTestUser("testuser2_chats", "testuser2chats@example.com", "password123")
 	if err != nil {
 		t.Fatalf("Failed to insert test user 2: %v", err)
 	}
 
-	user3ID, err := database.InsertTestUser("user3", "user3@example.com", "password123")
+	user3ID, err := database.InsertTestUser("testuser3_chats", "testuser3chats@example.com", "password123")
 	if err != nil {
 		t.Fatalf("Failed to insert test user 3: %v", err)
 	}
 
 	// Insert test chats
-	_, err = database.TestDB.Exec("INSERT INTO chats (initiator, responder) VALUES (?, ?)", user1ID, user2ID)
+	_, err = database.TestDB.Exec("INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)", user1ID, user2ID)
 	if err != nil {
 		t.Fatalf("Failed to insert chat 1: %v", err)
 	}
 
-	_, err = database.TestDB.Exec("INSERT INTO chats (initiator, responder) VALUES (?, ?)", user3ID, user1ID)
+	_, err = database.TestDB.Exec("INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)", user3ID, user1ID)
 	if err != nil {
 		t.Fatalf("Failed to insert chat 2: %v", err)
 	}
@@ -166,8 +163,8 @@ func TestGetChatsFromUserID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create request
-			req := httptest.NewRequest("GET", "/api/getChats?user_id="+tt.userID, nil)
+			// Create request (GetChatsFromUserID expects "uid" parameter)
+			req := httptest.NewRequest("GET", "/api/getChats?uid="+tt.userID, nil)
 			rr := httptest.NewRecorder()
 
 			// Call the handler
@@ -195,10 +192,14 @@ func TestGetChatsFromUserID(t *testing.T) {
 				foundUser3 := false
 
 				for _, chat := range chats {
-					if chat.Initiator == int(user1ID) && chat.Responder == int(user2ID) {
+					// Check if user1 is involved in chat with user2
+					if (chat.Initiator == int(user1ID) && chat.Responder == int(user2ID)) ||
+					   (chat.Initiator == int(user2ID) && chat.Responder == int(user1ID)) {
 						foundUser2 = true
 					}
-					if chat.Initiator == int(user3ID) && chat.Responder == int(user1ID) {
+					// Check if user1 is involved in chat with user3
+					if (chat.Initiator == int(user3ID) && chat.Responder == int(user1ID)) ||
+					   (chat.Initiator == int(user1ID) && chat.Responder == int(user3ID)) {
 						foundUser3 = true
 					}
 				}
@@ -218,19 +219,19 @@ func TestGetMessagesFromUID(t *testing.T) {
 	// Clear test data and insert test data
 	database.ClearTestData()
 
-	// Insert test users
-	user1ID, err := database.InsertTestUser("user1", "user1@example.com", "password123")
+	// Insert test users (using test-prefixed emails so they get cleaned up)
+	user1ID, err := database.InsertTestUser("testuser1_msgs", "testuser1msgs@example.com", "password123")
 	if err != nil {
 		t.Fatalf("Failed to insert test user 1: %v", err)
 	}
 
-	user2ID, err := database.InsertTestUser("user2", "user2@example.com", "password123")
+	user2ID, err := database.InsertTestUser("testuser2_msgs", "testuser2msgs@example.com", "password123")
 	if err != nil {
 		t.Fatalf("Failed to insert test user 2: %v", err)
 	}
 
 	// Insert test chat
-	chatID, err := database.TestDB.Exec("INSERT INTO chats (initiator, responder) VALUES (?, ?)", user1ID, user2ID)
+	chatID, err := database.TestDB.Exec("INSERT INTO chats (user1_id, user2_id) VALUES (?, ?)", user1ID, user2ID)
 	if err != nil {
 		t.Fatalf("Failed to insert test chat: %v", err)
 	}
@@ -239,7 +240,7 @@ func TestGetMessagesFromUID(t *testing.T) {
 
 	// Insert test messages
 	_, err = database.TestDB.Exec(`
-		INSERT INTO messages (chat_id, sender_id, content, timestamp)
+		INSERT INTO messages (chat_id, sender_id, content, created_at)
 		VALUES (?, ?, ?, NOW())
 	`, chatIDInt64, user1ID, "Hello from user1")
 	if err != nil {
@@ -247,7 +248,7 @@ func TestGetMessagesFromUID(t *testing.T) {
 	}
 
 	_, err = database.TestDB.Exec(`
-		INSERT INTO messages (chat_id, sender_id, content, timestamp)
+		INSERT INTO messages (chat_id, sender_id, content, created_at)
 		VALUES (?, ?, ?, NOW())
 	`, chatIDInt64, user2ID, "Hello from user2")
 	if err != nil {
@@ -282,8 +283,8 @@ func TestGetMessagesFromUID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create request
-			req := httptest.NewRequest("GET", "/api/getChatInfo?chat_id="+tt.chatID, nil)
+			// Create request (GetMessagesFromUID expects "cid" parameter)
+			req := httptest.NewRequest("GET", "/api/getChatInfo?cid="+tt.chatID, nil)
 			rr := httptest.NewRecorder()
 
 			// Call the handler
@@ -294,11 +295,12 @@ func TestGetMessagesFromUID(t *testing.T) {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rr.Code)
 			}
 
-			// Parse response
-			var messages []Message
-			if err := json.Unmarshal(rr.Body.Bytes(), &messages); err != nil {
+			// Parse response (GetMessagesFromUID returns {"messages": [...]} not just [...])
+			var response map[string][]Message
+			if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 				t.Fatalf("Failed to parse response JSON: %v", err)
 			}
+			messages := response["messages"]
 
 			// Check minimum messages
 			if len(messages) < tt.minMessages {
