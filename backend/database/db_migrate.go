@@ -9,6 +9,50 @@ import (
 	"strings"
 )
 
+// splitSQL splits SQL content into individual statements
+// It's smarter than just splitting by semicolon - it handles comments
+func splitSQL(content string) []string {
+	var statements []string
+	var current strings.Builder
+	
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		
+		// Skip empty lines and full-line comments
+		if trimmed == "" || strings.HasPrefix(trimmed, "--") {
+			continue
+		}
+		
+		// Remove inline comments
+		if idx := strings.Index(line, "--"); idx != -1 {
+			line = line[:idx]
+		}
+		
+		current.WriteString(line)
+		current.WriteString("\n")
+		
+		// If line ends with semicolon, it's the end of a statement
+		if strings.HasSuffix(strings.TrimSpace(line), ";") {
+			stmt := strings.TrimSpace(current.String())
+			if stmt != "" && stmt != ";" {
+				statements = append(statements, stmt)
+			}
+			current.Reset()
+		}
+	}
+	
+	// Add any remaining content
+	if current.Len() > 0 {
+		stmt := strings.TrimSpace(current.String())
+		if stmt != "" && stmt != ";" {
+			statements = append(statements, stmt)
+		}
+	}
+	
+	return statements
+}
+
 func createMigrationsTable(db *sql.DB) error {
 	query := `
 		CREATE TABLE IF NOT EXISTS migrations (
@@ -96,17 +140,24 @@ func Migrate(db *sql.DB) error {
 			return err
 		}
 
-		// Split by semicolon and execute each query
-		queries := strings.Split(string(content), ";")
-		for _, query := range queries {
-			query = strings.TrimSpace(query)
-			if query == "" || strings.HasPrefix(query, "--") {
-				continue
-			}
-			_, err = db.Exec(query)
-			if err != nil {
-				utils.DebugPrint("failed to execute migration %s: %v", filename, err)
-				return err
+		// Execute the entire migration file content in one transaction
+		// This ensures that all CREATE TABLE statements with foreign keys work correctly
+		_, err = db.Exec(string(content))
+		if err != nil {
+			// If batch execution fails, try executing statement by statement
+			utils.DebugPrint("Batch execution failed, trying statement by statement for %s", filename)
+			
+			queries := splitSQL(string(content))
+			for i, query := range queries {
+				query = strings.TrimSpace(query)
+				if query == "" {
+					continue
+				}
+				_, err = db.Exec(query)
+				if err != nil {
+					utils.DebugPrint("failed to execute statement %d in migration %s: %v\nStatement: %s", i+1, filename, err, query)
+					return err
+				}
 			}
 		}
 
