@@ -1,4 +1,5 @@
 import { auth } from '$lib/stores/auth';
+import { getReturnUrl, clearReturnUrl } from '$lib/utils/apiClient';
 
 const API_BASE = '/api';
 
@@ -131,7 +132,8 @@ export async function register(credentials: { username: string, email: string, p
                 name: data.username || '',
                 email: data.email || '',
                 id: data.id || '',
-            }
+            },
+            returnUrl: getReturnUrl('/')
         };
     } catch (error) {
         // Apstrādāt kļūdas, kas rodas pieteikšanās laikā
@@ -228,3 +230,6 @@ export async function checkAuth(): Promise<boolean> {
         auth.setLoading(false); // Beigt ielādi
     }
 }
+
+// Export utility functions for handling return URLs
+export { getReturnUrl, clearReturnUrl } from '$lib/utils/apiClient';
