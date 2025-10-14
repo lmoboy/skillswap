@@ -212,7 +212,7 @@
                 Ready to start your knowledge exchange journey?
             </h3>
             <a
-                href="/signup"
+                href="/auth/register"
                 class="inline-flex items-center px-5 py-2.5 sm:px-6 sm:py-3 border border-transparent text-sm sm:text-base font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all transform hover:scale-[1.02]"
             >
                 Join Now for Free

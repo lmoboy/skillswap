@@ -70,26 +70,26 @@
 
 <div class="max-h-screen flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden {className}">
     <!-- Header -->
-    <div class="flex-shrink-0 p-4 border-b border-gray-200 bg-gray-50">
-        <div class="flex items-center gap-3">
+    <div class="flex-shrink-0 p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
+        <div class="flex items-center gap-2 sm:gap-3">
             <img
                 src={otherUserPicture || '/api/profile/default/picture'}
                 alt={otherUserName}
-                class="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200"
+                class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-200"
             />
             <div class="flex-1 min-w-0">
-                <h3 class="text-lg font-semibold text-gray-900 truncate">
+                <h3 class="text-base sm:text-lg font-semibold text-gray-900 truncate">
                     {otherUserName}
                 </h3>
-                <p class="text-sm text-gray-500">Active now</p>
+                <p class="text-xs sm:text-sm text-gray-500">Active now</p>
             </div>
             <button
-                class="p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
+                class="p-1.5 sm:p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
                 aria-label="More options"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5 text-gray-600"
+                    class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -108,18 +108,18 @@
     <!-- Messages -->
     <div
         bind:this={messageContainer}
-        class="flex-1 overflow-y-auto p-4 space-y-4"
+        class="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4"
     >
         {#if loading}
             <div class="flex items-center justify-center h-full">
                 <LoadingSpinner size="lg" text="Loading messages..." />
             </div>
         {:else if messages.length === 0}
-            <div class="flex flex-col items-center justify-center h-full text-center">
-                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <div class="flex flex-col items-center justify-center h-full text-center px-4">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        class="h-10 w-10 text-gray-400"
+                        class="h-8 w-8 sm:h-10 sm:w-10 text-gray-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -132,14 +132,14 @@
                         />
                     </svg>
                 </div>
-                <p class="text-gray-600 font-medium">No messages yet</p>
-                <p class="text-gray-400 text-sm mt-1">Start the conversation by sending a message</p>
+                <p class="text-gray-600 font-medium text-sm sm:text-base">No messages yet</p>
+                <p class="text-gray-400 text-xs sm:text-sm mt-1">Start the conversation by sending a message</p>
             </div>
         {:else}
             {#each messageGroups as group (group.date)}
                 <!-- Date divider -->
-                <div class="flex items-center justify-center my-4">
-                    <div class="bg-gray-200 text-gray-600 text-xs font-medium px-3 py-1 rounded-full">
+                <div class="flex items-center justify-center my-2 sm:my-4">
+                    <div class="bg-gray-200 text-gray-600 text-xs font-medium px-2 sm:px-3 py-1 rounded-full">
                         {group.date}
                     </div>
                 </div>
@@ -149,13 +149,13 @@
                     {@const isCurrentUser = message.sender.id == currentUserId || message.sender.email == currentUserId}
 
                     <div class="flex {isCurrentUser ? 'justify-end' : 'justify-start'}">
-                        <div class="flex flex-col max-w-[70%] {isCurrentUser ? 'items-end' : 'items-start'}">
+                        <div class="flex flex-col max-w-[85%] sm:max-w-[70%] {isCurrentUser ? 'items-end' : 'items-start'}">
                             {#if !isCurrentUser}
-                                <div class="flex items-center gap-2 mb-1 px-2">
+                                <div class="flex items-center gap-1.5 sm:gap-2 mb-1 px-1 sm:px-2">
                                     <img
                                         src={message.sender.profile_picture || '/api/profile/default/picture'}
                                         alt={message.sender.username}
-                                        class="w-6 h-6 rounded-full object-cover"
+                                        class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
                                     />
                                     <span class="text-xs text-gray-500 font-medium">
                                         {message.sender.username}
@@ -164,14 +164,14 @@
                             {/if}
 
                             <div
-                                class="p-3 rounded-lg break-words {isCurrentUser
+                                class="p-2 sm:p-3 rounded-lg break-words text-sm sm:text-base {isCurrentUser
                                     ? 'bg-blue-500 text-white rounded-br-none'
                                     : 'bg-gray-200 text-gray-800 rounded-bl-none'}"
                             >
                                 {message.content}
                             </div>
 
-                            <span class="text-xs text-gray-400 mt-1 px-2">
+                            <span class="text-xs text-gray-400 mt-0.5 sm:mt-1 px-1 sm:px-2">
                                 {formatTime(message.timestamp)}
                             </span>
                         </div>
