@@ -1,6 +1,5 @@
 <script>
     // @ts-nocheck
-    import Debug from "$lib/components/Debug.svelte";
     import { auth } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";

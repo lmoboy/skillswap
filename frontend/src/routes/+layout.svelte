@@ -7,7 +7,6 @@
     import { onMount } from "svelte";
     import { checkAuth } from "$lib/api/auth";
     import Cookies from "$lib/components/ui/Cookies.svelte";
-    // import AuthDebug from "$lib/components/AuthDebug.svelte";
 
     onMount(async () => {
         try {
@@ -19,8 +18,6 @@
 </script>
 
 <div class="flex flex-col min-h-dvh relative">
-    <!-- <AuthDebug /> -->
-
     <Header class="shrink-0" />
     <main class="flex-1 w-full overflow-auto">
         <slot />

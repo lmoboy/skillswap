@@ -3,6 +3,7 @@
     import { onMount } from "svelte";
     import { Star, Clock, Users, BookOpen, Play } from "lucide-svelte";
     import type { CourseDetail } from "$lib/types/course";
+    import { formatVideoTime } from "$lib/utils/formatting";
 
     let course = $state<CourseDetail | null>(null);
     let loading = $state(true);
@@ -21,12 +22,6 @@
             loading = false;
         }
     });
-
-    function formatDuration(seconds: number): string {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, "0")}`;
-    }
 </script>
 
 {#if loading}
@@ -174,7 +169,7 @@
                                                     <p
                                                         class="text-xs text-gray-500 mt-1"
                                                     >
-                                                        {formatDuration(
+                                                        {formatVideoTime(
                                                             module.video_duration,
                                                         )}
                                                     </p>
