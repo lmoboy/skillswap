@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -103,13 +104,15 @@ func main() {
 
 	// Izveido un konfigurē HTTP serveri.
 	serve := &http.Server{
-		Handler: server,         // Norāda, ka šis serveris izmantos mūsu iepriekš definēto rūteri.
+		Handler: server,         // Norāda, ka šis serveris izmantos mūsu iepriekš definēto rūteri		 		
 		Addr:    "0.0.0.0:8080", // Serveris klausīsies uz šīs adreses un porta.
 
 		// Iestata maksimālo laiku, cik ilgi serveris gaidīs pieprasījuma ķermeņa nolasīšanu un atbildes uzrakstīšanu.
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
+
+	fmt.Println("Server is available at: ", serve.Addr)
 
 	// Sāk servera darbību. "ListenAndServe" bloķē izpildi, līdz serveris tiek apturēts.
 	serve.ListenAndServe()
