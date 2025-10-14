@@ -14,7 +14,13 @@ import (
 func Login(w http.ResponseWriter, req *http.Request) {
 	var userInfo structs.UserInfo
 	if err := json.NewDecoder(req.Body).Decode(&userInfo); err != nil {
-		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "AH-227"})
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid request data"})
+		return
+	}
+
+	// Validate required fields
+	if userInfo.Email == "" || userInfo.Password == "" {
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Email and password are required"})
 		return
 	}
 
@@ -23,10 +29,10 @@ func Login(w http.ResponseWriter, req *http.Request) {
 	var storedUsername, storedEmail string
 	if err := row.Scan(&storedUsername, &storedEmail, &storedID); err != nil {
 		if err == sql.ErrNoRows {
-			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid username or password"})
+			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
 			return
 		}
-		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Report this to the developer\nERRC : LG-29"})
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "An error occurred. Please try again later"})
 		return
 	}
 

@@ -1,5 +1,22 @@
 <script lang="ts">
     import LoginForm from "$lib/components/auth/LoginForm.svelte";
+    import { auth } from "$lib/stores/auth";
+    import { goto } from "$app/navigation";
+    import { onMount } from "svelte";
+
+    onMount(() => {
+        // Redirect if already authenticated
+        if ($auth.isAuthenticated) {
+            goto("/");
+        }
+    });
+
+    // Watch for auth changes and redirect if user logs in
+    $effect(() => {
+        if ($auth.isAuthenticated && !$auth.loading) {
+            goto("/");
+        }
+    });
 </script>
 
 <div
