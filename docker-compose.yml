@@ -33,7 +33,9 @@ services:
       mysql:
         condition: service_healthy
     networks:
-      - skillswap-network
+      skillswap-network:
+        aliases:
+          - backend
     restart: unless-stopped
 
   frontend:

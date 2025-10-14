@@ -27,12 +27,13 @@ func Init() {
 	utils.DebugPrint("Database ping successful")
 	res, err := db.Query("SELECT * FROM users")
 	if err != nil {
-		log.Fatal(err.Error())
-		if strings.Contains(err.Error(), "doesn't exist"){
+		utils.DebugPrint(err.Error())
+		if strings.Contains(err.Error(), "skillswap.users") {
 			Migrate(db)
+		} else {
+			log.Fatal(err.Error())
 		}
 	}
-	res.Close()
 }
 
 func GetDatabase() (*sql.DB, error) {
