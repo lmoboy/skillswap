@@ -37,10 +37,10 @@
             courses = courseData || [];
             $inspect(courses);
 
-            loading = false;
             console.log("Users:", users, "Courses:", courses);
         } catch (error) {
             console.error("Search failed:", error);
+        } finally {
             loading = false;
         }
     });
