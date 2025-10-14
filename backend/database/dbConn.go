@@ -21,12 +21,18 @@ func Init() {
 	// First, connect to MySQL without specifying a database to check if skillswap DB exists
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
+		if os.Getenv("GO_ENV") == "test" {
+			panic("DB_URL environment variable is not set")
+		}
 		log.Fatal("DB_URL environment variable is not set")
 	}
 
 	// Parse the DB_URL to extract the database name
 	dbName := extractDatabaseName(dbURL)
 	if dbName == "" {
+		if os.Getenv("GO_ENV") == "test" {
+			panic("Could not extract database name from DB_URL")
+		}
 		log.Fatal("Could not extract database name from DB_URL")
 	}
 
@@ -36,6 +42,9 @@ func Init() {
 	serverURL := strings.Replace(dbURL, "/"+dbName, "/", 1)
 	serverDB, err := sql.Open("mysql", serverURL)
 	if err != nil {
+		if os.Getenv("GO_ENV") == "test" {
+			panic(fmt.Sprintf("Failed to connect to MySQL server: %v", err))
+		}
 		log.Fatal("Failed to connect to MySQL server:", err)
 	}
 
@@ -49,6 +58,9 @@ func Init() {
 		time.Sleep(2 * time.Second)
 	}
 	if err != nil {
+		if os.Getenv("GO_ENV") == "test" {
+			panic(fmt.Sprintf("Could not connect to MySQL server after 10 attempts: %v", err))
+		}
 		log.Fatal("Could not connect to MySQL server after 10 attempts:", err)
 	}
 

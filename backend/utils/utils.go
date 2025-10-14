@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
-	"strings"
 
 	"github.com/google/uuid"
 )
@@ -19,8 +18,15 @@ func SendJSONResponse(w http.ResponseWriter, statusCode int, payload interface{}
 // CheckType validates if a file type is in the allowed list
 // Returns true if the file type is allowed, false if blocked
 func CheckType(toCheck string, toAllow []string) bool {
-	allowedTypesStr := strings.Join(toAllow, ",")
-	return strings.Contains(allowedTypesStr, toCheck)
+	if toCheck == "" {
+		return false
+	}
+	for _, allowed := range toAllow {
+		if toCheck == allowed {
+			return true
+		}
+	}
+	return false
 }
 
 func GenerateUUID() string {
