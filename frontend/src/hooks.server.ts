@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit'
 
-const BACKEND_URL = import.meta.env.BACKEND_URL || 'http://localhost:8080'
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080'
 
 export const handle: Handle = async ({ event, resolve }) => {
    const { url, request } = event
@@ -43,7 +43,7 @@ export const handle: Handle = async ({ event, resolve }) => {
          // Add CORS headers
          responseHeaders.set(
             'Access-Control-Allow-Origin',
-            request.headers.get('origin') || '*',
+             request.headers.get('origin') || 'localhost:8080',
          )
          responseHeaders.set('Access-Control-Allow-Credentials', 'true')
          responseHeaders.set(
@@ -65,7 +65,7 @@ export const handle: Handle = async ({ event, resolve }) => {
             headers: {
                'Content-Type': 'application/json',
                'Access-Control-Allow-Origin':
-                  request.headers.get('origin') || '*',
+                  request.headers.get('origin') || 'localhost:8080',
                'Access-Control-Allow-Credentials': 'true',
             },
          })
@@ -77,7 +77,7 @@ export const handle: Handle = async ({ event, resolve }) => {
    // Add CORS headers to all responses
    response.headers.set(
       'Access-Control-Allow-Origin',
-      request.headers.get('origin') || '*',
+      request.headers.get('origin') || 'localhost:8080',
    )
    response.headers.set('Access-Control-Allow-Credentials', 'true')
    response.headers.set(

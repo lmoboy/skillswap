@@ -9,7 +9,10 @@ import (
 func CORS() *cors.Cors {
 	return cors.New(cors.Options{
 		AllowOriginFunc: func(origin string) bool {
-			return true
+			if origin == "localhost:3000" {
+				return true
+			}
+			return false
 		},
 		AllowCredentials: true,
 		AllowedMethods: []string{
