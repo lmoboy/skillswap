@@ -2,26 +2,28 @@
     import { Star, Clock, Users, TrendingUp } from "lucide-svelte";
     import type { Course } from "$lib/types/course";
 
-    type Props = {
+    interface Props {
         course: Course;
+    }
+
+    const { course }: Props = $props();
+
+    // Memoized difficulty color mapping for better performance
+    const difficultyColors = {
+        Beginner: "bg-green-100 text-green-800",
+        Intermediate: "bg-blue-100 text-blue-800", 
+        Advanced: "bg-orange-100 text-orange-800",
+        Expert: "bg-red-100 text-red-800",
+    } as const;
+
+    const getDifficultyColor = (level: string): string => {
+        return difficultyColors[level as keyof typeof difficultyColors] || "bg-gray-100 text-gray-800";
     };
 
-    let { course }: Props = $props();
-
-    function getDifficultyColor(level: string): string {
-        switch (level) {
-            case "Beginner":
-                return "bg-green-100 text-green-800";
-            case "Intermediate":
-                return "bg-blue-100 text-blue-800";
-            case "Advanced":
-                return "bg-orange-100 text-orange-800";
-            case "Expert":
-                return "bg-red-100 text-red-800";
-            default:
-                return "bg-gray-100 text-gray-800";
-        }
-    }
+    // Optimized rating display
+    const displayRating = $derived(() => {
+        return course.average_rating > 0 ? course.average_rating.toFixed(1) : "New";
+    });
 </script>
 
 <a
@@ -34,6 +36,9 @@
             src={course.thumbnail_url}
             alt={course.title}
             class="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
         />
         <div class="absolute top-2 sm:top-3 left-2 sm:left-3">
             <span
@@ -67,11 +72,7 @@
                 <Star
                     class="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400"
                 />
-                <span class="font-medium text-gray-700"
-                    >{course.average_rating > 0
-                        ? course.average_rating.toFixed(1)
-                        : "New"}</span
-                >
+                <span class="font-medium text-gray-700">{displayRating}</span>
                 {#if course.review_count > 0}
                     <span class="text-xs">({course.review_count})</span>
                 {/if}

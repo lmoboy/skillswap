@@ -38,29 +38,16 @@ function createAuthStore() {
             }));
         },
         setStep: (step: string) => {
-            update(state => ({
-                ...state,
-                step
-            }));
+            update(state => ({ ...state, step }));
         },
         setLoading: (loading: boolean) => {
-            update(state => ({
-                ...state,
-                loading
-            }));
+            update(state => ({ ...state, loading }));
         },
         setError: (error: string | null) => {
-            update(state => ({
-                ...state,
-                error,
-                loading: false
-            }));
+            update(state => ({ ...state, error, loading: false }));
         },
         clearUser: () => {
-            set({
-                ...defaultState,
-                loading: false
-            });
+            set({ ...defaultState, loading: false });
         },
         isAuthenticated: () => {
             let isAuth = false;
@@ -75,7 +62,7 @@ function createAuthStore() {
             return new Promise((resolve, reject) => {
                 let unsub: () => void;
                 const timer = setTimeout(() => {
-                    if (unsub) unsub();
+                    unsub?.();
                     reject(new Error("Timed out waiting for user"));
                 }, timeoutMs);
 

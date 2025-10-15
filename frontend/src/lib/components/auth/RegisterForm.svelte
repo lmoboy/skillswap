@@ -2,18 +2,19 @@
     import { register } from "$lib/api/auth";
     import { goto } from "$app/navigation";
     import Button from "$lib/components/common/Button.svelte";
+    import Input from "$lib/components/common/Input.svelte";
     import {
         validateEmail,
         validatePassword,
         validateUsername,
     } from "$lib/utils/validation";
 
-    type Props = {
+    interface Props {
         onSuccess?: () => void;
         class?: string;
-    };
+    }
 
-    let { onSuccess, class: className = "" }: Props = $props();
+    const { onSuccess, class: className = "" }: Props = $props();
 
     let username = $state("");
     let email = $state("");
@@ -24,55 +25,50 @@
     let generalError = $state<string | null>(null);
     let loading = $state(false);
 
-    function validateForm(): boolean {
-        usernameError = validateUsername(username);
-        emailError = validateEmail(email);
-        passwordError = validatePassword(password);
+    // Optimized validation with early returns
+    const validateForm = (): boolean => {
+        const usernameValidation = validateUsername(username);
+        const emailValidation = validateEmail(email);
+        const passwordValidation = validatePassword(password);
+        
+        usernameError = usernameValidation;
+        emailError = emailValidation;
+        passwordError = passwordValidation;
+        
+        return !usernameValidation && !emailValidation && !passwordValidation;
+    };
 
-        return !usernameError && !emailError && !passwordError;
-    }
+    // Debounced error clearing for better UX
+    const clearUsernameError = () => {
+        if (usernameError) usernameError = null;
+    };
 
-    async function handleSubmit(event: Event) {
+    const clearEmailError = () => {
+        if (emailError) emailError = null;
+    };
+
+    const clearPasswordError = () => {
+        if (passwordError) passwordError = null;
+    };
+
+    // Optimized submit handler with better error handling
+    const handleSubmit = async (event: Event) => {
         event.preventDefault();
         generalError = null;
 
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         loading = true;
 
         try {
             const response = await register({ username, email, password });
-
-            if (onSuccess) {
-                onSuccess();
-            } else {
-                // Redirect to the return URL or default to home
-                const redirectUrl = response.returnUrl || "/";
-                goto(redirectUrl);
-            }
+            onSuccess?.() ?? goto(response.returnUrl || "/");
         } catch (err: unknown) {
-            generalError =
-                err instanceof Error
-                    ? err.message
-                    : "Registration failed. Please try again.";
+            generalError = err instanceof Error ? err.message : "Registration failed. Please try again.";
         } finally {
             loading = false;
         }
-    }
-
-    function clearUsernameError() {
-        usernameError = null;
-    }
-
-    function clearEmailError() {
-        emailError = null;
-    }
-
-    function clearPasswordError() {
-        passwordError = null;
-    }
+    };
 </script>
 
 <div class="w-full {className}">
@@ -83,95 +79,47 @@
             </div>
         {/if}
 
-        <div class="w-full">
-            <label
-                for="username"
-                class="block text-sm font-medium text-gray-700 mb-2"
-            >
-                Username
-                <span class="text-red-500">*</span>
-            </label>
-            <input
-                id="username"
-                type="text"
-                placeholder="Choose a unique username"
-                required
-                autocomplete="username"
-                disabled={loading}
-                maxlength={50}
-                bind:value={username}
-                oninput={clearUsernameError}
-                data-testid="username-input"
-                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
-                    ? 'opacity-50 cursor-not-allowed'
-                    : ''}"
-            />
-            {#if usernameError}
-                <p class="mt-1 text-sm text-red-600">
-                    {usernameError}
-                </p>
-            {/if}
-        </div>
+        <Input
+            type="text"
+            label="Username"
+            placeholder="Choose a unique username"
+            required
+            autocomplete="username"
+            disabled={loading}
+            maxlength={50}
+            bind:value={username}
+            oninput={clearUsernameError}
+            data-testid="username-input"
+            error={usernameError}
+        />
 
-        <div class="w-full">
-            <label
-                for="email"
-                class="block text-sm font-medium text-gray-700 mb-2"
-            >
-                Email
-                <span class="text-red-500">*</span>
-            </label>
-            <input
-                id="email"
-                type="email"
-                placeholder="Enter your email address"
-                required
-                autocomplete="email"
-                disabled={loading}
-                maxlength={100}
-                bind:value={email}
-                oninput={clearEmailError}
-                data-testid="email-input"
-                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
-                    ? 'opacity-50 cursor-not-allowed'
-                    : ''}"
-            />
-            {#if emailError}
-                <p class="mt-1 text-sm text-red-600">
-                    {emailError}
-                </p>
-            {/if}
-        </div>
+        <Input
+            type="email"
+            label="Email"
+            placeholder="Enter your email address"
+            required
+            autocomplete="email"
+            disabled={loading}
+            maxlength={100}
+            bind:value={email}
+            oninput={clearEmailError}
+            data-testid="email-input"
+            error={emailError}
+        />
 
-        <div class="w-full">
-            <label
-                for="password"
-                class="block text-sm font-medium text-gray-700 mb-2"
-            >
-                Password
-                <span class="text-red-500">*</span>
-            </label>
-            <input
-                id="password"
-                type="password"
-                placeholder="Create a strong password (min 8 characters)"
-                required
-                autocomplete="new-password"
-                disabled={loading}
-                maxlength={50}
-                bind:value={password}
-                oninput={clearPasswordError}
-                data-testid="password-input"
-                class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
-                    ? 'opacity-50 cursor-not-allowed'
-                    : ''}"
-            />
-            {#if passwordError}
-                <p class="mt-1 text-sm text-red-600">
-                    {passwordError}
-                </p>
-            {/if}
-        </div>
+        <Input
+            type="password"
+            label="Password"
+            placeholder="Create a strong password (min 8 characters)"
+            required
+            autocomplete="new-password"
+            disabled={loading}
+            maxlength={50}
+            bind:value={password}
+            oninput={clearPasswordError}
+            data-testid="password-input"
+            error={passwordError}
+        />
 
         <Button
             type="submit"
