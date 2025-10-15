@@ -1,14 +1,7 @@
 <script lang="ts">
-    type InputType =
-        | "text"
-        | "email"
-        | "password"
-        | "number"
-        | "tel"
-        | "url"
-        | "search";
+    type InputType = "text" | "email" | "password" | "number" | "tel" | "url" | "search";
 
-    type Props = {
+    interface Props {
         type?: InputType;
         placeholder?: string;
         label?: string;
@@ -26,9 +19,9 @@
         onchange?: (event: Event) => void;
         onfocus?: (event: FocusEvent) => void;
         onblur?: (event: FocusEvent) => void;
-    };
+    }
 
-    let {
+    const {
         type = "text",
         placeholder = "",
         label = "",
@@ -50,26 +43,21 @@
 
     let value = $state("");
 
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate stable ID to avoid re-renders
+    const inputId = $derived(id || `input-${crypto.randomUUID()}`);
 
-    const baseClasses =
-        "w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition";
-    const normalClasses =
-        "border-gray-300 focus:ring-blue-500 focus:border-blue-500";
-    const errorClasses =
-        "border-red-300 focus:ring-red-500 focus:border-red-500";
-    const disabledClasses = "opacity-50 cursor-not-allowed";
-
-    const inputClasses = $derived(
-        `
-        ${baseClasses}
-        ${error ? errorClasses : normalClasses}
-        ${disabled ? disabledClasses : ""}
-        ${className}
-    `
-            .trim()
-            .replace(/\s+/g, " "),
-    );
+    // Optimized class computation
+    const inputClasses = $derived(() => {
+        const base = "w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition";
+        const stateClasses = error 
+            ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+            : "border-gray-300 focus:ring-blue-500 focus:border-blue-500";
+        const disabledClass = disabled ? "opacity-50 cursor-not-allowed" : "";
+        
+        return [base, stateClasses, disabledClass, className]
+            .filter(Boolean)
+            .join(" ");
+    });
 </script>
 
 <div class="w-full">

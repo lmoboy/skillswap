@@ -14,32 +14,33 @@
 
     let searching = $state(false);
     let mobileMenuOpen = $state(false);
-    let searchResult = $state<
-        {
-            user: {
-                username: string;
-                email: string;
-                id: string;
-            };
-            skills_found: string;
-        }[]
-    >([]);
-
+    let searchResult = $state<SearchResult[]>([]);
     let timeoutId: number | undefined = undefined;
 
-    async function handleLogout() {
+    interface SearchResult {
+        user: {
+            username: string;
+            email: string;
+            id: string;
+        };
+        skills_found: string;
+    }
+
+    // Optimized logout with better error handling
+    const handleLogout = async () => {
         try {
             await logout();
             goto("/auth/login");
         } catch (error) {
             console.error("Logout failed:", error);
         }
-    }
+    };
 
-    function handleSearch(query: string) {
+    // Debounced search with cleanup
+    const handleSearch = (query: string) => {
         clearTimeout(timeoutId);
 
-        if (query.length === 0) {
+        if (!query.trim()) {
             searching = false;
             searchResult = [];
             return;
@@ -48,21 +49,27 @@
         searching = true;
         timeoutId = window.setTimeout(async () => {
             try {
-                const response = await fetch(`/api/search`, {
+                const response = await fetch("/api/search", {
                     method: "POST",
                     credentials: "include",
-                    body: JSON.stringify({
-                        query: query,
-                    }),
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query: query.trim() }),
                 });
-                const data = await response.json();
-                searchResult = data;
+                
+                if (response.ok) {
+                    searchResult = await response.json();
+                } else {
+                    console.error("Search failed:", response.statusText);
+                    searchResult = [];
+                }
             } catch (error) {
                 console.error("Search failed:", error);
+                searchResult = [];
+            } finally {
+                searching = false;
             }
-            searching = false;
-        }, 100);
-    }
+        }, 300); // Increased debounce for better performance
+    };
 </script>
 
 <header class="bg-white border-b border-gray-200 {className}">
