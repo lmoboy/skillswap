@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"skillswap/backend/config"
+	"skillswap/backend/internal/config"
 )
 
 // TestMain sets up test environment and runs tests

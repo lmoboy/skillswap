@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
 
 FROM alpine:latest
 
@@ -24,7 +24,7 @@ RUN mkdir -p /root/uploads && \
 
 COPY --from=builder /app/main .
 COPY --from=builder /app/uploads ./uploads
-COPY --from=builder /app/database/migrations ./migrations
+COPY --from=builder /app/internal/database/migrations ./migrations
 
 EXPOSE 8080
 
