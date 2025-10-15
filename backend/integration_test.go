@@ -8,13 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"skillswap/backend/authentication"
-	"skillswap/backend/chat"
-	"skillswap/backend/config"
-	"skillswap/backend/courses"
-	"skillswap/backend/database"
-	"skillswap/backend/users"
-	"skillswap/backend/utils"
+	"skillswap/backend/internal/handlers/auth"
+	"skillswap/backend/internal/handlers/chat"
+	"skillswap/backend/internal/config"
+	"skillswap/backend/internal/handlers/courses"
+	"skillswap/backend/internal/handlers/skills"
+	"skillswap/backend/internal/handlers/users"
+	"skillswap/backend/internal/database"
+	"skillswap/backend/internal/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -31,17 +32,17 @@ func setupTestRouter() *mux.Router {
 	config.SetupTestEnvironment()
 
 	// Override authentication store for testing
-	authentication.Store = sessions.NewCookieStore([]byte("test-session-key-for-testing-only"))
+	auth.Store = sessions.NewCookieStore([]byte("test-session-key-for-testing-only"))
 
 	// Start the WebSocket hub for chat functionality
 	go chat.StartHub()
 
 	server := mux.NewRouter().StrictSlash(true)
 
-	server.HandleFunc("/api/register", authentication.Register).Methods("POST")
-	server.HandleFunc("/api/login", authentication.Login).Methods("POST")
-	server.HandleFunc("/api/logout", authentication.Logout).Methods("POST")
-	server.HandleFunc("/api/cookieUser", authentication.CheckSession).Methods("GET")
+	server.HandleFunc("/api/register", auth.Register).Methods("POST")
+	server.HandleFunc("/api/login", auth.Login).Methods("POST")
+	server.HandleFunc("/api/logout", auth.Logout).Methods("POST")
+	server.HandleFunc("/api/cookieUser", auth.CheckSession).Methods("GET")
 
 	// User routes
 	server.HandleFunc("/api/updateUser", users.UpdateUser).Methods("POST")
@@ -74,7 +75,7 @@ func setupTestRouter() *mux.Router {
 	}).Methods("GET")
 
 	// Skills route
-	server.HandleFunc("/api/getSkills", getSkills).Methods("GET")
+	server.HandleFunc("/api/getSkills", skills.GetSkills).Methods("GET")
 
 	// CORS setup
 	c := config.CORS()
