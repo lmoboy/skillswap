@@ -315,6 +315,7 @@
                         bind:value={formData.title}
                         required
                         placeholder="e.g., Complete Web Development Bootcamp"
+                        data-testid="course-title-input"
                         class="mt-1 block w-full border border-gray-300 rounded-md text-gray-900 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
@@ -331,6 +332,7 @@
                         rows="4"
                         required
                         placeholder="Describe what students will learn in this course..."
+                        data-testid="course-description-input"
                         class="mt-1 block w-full border border-gray-300 text-gray-900 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                     ></textarea>
                 </div>
@@ -346,6 +348,7 @@
                             id="skill_name"
                             bind:value={formData.skill_name}
                             required
+                            data-testid="skill-select"
                             class="mt-1 block w-full border text-gray-900 border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="">Select a skill...</option>
@@ -368,6 +371,7 @@
                             min="1"
                             required
                             placeholder="e.g., 120"
+                            data-testid="duration-input"
                             class="mt-1 block w-full border text-gray-900 border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
@@ -442,6 +446,7 @@
                     <button
                         type="button"
                         onclick={addModule}
+                        data-testid="add-module-button"
                         class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-all flex items-center space-x-2"
                     >
                         <Plus class="h-4 w-4" />
@@ -461,6 +466,7 @@
                         <button
                             type="button"
                             onclick={addModule}
+                            data-testid="add-first-module-button"
                             class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded transition-all"
                         >
                             Add First Module
@@ -471,6 +477,7 @@
                         {#each formData.modules as module, index (index)}
                             <div
                                 class="border border-gray-300 rounded-lg p-6 bg-gray-50"
+                                data-testid="module-item"
                             >
                                 <div
                                     class="flex justify-between items-start mb-4"
@@ -508,6 +515,7 @@
                                             onclick={() => removeModule(index)}
                                             class="text-red-500 hover:text-red-700 p-1"
                                             title="Remove module"
+                                            data-testid="remove-module-button"
                                         >
                                             <Trash2 class="h-4 w-4" />
                                         </button>
@@ -528,6 +536,7 @@
                                             required
                                             placeholder="e.g., Introduction to HTML"
                                             class="mt-1 block w-full border border-gray-300 rounded-md text-gray-900 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
+                                            data-testid="module-title-{index}"
                                         />
                                     </div>
 
@@ -544,6 +553,7 @@
                                             required
                                             placeholder="Describe what this module covers..."
                                             class="mt-1 block w-full border border-gray-300 text-gray-900 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
+                                            data-testid="module-description-{index}"
                                         ></textarea>
                                     </div>
 
@@ -561,6 +571,7 @@
                                             required
                                             placeholder="e.g., 600 (10 minutes)"
                                             class="mt-1 block w-full border text-gray-900 border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
+                                            data-testid="module-duration-{index}"
                                         />
                                     </div>
 
@@ -706,6 +717,7 @@
                 <button
                     type="submit"
                     disabled={loading || !isFormValid() || success}
+                    data-testid="submit-course-button"
                     class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white transition-colors"
                     class:bg-blue-500={isFormValid() && !loading && !success}
                     class:hover:bg-blue-600={isFormValid() &&

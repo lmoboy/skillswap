@@ -263,7 +263,7 @@
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
                 <!-- Header Section -->
                 <div
-                    class="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-12"
+                    class="bg-slate-300 px-8 py-12"
                 >
                     <div class="flex flex-col lg:flex-row items-center gap-8">
                         <!-- Profile Picture -->

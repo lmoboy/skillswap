@@ -201,6 +201,7 @@
                                 handleLogout();
                                 mobileMenuOpen = false;
                             }}
+                            data-testid="logout-button"
                             class="text-left text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium hover:bg-gray-50 rounded-md transition-colors"
                         >
                             Sign out

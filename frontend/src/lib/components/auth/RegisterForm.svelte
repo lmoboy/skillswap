@@ -101,6 +101,7 @@
                 maxlength={50}
                 bind:value={username}
                 oninput={clearUsernameError}
+                data-testid="username-input"
                 class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
                     ? 'opacity-50 cursor-not-allowed'
                     : ''}"
@@ -130,6 +131,7 @@
                 maxlength={100}
                 bind:value={email}
                 oninput={clearEmailError}
+                data-testid="email-input"
                 class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
                     ? 'opacity-50 cursor-not-allowed'
                     : ''}"
@@ -159,6 +161,7 @@
                 maxlength={50}
                 bind:value={password}
                 oninput={clearPasswordError}
+                data-testid="password-input"
                 class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
                     ? 'opacity-50 cursor-not-allowed'
                     : ''}"
@@ -177,6 +180,7 @@
             fullWidth
             {loading}
             disabled={loading}
+            data-testid="register-button"
         >
             {loading ? "Creating Account..." : "Create Account"}
         </Button>
