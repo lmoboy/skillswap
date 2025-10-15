@@ -17,6 +17,8 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.test
+./backend/internal/handlers/users/uploads/
+
 
 # Vite
 vite.config.js.timestamp-*

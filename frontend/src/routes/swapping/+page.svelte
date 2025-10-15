@@ -273,6 +273,7 @@
                {#if selectedChat}
                   <!-- Back button for mobile -->
                   <button
+                      aria-label="Go back"
                      onclick={() => selectedChatIndex = -1}
                      class="lg:hidden absolute top-2 left-2 z-10 bg-white rounded-full p-2 shadow-md"
                   >

@@ -73,6 +73,7 @@
                         bind:value={searchQuery}
                         type="text"
                         placeholder="Search courses..."
+                        data-testid="search-input"
                         class="block w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border border-transparent rounded-lg text-sm sm:text-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
@@ -118,6 +119,7 @@
 
             <div
                 class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6"
+                data-testid="courses-container"
             >
                 {#each filteredCourses as course (course.id)}
                     <CourseCard {course} />

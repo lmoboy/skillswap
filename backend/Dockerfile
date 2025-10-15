@@ -23,7 +23,6 @@ RUN mkdir -p /root/uploads && \
     chmod 777 /root/uploads
 
 COPY --from=builder /app/main .
-COPY --from=builder /app/uploads ./uploads
 COPY --from=builder /app/internal/database/migrations ./migrations
 
 EXPOSE 8080

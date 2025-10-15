@@ -27,6 +27,7 @@
 <a
     href={`/course/${course.id}`}
     class="block bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
+    data-testid="course-card"
 >
     <div class="relative">
         <img

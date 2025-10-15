@@ -15,7 +15,7 @@
 <!-- Enhanced Background with Gradient and Elements -->
 <div class="absolute inset-0 -z-10 overflow-hidden">
    <!-- Gradient Background -->
-   <div class="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50"></div>
+
    
    <!-- Background Image with Overlay -->
    <div class="absolute inset-0 opacity-30">
@@ -124,10 +124,7 @@
             class="lg:w-1/2 relative mt-8 lg:mt-0 w-full max-w-lg lg:max-w-none mx-auto"
          >
             <!-- Decorative Elements around Video -->
-            <div class="absolute -z-10 w-32 h-32 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full -top-8 -right-8 opacity-30 blur-2xl"></div>
-            <div class="absolute -z-10 w-24 h-24 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full -bottom-6 -left-6 opacity-30 blur-2xl"></div>
-            <div class="absolute -z-10 w-16 h-16 border-4 border-blue-300/30 rounded-full top-10 -left-8 animate-pulse"></div>
-            <div class="absolute -z-10 w-20 h-20 border-4 border-purple-300/30 rounded-full bottom-10 -right-10 animate-pulse"></div>
+
             
             <div
                class="relative bg-white rounded-lg sm:rounded-xl shadow-2xl overflow-hidden border border-gray-200"

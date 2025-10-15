@@ -89,6 +89,7 @@
                 disabled={loading}
                 bind:value={email}
                 oninput={clearEmailError}
+                data-testid="email-input"
                 class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
                     ? 'opacity-50 cursor-not-allowed'
                     : ''}"
@@ -117,6 +118,7 @@
                 disabled={loading}
                 bind:value={password}
                 oninput={clearPasswordError}
+                data-testid="password-input"
                 class="w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition border-gray-300 focus:ring-blue-500 focus:border-blue-500 {loading
                     ? 'opacity-50 cursor-not-allowed'
                     : ''}"
@@ -135,6 +137,7 @@
             fullWidth
             {loading}
             disabled={loading}
+            data-testid="login-button"
         >
             {loading ? "Signing in..." : "Sign in"}
         </Button>
@@ -145,6 +148,7 @@
                 <a
                     href="/auth/register"
                     class="text-blue-600 hover:text-blue-700 font-medium"
+                    data-testid="signup-link"
                 >
                     Sign up
                 </a>

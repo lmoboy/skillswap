@@ -1,4 +1,5 @@
 import type { Handle } from '@sveltejs/kit'
+import process from 'process'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080'
 

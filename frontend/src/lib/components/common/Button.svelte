@@ -17,6 +17,7 @@
         class?: string;
         onclick?: (event: MouseEvent) => void;
         children?: any;
+        "data-testid"?: string;
     };
 
     let {
@@ -29,6 +30,7 @@
         class: className = "",
         onclick,
         children,
+        "data-testid": dataTestId,
     }: Props = $props();
 
     const variantClasses: Record<ButtonVariant, string> = {
@@ -66,7 +68,7 @@
     );
 </script>
 
-<button {type} class={buttonClasses} disabled={disabled || loading} {onclick}>
+<button {type} class={buttonClasses} disabled={disabled || loading} {onclick} data-testid={dataTestId}>
     {#if loading}
         <div class="flex items-center justify-center gap-2">
             <div
