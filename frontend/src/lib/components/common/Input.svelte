@@ -37,13 +37,15 @@
         min?: number;
         max?: number;
         maxlength?: number;
+        value?: string;
+        "data-testid"?: string;
         oninput?: (event: Event) => void;
         onchange?: (event: Event) => void;
         onfocus?: (event: FocusEvent) => void;
         onblur?: (event: FocusEvent) => void;
     }
 
-    const {
+    let {
         type = "text",
         placeholder = "",
         label = "",
@@ -57,29 +59,30 @@
         min,
         max,
         maxlength,
+        value = $bindable(""),
+        "data-testid": dataTestId,
         oninput,
         onchange,
         onfocus,
         onblur,
     }: Props = $props();
 
-    let value = $state("");
-
     // Generate stable ID to avoid re-renders
     const inputId = $derived(id || `input-${crypto.randomUUID()}`);
 
     // Optimized class computation
-    const inputClasses = $derived(() => {
-        const base = "w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition";
-        const stateClasses = error 
-            ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-            : "border-gray-300 focus:ring-blue-500 focus:border-blue-500";
-        const disabledClass = disabled ? "opacity-50 cursor-not-allowed" : "";
-        
-        return [base, stateClasses, disabledClass, className]
-            .filter(Boolean)
-            .join(" ");
-    });
+    const inputClasses = $derived(
+        [
+            "w-full p-3 rounded-lg border bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 transition",
+            error 
+                ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500",
+            disabled ? "opacity-50 cursor-not-allowed" : "",
+            className
+        ]
+        .filter(Boolean)
+        .join(" ")
+    );
 </script>
 
 <div class="w-full">
@@ -108,6 +111,7 @@
         {maxlength}
         bind:value
         class={inputClasses}
+        data-testid={dataTestId}
         {oninput}
         {onchange}
         {onfocus}

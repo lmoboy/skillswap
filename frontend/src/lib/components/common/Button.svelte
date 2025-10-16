@@ -66,17 +66,18 @@
     } as const;
 
     // Optimized class computation with better performance
-    const buttonClasses = $derived(() => {
-        const base = "font-medium rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500";
-        const variantClass = variantClasses[variant];
-        const sizeClass = sizeClasses[size];
-        const widthClass = fullWidth ? "w-full" : "";
-        const disabledClass = (disabled || loading) ? "opacity-50 cursor-not-allowed" : "";
-        
-        return [base, variantClass, sizeClass, widthClass, disabledClass, className]
-            .filter(Boolean)
-            .join(" ");
-    });
+    const buttonClasses = $derived(
+        [
+            "font-medium rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+            variantClasses[variant],
+            sizeClasses[size],
+            fullWidth ? "w-full" : "",
+            (disabled || loading) ? "opacity-50 cursor-not-allowed" : "",
+            className
+        ]
+        .filter(Boolean)
+        .join(" ")
+    );
 </script>
 
 <button {type} class={buttonClasses} disabled={disabled || loading} {onclick} data-testid={dataTestId}>

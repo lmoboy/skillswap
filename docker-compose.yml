@@ -41,6 +41,7 @@ services:
       build:
          context: ./frontend
          dockerfile: Dockerfile
+         shm_size: '2gb'
       container_name: skillswap-frontend
       ports:
          - '0.0.0.0:80:3000'
@@ -48,16 +49,24 @@ services:
          - ORIGIN=http://89.117.50.20
          - BODY_SIZE_LIMIT=Infinity
          - BACKEND_URL=http://backend:8080
+         - NODE_OPTIONS=--max-old-space-size=4096
       depends_on:
          backend:
             condition: service_started
       networks:
          - skillswap-network
       restart: unless-stopped
+      deploy:
+         resources:
+            limits:
+               memory: 6G
+            reservations:
+               memory: 2G
 
    updater:
       image: containrrr/watchtower
       container_name: skillswap-updater
+      profiles: ['manual']  # Disabled by default - start manually with: docker-compose --profile manual up updater
       volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - ./:/app
@@ -73,6 +82,7 @@ services:
    autoupdate:
       image: alpine/git
       container_name: skillswap-git-puller
+      profiles: ['manual']  # Disabled by default - start manually with: docker-compose --profile manual up autoupdate
       working_dir: /app
       volumes:
          - ./:/app

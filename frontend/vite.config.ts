@@ -21,22 +21,4 @@ export default defineConfig({
          },
       },
    },
-
-   build: {
-      target: 'esnext',
-      minify: 'esbuild',
-      sourcemap: false,
-      rollupOptions: {
-         output: {
-            manualChunks: {
-               vendor: ['svelte', '@sveltejs/kit'],
-               icons: ['lucide-svelte']
-            }
-         }
-      }
-   },
-
-   optimizeDeps: {
-      include: ['lucide-svelte', '@sveltejs/kit']
-   }
 })
