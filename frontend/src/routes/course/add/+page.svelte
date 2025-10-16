@@ -79,7 +79,6 @@
             video_duration: null,
             order_index: formData.modules.length,
         });
-        formData.modules = formData.modules; // Trigger reactivity
     }
 
     // Remove a module
@@ -89,7 +88,6 @@
         formData.modules.forEach((module, idx) => {
             module.order_index = idx;
         });
-        formData.modules = formData.modules; // Trigger reactivity
     }
 
     // Move module up
@@ -102,7 +100,6 @@
             formData.modules.forEach((module, idx) => {
                 module.order_index = idx;
             });
-            formData.modules = formData.modules;
         }
     }
 
@@ -116,7 +113,6 @@
             formData.modules.forEach((module, idx) => {
                 module.order_index = idx;
             });
-            formData.modules = formData.modules;
         }
     }
 
@@ -244,7 +240,6 @@
             }
             
             formData.modules[index].video_file = file;
-            formData.modules = formData.modules; // Trigger reactivity
             error = null;
         }
     }
@@ -271,7 +266,6 @@
             }
             
             formData.modules[index].thumbnail_file = file;
-            formData.modules = formData.modules; // Trigger reactivity
             error = null;
         }
     }

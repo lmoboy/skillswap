@@ -88,7 +88,7 @@ function main() {
       break;
       
     case 'all':
-    default:
+    default: {
       log(`${colors.magenta}Running all test suites...${colors.reset}`);
       
       const unitPassed = runCommand('bun run test:unit', 'Unit Tests');
@@ -97,6 +97,7 @@ function main() {
       
       allPassed = unitPassed && integrationPassed && e2ePassed;
       break;
+    }
   }
   
   const endTime = Date.now();
