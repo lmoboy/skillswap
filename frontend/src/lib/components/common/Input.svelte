@@ -68,7 +68,7 @@
     }: Props = $props();
 
     // Generate stable ID to avoid re-renders
-    const inputId = $derived(id || `input-${crypto.randomUUID()}`);
+    const inputId = $derived(id || `input-${Math.random().toString(36).substring(2, 9)}`);
 
     // Optimized class computation
     const inputClasses = $derived(
