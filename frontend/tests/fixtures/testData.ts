@@ -25,7 +25,7 @@ export const invalidLoginData = {
 export const validCourseData = {
 	title: 'Test Course',
 	description: 'A comprehensive test course description',
-	skill_name: 'JavaScript',
+	skill_name: 'Test JavaScript',
 	duration_minutes: '120'
 };
 
@@ -65,7 +65,7 @@ export const mockUser = {
 	username: 'testuser',
 	email: 'test@example.com',
 	profile_picture: '/default-avatar.svg',
-	skills: ['JavaScript', 'TypeScript'],
+	skills: ['Test JavaScript', 'TypeScript'],
 	projects: [],
 	contacts: []
 };
@@ -75,7 +75,7 @@ export const mockCourse = {
 	title: 'JavaScript Fundamentals',
 	description: 'Learn JavaScript from scratch',
 	instructor_name: 'John Doe',
-	skill_name: 'JavaScript',
+	skill_name: 'Test JavaScript',
 	duration_hours: 10,
 	status: 'Published',
 	thumbnail_url: '/course-thumbnail.jpg'
@@ -120,7 +120,7 @@ export const mockApiResponses = {
 	courseCreateSuccess: {
 		message: 'Course created successfully',
 		course_id: 1,
-		skill_name: 'JavaScript'
+		skill_name: 'Test JavaScript'
 	},
 	courseCreateError: {
 		error: 'Missing required fields'

@@ -19,13 +19,13 @@ test.describe('Course Creation Flow', () => {
 		// Fill in basic course information
 		await page.fill('[data-testid="course-title-input"]', 'JavaScript Fundamentals');
 		await page.fill('[data-testid="course-description-input"]', 'Learn JavaScript from scratch');
-		await page.selectOption('[data-testid="skill-select"]', 'JavaScript');
+		await page.selectOption('[data-testid="skill-select"]', 'Test JavaScript');
 		await page.fill('[data-testid="duration-input"]', '120');
 		
 		// Verify the values were filled
 		await expect(page.locator('[data-testid="course-title-input"]')).toHaveValue('JavaScript Fundamentals');
 		await expect(page.locator('[data-testid="course-description-input"]')).toHaveValue('Learn JavaScript from scratch');
-		await expect(page.locator('[data-testid="skill-select"]')).toHaveValue('JavaScript');
+		await expect(page.locator('[data-testid="skill-select"]')).toHaveValue('Test JavaScript');
 		await expect(page.locator('[data-testid="duration-input"]')).toHaveValue('120');
 	});
 
@@ -102,11 +102,8 @@ test.describe('Course Creation Flow', () => {
 
 	test('form validation prevents empty submission', async ({ page }) => {
 		// Try to submit empty form
-		await page.click('[data-testid="submit-course-button"]');
-		
+    await expect(page.locator('[data-testid="submit-course-button"]')).toBeDisabled();
 		// Form should still be visible (validation should prevent submission)
-		await expect(page.locator('[data-testid="course-title-input"]')).toBeVisible();
-		await expect(page.locator('[data-testid="course-description-input"]')).toBeVisible();
 	});
 
 	test('user can type in all input fields', async ({ page }) => {
@@ -137,7 +134,7 @@ test.describe('Course Creation Flow', () => {
 		await expect(skillSelect).toBeVisible();
 		
 		// Select a skill
-		await page.selectOption('[data-testid="skill-select"]', 'JavaScript');
-		await expect(skillSelect).toHaveValue('JavaScript');
+		await page.selectOption('[data-testid="skill-select"]', 'Test JavaScript');
+		await expect(skillSelect).toHaveValue('Test JavaScript');
 	});
 });
