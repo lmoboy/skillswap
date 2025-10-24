@@ -34,13 +34,12 @@
    import { auth } from '$lib/stores/auth'
 </script>
 
-<!-- Enhanced Background with Gradient and Elements -->
 <div class="absolute inset-0 -z-10 overflow-hidden">
    <!-- Gradient Background -->
 
    
    <!-- Background Image with Overlay -->
-   <div class="absolute inset-0 opacity-30">
+   <div class="absolute inset-0 opacity-100">
       <img 
          class="w-full h-full object-cover"
          src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
