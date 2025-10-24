@@ -210,6 +210,7 @@ export async function logout(): Promise<void> {
 export async function checkAuth(): Promise<boolean> {
     try {
         auth.setLoading(true); // Sākt ielādi
+        
         const response = await fetch(`${API_BASE}/cookieUser`, {
             ...defaultOptions,
             method: 'GET',
