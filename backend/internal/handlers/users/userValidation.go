@@ -1,4 +1,5 @@
 package users
+
 /*
 AI INSTRUCTION BLOCK — READ CAREFULLY
 
@@ -55,6 +56,13 @@ func getUserFromSession(req *http.Request) (int64, error) {
 // parseUserUpdatePayload decodes and validates the user update request
 func parseUserUpdatePayload(req *http.Request) (*models.UserInfo, error) {
 	var payload models.UserInfo
+	// bodyBytes, err := io.ReadAll(req.Body)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("could not read request body: %w", err)
+	// 	}
+	// 	defer req.Body.Close() // Good practice to close the original body
+
+	// 	fmt.Printf("Request Body: %s\n", string(bodyBytes))
 	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("invalid request payload: %w", err)
 	}
@@ -69,5 +77,3 @@ func validateUserOwnership(sessionUserID int64, payloadUserID int) error {
 	}
 	return nil
 }
-
-

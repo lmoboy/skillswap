@@ -100,6 +100,7 @@ func main() {
 	server.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
 	// Tā atgriež JSON atbildi ar statusu "pong", kad tiek saņemts GET pieprasījums.
+
 	server.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
 		utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "pong"})
 	}).Methods("GET")

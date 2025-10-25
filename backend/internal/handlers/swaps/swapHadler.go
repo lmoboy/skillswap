@@ -38,8 +38,8 @@ func DecreaseSwaps(usr models.UserInfo, amount int) {
 }
 
 func ExchangeSwaps(swapper models.UserInfo, swappee models.UserInfo) {
-	DecreaseSwaps(swappee, 1)
-	IncreaseSwaps(swapper, 2)
+	DecreaseSwaps(swapper, 1)
+	IncreaseSwaps(swappee, 1)
 }
 
 func GetSwaps(usr models.UserInfo) int {

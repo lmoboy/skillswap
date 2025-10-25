@@ -55,6 +55,21 @@ export function validatePassword(password: string): string | null {
     if (password.length > 50) {
         return 'Password cannot be longer than 50 characters';
     }
+    if(password.includes(' ')){
+      return 'Password cannot contain spaces';
+    }
+    if(password.search(/[A-Z]/) === -1){
+      return 'Password must contain at least one uppercase letter';
+    }
+    if(password.search(/[a-z]/) === -1){
+      return 'Password must contain at least one lowercase letter';
+    }
+    if(password.search(/[0-9]/) === -1){
+      return 'Password must contain at least one number';
+    }
+    if(password.search(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/) === -1){
+      return 'Password must contain at least one special character';
+    }
     return null;
 }
 
@@ -68,6 +83,12 @@ export function validateUsername(username: string): string | null {
     }
     if (username.length > 50) {
         return 'Username is too long (max 50 characters)';
+    }
+    if(username.search(/[0-9]/) > 1){
+      return 'Username can not contain any numbers';
+    }
+    if(username.search(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/) > 1){
+      return 'Username can not contain any special characters';
     }
     return null;
 }

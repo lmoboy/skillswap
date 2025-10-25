@@ -28,7 +28,13 @@
     import { onMount } from "svelte";
     import CourseCard from "$lib/components/course/CourseCard.svelte";
 
+    /**
+     * @type {string | any[] | null | undefined}
+     */
     let users = $state([]);
+    /**
+     * @type {string | any[] | null | undefined}
+     */
     let courses = $state([]);
     let loading = $state(true);
 
@@ -93,7 +99,7 @@
                     {#if users != null && users.length > 0}
                         {#each users as user}
                             <div
-                                class="bg-white rounded-lg sm:rounded-xl shadow-lg flex flex-col w-[280px] sm:w-[320px] md:flex-row overflow-hidden flex-shrink-0"
+                                class="bg-white cursor-pointer rounded-lg sm:rounded-xl shadow-lg flex flex-col md:flex-row overflow-hidden flex-shrink-0"
                             >
                                 <img
                                     src={`/api/profile/${user.user.id}/picture`}

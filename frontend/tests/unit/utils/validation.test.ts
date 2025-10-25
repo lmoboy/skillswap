@@ -38,7 +38,7 @@ describe('Validation Utilities', () => {
 	describe('validateUsername', () => {
 		it('returns null for valid username', () => {
 			expect(validateUsername('testuser')).toBeNull();
-			expect(validateUsername('user123')).toBeNull();
+			expect(validateUsername('Daniel')).toBeNull();
 		});
 
 		it('returns error for empty username', () => {

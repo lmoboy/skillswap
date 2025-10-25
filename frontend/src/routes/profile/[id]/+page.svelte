@@ -43,6 +43,8 @@
 
     let { data } = $props();
 
+    let profilePictureRef = $state<File | null>(null);
+    
     let newProjectDescription = $state("");
     let newProjectLink = $state("");
     let newProjectName = $state("");
@@ -152,7 +154,12 @@
     };
 
     const handleUpdate = () => {
-        console.log(JSON.stringify(user));
+      if(profilePictureRef != null){
+        const formData = new FormData();
+        formData.append("file", profilePictureRef);
+        formData.append("user_id", id || "");
+        fetch("/api/profile/picture", { method: "POST", body: formData });
+      }
         fetch("/api/updateUser", {
             method: "POST",
             headers: {
@@ -162,7 +169,7 @@
         })
             .then((res) => {
                 return res.json();
-            })
+          })
             .then((res) => {
                 console.log(res);
                 editing = false;
@@ -252,11 +259,11 @@
     const uploadProfilePicture = async (e: Event) => {
         const input = e.target as HTMLInputElement;
         if (!input.files?.[0]) return;
-        const formData = new FormData();
-        formData.append("file", input.files[0]);
-        formData.append("user_id", id || "");
-        await fetch("/api/profile/picture", { method: "POST", body: formData });
-        location.reload();
+        profilePictureRef = input.files[0];
+        
+        // Update the user's profile picture in the state
+        user.profile_picture = URL.createObjectURL(profilePictureRef);
+        
     };
 
     onMount(async () => {
@@ -285,7 +292,7 @@
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
                 <!-- Header Section -->
                 <div
-                    class="bg-slate-300 px-8 py-12"
+                    class="bg-blue-600 px-8 py-12"
                 >
                     <div class="flex flex-col lg:flex-row items-center gap-8">
                         <!-- Profile Picture -->
@@ -293,10 +300,9 @@
                             <div
                                 class="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white shadow-lg"
                             >
+
                                 <img
-                                    src={user.profile_picture === "noPicture"
-                                        ? "/default-avatar.svg"
-                                        : `/api/profile/${id}/picture`}
+                                    src={(profilePictureRef != null ? user.profile_picture : "") || user.profile_picture || "/default-avatar.svg"}
                                     alt={`Profile picture of ${user.username}`}
                                     class="w-full h-full object-cover"
                                 />
@@ -359,7 +365,7 @@
 
                         <!-- Action Buttons -->
                         <div class="flex flex-wrap gap-3">
-                            {#if user.id !== $auth?.user?.id}
+                            {#if user.id != $auth?.user?.id}
                                 <a
                                     href={`/swapping/${id}`}
                                     class="bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2"
@@ -386,6 +392,7 @@
                                         Cancel
                                     </button>
                                 {:else}
+                                    <span>{user.profilePicture}</span>
                                     <button
                                         onclick={() => (editing = true)}
                                         class="bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2"
@@ -616,7 +623,7 @@
                                         {#if user.id == $auth?.user?.id && !editing}
                                             <button
                                                 onclick={() => (editing = true)}
-                                                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+                                                class="bg-blue-600 text-black px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
                                             >
                                                 <Plus class="w-4 h-4" />
                                                 Add Your First Project
@@ -642,7 +649,7 @@
                                         <div class="flex gap-2">
                                             <select
                                                 bind:value={newSkillName}
-                                                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                class="flex-1 text-black border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
                                                 <option value=""
                                                     >Select a skill</option
@@ -653,7 +660,7 @@
                                                             value={skill.name}
                                                             >{skill.name}</option
                                                         >
-                                                    {/if}
+  class                                                  {/if}
                                                 {/each}
                                             </select>
                                             <button
@@ -689,7 +696,7 @@
                                                     </button>
                                                 {/if}
                                             </span>
-                                        {/each}
+                                      {/each}
                                     </div>
                                 {:else}
                                     <div class="text-center py-8">

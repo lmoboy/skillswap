@@ -26,6 +26,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
+    import { fade } from "svelte/transition";
 
     let err = $state("");
     let takingLong = $state(false);
@@ -67,7 +68,6 @@
                 await goto("/swapping");
             }
         } catch (error) {
-            err = error;
 
             // Handle network or other errors
             console.error("Error creating chat:", error);

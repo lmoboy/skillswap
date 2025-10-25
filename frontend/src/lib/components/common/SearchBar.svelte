@@ -110,7 +110,7 @@
 
     {#if showDropdown && showResults && searchQuery.length > 0}
         <div
-            class="absolute z-10 top-full mt-2 left-0 right-0 bg-white rounded-md shadow-lg border border-gray-200 max-h-80 overflow-y-auto"
+            class="absolute z-100 top-full mt-2 left-0 right-0 bg-white rounded-md shadow-lg border border-gray-200 max-h-80 overflow-y-auto"
         >
             {#if loading}
                 <div class="flex items-center justify-center w-full py-4">
