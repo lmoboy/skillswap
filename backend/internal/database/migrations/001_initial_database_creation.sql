@@ -1,5 +1,19 @@
 -- Initial database schema for SkillSwap
 -- This migration creates all core tables
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS course_reviews;
+DROP TABLE IF EXISTS course_enrollments;
+DROP TABLE IF EXISTS course_modules;
+DROP TABLE IF EXISTS courses;
+DROP TABLE IF EXISTS user_contacts;
+DROP TABLE IF EXISTS user_projects;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS chats;
+DROP TABLE IF EXISTS user_skills;
+DROP TABLE IF EXISTS skills;
+DROP TABLE IF EXISTS users;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

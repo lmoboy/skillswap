@@ -75,6 +75,7 @@ func (fb FlexBool) MarshalJSON() ([]byte, error) {
 type UserInfo struct {
 	Username       string        `json:"username"`
 	Email          string        `json:"email"`
+	OldPassword    string        `json:"old_password"`
 	Password       string        `json:"password"`
 	ID             int           `json:"id"`
 	ProfilePicture string        `json:"profile_picture"`

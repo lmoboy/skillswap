@@ -41,6 +41,7 @@
             loading = false;
         } catch (err) {
             error = "Failed to load course";
+            console.error(err);
             loading = false;
         }
     });

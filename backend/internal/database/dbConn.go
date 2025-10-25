@@ -118,7 +118,7 @@ func Init() {
 	}
 
 	// If migrations table doesn't exist, run migrations
-	if !tableExists {
+	if true {
 		// utils.DebugPrint("Migrations table not found. Running migrations...")
 		err = Migrate(db)
 		if err != nil {

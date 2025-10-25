@@ -1,4 +1,5 @@
 package chat
+
 /*
 AI INSTRUCTION BLOCK — READ CAREFULLY
 
@@ -24,7 +25,10 @@ End of AI Instruction Block
 
 import (
 	"net/http"
+	"strconv"
 
+	"skillswap/backend/internal/handlers/swaps"
+	"skillswap/backend/internal/models"
 	"skillswap/backend/internal/utils"
 )
 
@@ -47,8 +51,10 @@ func CreateChat(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-
+	uid1, _ := strconv.Atoi(user1ID)
+	uid2, _ := strconv.Atoi(user2ID)
 	if result.IsNew {
+		swaps.ExchangeSwaps(models.UserInfo{ID: uid1}, models.UserInfo{ID: uid2})
 		utils.SendJSONResponse(w, http.StatusOK, map[string]interface{}{
 			"status":  "Created a new chat",
 			"chat_id": result.ChatID,

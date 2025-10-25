@@ -1,4 +1,5 @@
 package users
+
 /*
 AI INSTRUCTION BLOCK — READ CAREFULLY
 
@@ -23,6 +24,8 @@ End of AI Instruction Block
 */
 
 import (
+	"crypto/md5"
+	"errors"
 	"fmt"
 
 	"skillswap/backend/internal/database"
@@ -164,6 +167,55 @@ func updateUserContacts(user models.UserInfo) {
 	}
 }
 
+func updatePassword(user *models.UserInfo) error {
+	row := database.QueryRow("SELECT password_hash FROM users WHERE id = ?", user.ID)
+	pass := ""
+	row.Scan(&pass)
+	if(pass != user.Password){
+		return errors.New("Incorrect old password")
+	}
+	user.OldPassword = fmt.Sprintf("%x", md5.Sum([]byte(user.OldPassword)))
+	if _,err := database.Execute("UPDATE users SET password_hash = ? WHERE id = ?", user.OldPassword, user.ID);  err != nil {
+		return err
+	}
+	return nil
+}
+
+func getUserPassword(user *models.UserInfo) (error, string) {
+	row := database.QueryRow("SELECT password_hash FROM users WHERE id = ?", user.ID)
+	pass := ""
+	err := row.Scan(&pass)
+	return err, pass
+}
+
+
+func updatePersonalUserInfo(user *models.UserInfo) error{
+	err, userPassword := getUserPassword(user)
+	if err != nil {
+		return err
+	}
+	user.Password = fmt.Sprintf("%x", md5.Sum([]byte(user.Password)))
+	if(user.Password != userPassword){
+		return errors.New("Incorrect old password")
+	}
+	if(user.OldPassword != ""){
+		if err := updatePassword(user); err != nil {
+			return err
+		}
+	}
+	if(user.Username != ""){
+		if _,err := database.Execute("UPDATE users SET username = ? WHERE id = ?", user.Username, user.ID); err != nil {
+			return err
+		}
+	}
+	if(user.Email != ""){
+		if _,err := database.Execute("UPDATE users SET email = ? WHERE id = ?", user.Email, user.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // performUserUpdate orchestrates the complete user update process
 func performUserUpdate(user *models.UserInfo) error {
 	// Clear existing data
@@ -175,7 +227,12 @@ func performUserUpdate(user *models.UserInfo) error {
 	if err := updateBasicUserInfo(user); err != nil {
 		return err
 	}
-
+	
+	// Update 2FA status
+	if err := updatePersonalUserInfo(user); err != nil {
+		return err
+	}
+	
 	// Add projects, skills, and contacts
 	updateUserProjects(*user)
 	updateUserSkills(*user)

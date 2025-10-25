@@ -54,7 +54,7 @@ export async function load({ params, fetch: eventFetch }) {
     }
 
     const user = await response.json();
-    
+    // console.log(user);
     if (!user) {
       throw error(404, "User not found");
     }

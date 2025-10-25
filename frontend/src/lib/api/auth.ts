@@ -50,7 +50,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 // Interfeiss (angļu v. interface) veiksmīgai pieteikšanās (angļu v. login) atbildei
 export interface LoginResponse {
-    returnUrl: string;
+    returnUrl: any;
     user?: {
         name: string;
         email: string;

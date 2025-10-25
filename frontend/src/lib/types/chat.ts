@@ -30,7 +30,7 @@ export type User = {
 };
 
 export type Message = {
-    id?: number;
+    id: number;
     sender: User;
     content: string;
     timestamp: string;

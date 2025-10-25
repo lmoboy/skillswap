@@ -138,15 +138,15 @@
                         Top-Rated Content
                     </h3>
                     <p class="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
-                        Access our curated library of pre-recorded classes,
+                        Access our curated library of pre-recorded courses,
                         ranked and reviewed by our community. Learn at your own
                         pace from the best instructors.
                     </p>
                     <a
-                        href="/classes"
+                        href="/course"
                         class="text-xs sm:text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
                     >
-                        Browse Classes →
+                        Browse Courses →
                     </a>
                 </div>
 
@@ -164,15 +164,15 @@
                         Contribute Your Knowledge
                     </h3>
                     <p class="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
-                        Share your expertise by creating pre-recorded classes.
+                        Share your expertise by creating pre-recorded courses.
                         Earn recognition and help others learn while building
                         your personal brand.
                     </p>
                     <a
-                        href="/create-class"
+                        href="/course/add"
                         class="text-xs sm:text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
                     >
-                        Start Teaching →
+                        Create a course →
                     </a>
                 </div>
             </div>

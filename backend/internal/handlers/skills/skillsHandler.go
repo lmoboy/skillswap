@@ -31,7 +31,7 @@ import (
 
 // GetSkills retrieves all skills from the database and returns them as JSON
 func GetSkills(w http.ResponseWriter, req *http.Request) {
-	rows, err := database.Query(`SELECT id,name,description FROM skills`)
+	rows, err := database.Query(`SELECT id,name,description FROM skills WHERE id > 0 AND name != '' AND description != ''`)
 	if err != nil {
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch skills"})
@@ -53,7 +53,11 @@ func GetSkills(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to process skills"})
 		return
 	}
-
+	if(len(skills)<1){
+		utils.HandleError(err)
+		utils.SendJSONResponse(w, http.StatusNotFound, map[string]string{"error": "No skills found"})
+		return
+	}
 	utils.SendJSONResponse(w, http.StatusOK, skills)
 }
 

@@ -24,7 +24,7 @@
     import { onMount } from "svelte";
     import CourseCard from "$lib/components/course/CourseCard.svelte";
     import type { Course } from "$lib/types/course";
-    import { Search, Filter } from "lucide-svelte";
+    import { Search,  } from "lucide-svelte";
 
     let courses = $state<Course[]>([]);
     let loading = $state(true);
