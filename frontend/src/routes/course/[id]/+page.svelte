@@ -26,6 +26,8 @@
     import { Star, Clock, Users, BookOpen, Play } from "lucide-svelte";
     import type { CourseDetail } from "$lib/types/course";
     import { formatVideoTime } from "$lib/utils/formatting";
+    import { auth } from "$lib/stores/auth";
+    import { checkAuth } from "$lib/api/auth";
 
     let course = $state<CourseDetail | null>(null);
     let loading = $state(true);
@@ -33,7 +35,11 @@
     let currentModule = $state(0);
 
     onMount(async () => {
-        const courseId = $page.params.id;
+      if(!$auth.isAuthenticated){
+        await checkAuth().then();
+        goto("/login");
+      }
+      const courseId = $page.params.id;
         try {
             const response = await fetch(`/api/course?id=${courseId}`);
             if (!response.ok) throw new Error("Failed to fetch course");
