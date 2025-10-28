@@ -82,6 +82,8 @@
 
         loading = true;
 
+        
+        
         try {
             const response = await register({ username, email, password });
             onSuccess?.() ?? goto(response.returnUrl || "/");

@@ -39,7 +39,7 @@ import (
 func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 	chatId := req.URL.Query().Get("cid")
 	res, err := database.Query(`
-	SELECT u.id, u.username, u.email, COALESCE(u.profile_picture, ''), COALESCE(u.aboutme, ''), COALESCE(u.profession, ''), COALESCE(u.location, ''), m.content, m.created_at
+	SELECT m.id, u.id, u.username, u.email, COALESCE(u.profile_picture, ''), COALESCE(u.aboutme, ''), COALESCE(u.profession, ''), COALESCE(u.location, ''), m.content, m.created_at
 	FROM messages AS m
 	JOIN chats AS c ON m.chat_id = c.id
 	JOIN users AS u ON m.sender_id = u.id
@@ -54,7 +54,7 @@ func GetMessagesFromUID(w http.ResponseWriter, req *http.Request) {
 
 	for res.Next() {
 		var content Message
-		err := res.Scan(&content.Sender.ID, &content.Sender.Username, &content.Sender.Email, &content.Sender.ProfilePicture, &content.Sender.AboutMe, &content.Sender.Professions, &content.Sender.Location, &content.Content, &content.TimeStamp)
+		err := res.Scan(&content.Id, &content.Sender.ID, &content.Sender.Username, &content.Sender.Email, &content.Sender.ProfilePicture, &content.Sender.AboutMe, &content.Sender.Professions, &content.Sender.Location, &content.Content, &content.TimeStamp)
 		if err != nil {
 			utils.HandleError(err)
 			return
