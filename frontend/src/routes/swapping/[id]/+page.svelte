@@ -33,6 +33,9 @@
 
     onMount(async () => {
         // Get the user ID from route parameters
+        if(!$auth.isAuthenticated){
+          goto("/login");
+        }
         const targetUserId = $page.params.id;
         setTimeout(() => {
             takingLong = true;
