@@ -297,82 +297,92 @@
 
          <!-- Chat Window + Video -->
          <div class="lg:col-span-4 flex flex-col h-full gap-2 sm:gap-4 {selectedChat ? '' : 'hidden lg:flex'}">
-            <!-- Video Call Container -->
-            <div
-               class="bg-gray-900 rounded-xl shadow-lg h-40 sm:h-64 lg:h-80 flex-shrink-0 overflow-hidden relative"
-            >
-               {#if remoteStream}
-                  <video
-                     bind:this={remoteVideoElement}
-                     autoplay
-                     playsinline
-                     class="h-full w-full object-cover"
-                  >
-                     <track kind="captions" />
-                  </video>
-               {:else}
-                  <div class="h-full w-full flex items-center justify-center text-white">
-                     <div class="text-center px-4">
-                        <p class="text-xs sm:text-lg font-semibold opacity-75">
-                           {selectedChat ? `Waiting for ${getOtherUserInfo(selectedChat).name}...` : 'Select a chat to start video'}
-                        </p>
-                     </div>
-                  </div>
-               {/if}
+             <!-- Video Call Container -->
+             <div
+                class="bg-gray-900 rounded-xl shadow-lg flex-1 min-h-[300px] lg:min-h-[400px] overflow-hidden relative"
+             >
+                {#if remoteStream}
+                   <video
+                      bind:this={remoteVideoElement}
+                      autoplay
+                      playsinline
+                      class="absolute inset-0 w-full h-full object-contain bg-gray-900"
+                   >
+                      <track kind="captions" />
+                   </video>
+                {:else}
+                   <div class="absolute inset-0 flex items-center justify-center text-white bg-gradient-to-br from-gray-800 to-gray-900">
+                      <div class="text-center px-4">
+                         <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-gray-700 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                         </div>
+                         <p class="text-sm sm:text-lg font-medium opacity-90">
+                            {selectedChat ? `Waiting for ${getOtherUserInfo(selectedChat).name}...` : 'Select a chat to start video'}
+                         </p>
+                         {#if selectedChat}
+                            <p class="text-xs sm:text-sm text-gray-400 mt-2">Click "Start" to begin the call</p>
+                         {/if}
+                      </div>
+                   </div>
+                {/if}
 
-               <!-- Local Video (Picture-in-Picture) -->
-               {#if localStream}
-                  <div class="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-24 sm:w-48 aspect-video bg-black rounded-lg border border-white overflow-hidden shadow-xl">
-                     <video
-                        bind:this={localVideoElement}
-                        autoplay
-                        playsinline
-                        muted
-                        class="h-full w-full object-cover"
-                     >
-                        <track kind="captions" />
-                     </video>
-                  </div>
-               {/if}
+                <!-- Local Video (Picture-in-Picture) -->
+                {#if localStream}
+                   <div class="absolute bottom-4 right-4 w-28 sm:w-40 lg:w-48 aspect-video bg-black rounded-lg border-2 border-white/50 overflow-hidden shadow-xl z-10">
+                      <video
+                         bind:this={localVideoElement}
+                         autoplay
+                         playsinline
+                         muted
+                         class="h-full w-full object-cover mirror"
+                      >
+                         <track kind="captions" />
+                      </video>
+                   </div>
+                {/if}
 
-               <!-- Video Controls Overlay -->
-               <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-4">
-                  {#if !localStream}
-                     <button
-                        onclick={startVideoCall}
-                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full flex items-center gap-1 sm:gap-2 transition-colors shadow-lg text-xs sm:text-base"
-                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                        </svg>
-                        Start
-                     </button>
-                  {:else}
-                     <button
-                        onclick={endVideoCall}
-                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full flex items-center gap-1 sm:gap-2 transition-colors shadow-lg text-xs sm:text-base"
-                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                           <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-10a2 2 0 01-2-2V5zm11 1H6v8l4-2 4 2V6z" clip-rule="evenodd" />
-                        </svg>
-                        End
-                     </button>
-                  {/if}
-               </div>
+<!-- Video Controls Overlay -->
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+                   {#if !localStream}
+                      <button
+                         onclick={startVideoCall}
+                         class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-full flex items-center gap-2 sm:gap-2 transition-all shadow-lg text-sm sm:text-base font-medium hover:scale-105 active:scale-95"
+                      >
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                         </svg>
+                         <span class="hidden sm:inline">Start Call</span>
+                         <span class="sm:hidden">Start</span>
+                      </button>
+                   {:else}
+                      <button
+                         onclick={endVideoCall}
+                         class="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-full flex items-center gap-2 sm:gap-2 transition-all shadow-lg text-sm sm:text-base font-medium hover:scale-105 active:scale-95"
+                      >
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-10a2 2 0 01-2-2V5zm11 1H6v8l4-2 4 2V6z" clip-rule="evenodd" />
+                         </svg>
+                         <span class="hidden sm:inline">End Call</span>
+                         <span class="sm:hidden">End</span>
+                      </button>
+                   {/if}
+                </div>
 
-               <!-- Connection Status Badge -->
-               <div class="absolute top-2 right-2 sm:top-4 sm:right-4">
-                  <span
-                     class="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium {videoConnectionStatus === 'connected'
-                        ? 'bg-green-500 text-white'
-                        : videoConnectionStatus === 'error'
-                          ? 'bg-red-500 text-white'
-                          : 'bg-yellow-500 text-white'}"
-                  >
-                     {videoConnectionStatus}
-                  </span>
-               </div>
-            </div>
+<!-- Connection Status Badge -->
+                <div class="absolute top-4 right-4 z-20">
+                   <span
+                      class="px-3 py-1.5 rounded-full text-xs font-medium capitalize shadow-lg {videoConnectionStatus === 'connected'
+                         ? 'bg-green-500/90 text-white backdrop-blur-sm'
+                         : videoConnectionStatus === 'error'
+                           ? 'bg-red-500/90 text-white backdrop-blur-sm'
+                           : 'bg-yellow-500/90 text-white backdrop-blur-sm'}"
+                   >
+                      {videoConnectionStatus}
+                   </span>
+                </div>
+             </div>
 
             <!-- Chat Messages -->
             <div class="flex-1 min-h-0 relative">
