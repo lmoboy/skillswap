@@ -6,6 +6,12 @@ export default defineConfig({
    plugins: [tailwindcss(), sveltekit()],
 
    server: {
+      host: '0.0.0.0',
+      port: 5173,
+      allowedHosts: ['.ngrok-free.dev', 'undecided-groggily-bonsai.ngrok-free.dev'],
+      hmr: {
+         clientPort: 443,
+      },
       proxy: {
          '/api': {
             target: 'http://localhost:8080',
