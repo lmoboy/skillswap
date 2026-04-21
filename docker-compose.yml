@@ -1,22 +1,4 @@
 services:
-   mysql:
-      image: mysql:8.0
-      container_name: skillswap-mysql
-      environment:
-         MYSQL_ROOT_PASSWORD: rootpassword
-         MYSQL_DATABASE: skillswap
-         MYSQL_USER: skillswap
-         MYSQL_PASSWORD: skillswap
-      volumes:
-         - mysql-data:/var/lib/mysql
-      networks:
-         - skillswap-network
-      restart: unless-stopped
-      healthcheck:
-         test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
-         timeout: 20s
-         retries: 10
-
    backend:
       build:
          context: ./backend
@@ -25,23 +7,26 @@ services:
       ports:
          - '0.0.0.0:8080:8080'
       environment:
-         - DB_URL=skillswap:skillswap@tcp(mysql:3306)/skillswap?parseTime=true
+         - DB_URL=/root/data/skillswap.db
+         - GOMEMLIMIT=64MiB
       volumes:
          - backend-uploads:/root/uploads
-      depends_on:
-         mysql:
-            condition: service_healthy
+         - backend-data:/root/data
       networks:
          skillswap-network:
             aliases:
                - backend
       restart: unless-stopped
+      deploy:
+         resources:
+            limits:
+               memory: 128M
 
    frontend:
       build:
          context: ./frontend
          dockerfile: Dockerfile
-         shm_size: '2gb'
+         shm_size: '1gb'
       container_name: skillswap-frontend
       ports:
          - '0.0.0.0:80:3000'
@@ -49,7 +34,7 @@ services:
          - ORIGIN=http://89.117.50.20
          - BODY_SIZE_LIMIT=Infinity
          - BACKEND_URL=http://backend:8080
-         - NODE_OPTIONS=--max-old-space-size=4096
+         - NODE_OPTIONS=--max-old-space-size=256
       depends_on:
          backend:
             condition: service_started
@@ -59,14 +44,14 @@ services:
       deploy:
          resources:
             limits:
-               memory: 6G
+               memory: 512M
             reservations:
-               memory: 2G
+               memory: 128M
 
    updater:
       image: containrrr/watchtower
       container_name: skillswap-updater
-      profiles: ['manual']  # Disabled by default - start manually with: docker-compose --profile manual up updater
+      profiles: ['manual']
       volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - ./:/app
@@ -82,7 +67,7 @@ services:
    autoupdate:
       image: alpine/git
       container_name: skillswap-git-puller
-      profiles: ['manual']  # Disabled by default - start manually with: docker-compose --profile manual up autoupdate
+      profiles: ['manual']
       working_dir: /app
       volumes:
          - ./:/app
@@ -97,5 +82,5 @@ networks:
       driver: bridge
 
 volumes:
-   mysql-data:
+   backend-data:
    backend-uploads:

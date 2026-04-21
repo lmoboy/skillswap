@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // TestDB is a test database connection (uses the same connection as the main database)
@@ -17,10 +17,10 @@ var TestDB *sql.DB
 func SetupTestDB() (err error) {
 	// Set DB_URL environment variable if not already set for local testing
 	if os.Getenv("DB_URL") == "" {
-		// Use the actual database credentials
-		os.Setenv("DB_URL", "goback:encrypted@tcp(localhost:3306)/skillswap?parseTime=true")
+		// Use in-memory SQLite for tests by default
+		os.Setenv("DB_URL", ":memory:")
 	}
-	
+
 	// Try to initialize the main database connection
 	// Capture log.Fatal and convert to error
 	defer func() {
@@ -29,12 +29,12 @@ func SetupTestDB() (err error) {
 			TestDB = nil
 		}
 	}()
-	
+
 	// Set environment to test mode to prevent log.Fatal
 	os.Setenv("GO_ENV", "test")
-	
+
 	Init()
-	
+
 	// Use the existing database connection for tests
 	TestDB, err = GetDatabase()
 	if err != nil {
@@ -97,8 +97,10 @@ func InsertTestUser(username, email, password string) (int64, error) {
 		return 0, fmt.Errorf("test database not initialized")
 	}
 
+	// SQLite doesn't have MD5 built-in by default.
+	// We'll just store the password string as hash for tests.
 	result, err := TestDB.Exec(
-		"INSERT INTO users (username, email, password_hash) VALUES (?, ?, MD5(?))",
+		"INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
 		username, email, password,
 	)
 	if err != nil {
