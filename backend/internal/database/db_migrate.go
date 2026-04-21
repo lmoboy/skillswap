@@ -81,9 +81,8 @@ func translateMySQLToSQLite(sql string) string {
 	sql = reKey.ReplaceAllString(sql, "")
 
 	// Sometimes KEY is the last thing before ), so we need to handle that too
-	reKeyLast := regexp.MustCompile(`(?i)KEY\s+\w+\s+\([^)]+\)\s*(?=\))`)
-	sql = reKeyLast.ReplaceAllString(sql, "")
-
+	reKeyLast := regexp.MustCompile(`(?i)KEY\s+\w+\s+\([^)]+\)\s*\)`)
+	sql = reKeyLast.ReplaceAllString(sql, ")")
 	// Remove "ON UPDATE CURRENT_TIMESTAMP"
 	reOnUpdate := regexp.MustCompile(`(?i)ON\s+UPDATE\s+CURRENT_TIMESTAMP`)
 	sql = reOnUpdate.ReplaceAllString(sql, "")
@@ -101,8 +100,8 @@ func translateMySQLToSQLite(sql string) string {
 	sql = reFKChecks.ReplaceAllString(sql, "")
 
 	// Final cleanup: if we removed a key and left a trailing comma before a ), remove it
-	reTrailingComma := regexp.MustCompile(`,\s*(?=\s*\))`)
-	sql = reTrailingComma.ReplaceAllString(sql, "")
+	reTrailingComma := regexp.MustCompile(`,\s*\)`)
+	sql = reTrailingComma.ReplaceAllString(sql, ")")
 
 	return sql
 }
