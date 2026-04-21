@@ -241,7 +241,7 @@ func TestGetMessagesFromUID(t *testing.T) {
 	// Insert test messages
 	_, err = database.TestDB.Exec(`
 		INSERT INTO messages (chat_id, sender_id, content, created_at)
-		VALUES (?, ?, ?, NOW())
+		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
 	`, chatIDInt64, user1ID, "Hello from user1")
 	if err != nil {
 		t.Fatalf("Failed to insert message 1: %v", err)
@@ -249,7 +249,7 @@ func TestGetMessagesFromUID(t *testing.T) {
 
 	_, err = database.TestDB.Exec(`
 		INSERT INTO messages (chat_id, sender_id, content, created_at)
-		VALUES (?, ?, ?, NOW())
+		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
 	`, chatIDInt64, user2ID, "Hello from user2")
 	if err != nil {
 		t.Fatalf("Failed to insert message 2: %v", err)

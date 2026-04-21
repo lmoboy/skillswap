@@ -1,4 +1,5 @@
 package database
+
 import (
 	"encoding/json"
 	"net/http"
@@ -92,7 +93,7 @@ func Search(w http.ResponseWriter, req *http.Request) {
             u.id,
             u.username,
             u.email,
-            COALESCE(GROUP_CONCAT(s.name SEPARATOR ', '), '') AS skills_found
+            COALESCE(GROUP_CONCAT(s.name, ', '), '') AS skills_found
         FROM users AS u
         LEFT JOIN user_skills AS us ON u.id = us.user_id
         LEFT JOIN skills AS s ON us.skill_id = s.id
@@ -160,7 +161,7 @@ func FullSearch(w http.ResponseWriter, req *http.Request) {
             u.email,
             u.aboutme,
             u.profession,
-            COALESCE(GROUP_CONCAT(s.name SEPARATOR ', '), '') AS skills_found,
+            COALESCE(GROUP_CONCAT(s.name, ', '), '') AS skills_found,
             u.created_at
         FROM users AS u
         LEFT JOIN user_skills AS us ON u.id = us.user_id

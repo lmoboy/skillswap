@@ -60,8 +60,11 @@ func translateMySQLToSQLite(sql string) string {
 	reCollate := regexp.MustCompile(`(?i)COLLATE\s*=\s*\w+`)
 	sql = reCollate.ReplaceAllString(sql, "")
 
+	// Fix DEFAULT("value") -> DEFAULT 'value'
+	reDefaultParens := regexp.MustCompile(`(?i)DEFAULT\s*\(([^)]+)\)`)
+	sql = reDefaultParens.ReplaceAllString(sql, "DEFAULT $1")
+
 	// Translate BIGINT UNSIGNED NOT NULL AUTO_INCREMENT to INTEGER PRIMARY KEY
-	// Note: In SQLite, "INTEGER PRIMARY KEY" is the only way to get auto-incrementing IDs
 	rePK := regexp.MustCompile(`(?i)id\s+BIGINT\s+UNSIGNED\s+NOT\s+NULL\s+AUTO_INCREMENT`)
 	sql = rePK.ReplaceAllString(sql, "id INTEGER PRIMARY KEY AUTOINCREMENT")
 
@@ -69,18 +72,23 @@ func translateMySQLToSQLite(sql string) string {
 	rePKLine := regexp.MustCompile(`(?i),\s*PRIMARY\s+KEY\s*\(id\)`)
 	sql = rePKLine.ReplaceAllString(sql, "")
 
-	// Remove MySQL-specific key declarations that SQLite doesn't support inside CREATE TABLE
+	// Remove MySQL-specific key declarations
 	reUniqueKey := regexp.MustCompile(`(?i)UNIQUE\s+KEY\s+\w+\s+\(`)
 	sql = reUniqueKey.ReplaceAllString(sql, "UNIQUE (")
 
+	// Remove stand-alone KEY lines and handle trailing commas
 	reKey := regexp.MustCompile(`(?i),\s*KEY\s+\w+\s+\([^)]+\)`)
 	sql = reKey.ReplaceAllString(sql, "")
+
+	// Sometimes KEY is the last thing before ), so we need to handle that too
+	reKeyLast := regexp.MustCompile(`(?i)KEY\s+\w+\s+\([^)]+\)\s*(?=\))`)
+	sql = reKeyLast.ReplaceAllString(sql, "")
 
 	// Remove "ON UPDATE CURRENT_TIMESTAMP"
 	reOnUpdate := regexp.MustCompile(`(?i)ON\s+UPDATE\s+CURRENT_TIMESTAMP`)
 	sql = reOnUpdate.ReplaceAllString(sql, "")
 
-	// Replace ENUM with TEXT and add CHECK constraint (or just TEXT for simplicity in migration)
+	// Replace ENUM with TEXT
 	reEnum := regexp.MustCompile(`(?i)ENUM\s*\([^)]+\)`)
 	sql = reEnum.ReplaceAllString(sql, "TEXT")
 
@@ -92,9 +100,12 @@ func translateMySQLToSQLite(sql string) string {
 	reFKChecks := regexp.MustCompile(`(?i)SET\s+FOREIGN_KEY_CHECKS\s*=\s*[01];`)
 	sql = reFKChecks.ReplaceAllString(sql, "")
 
+	// Final cleanup: if we removed a key and left a trailing comma before a ), remove it
+	reTrailingComma := regexp.MustCompile(`,\s*(?=\s*\))`)
+	sql = reTrailingComma.ReplaceAllString(sql, "")
+
 	return sql
 }
-
 func createMigrationsTable(db *sql.DB) error {
 	query := `
 		CREATE TABLE IF NOT EXISTS migrations (
