@@ -130,13 +130,13 @@ func GetCoursesByInstructor(w http.ResponseWriter, r *http.Request) {
 
 // AddCourse handles the creation of a new course with modules
 func AddCourse(w http.ResponseWriter, r *http.Request) {
-	// Limit upload size (500 MB for videos)
-	r.Body = http.MaxBytesReader(w, r.Body, 500<<20)
+	// Limit upload size (2GB for large videos)
+	r.Body = http.MaxBytesReader(w, r.Body, 2000<<20)
 	// utils.DebugPrint("Course upload started")
 
-	if err := r.ParseMultipartForm(500 << 20); err != nil {
+	if err := r.ParseMultipartForm(2000 << 20); err != nil {
 		// utils.DebugPrint("File too large or invalid form data")
-		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "File too large or invalid form data"})
+		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "File too large or invalid form data. Maximum size is 2GB."})
 		return
 	}
 

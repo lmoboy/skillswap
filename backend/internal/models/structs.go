@@ -56,6 +56,7 @@ type UserInfo struct {
 	OldPassword    string        `json:"old_password"`
 	Password       string        `json:"password"`
 	ID             int           `json:"id"`
+	IsAdmin        bool          `json:"is_admin"`
 	ProfilePicture string        `json:"profile_picture"`
 	AboutMe        string        `json:"aboutme"`
 	Projects       []UserProject `json:"projects"`

@@ -52,6 +52,17 @@ export const handle: Handle = async ({ event, resolve }) => {
       responseHeaders.set('Access-Control-Allow-Headers', '*');
       responseHeaders.set('Access-Control-Expose-Headers', '*');
 
+      // Prevent browser caching for auth-related endpoints
+      if (url.pathname.startsWith('/api/login') || 
+          url.pathname.startsWith('/api/logout') || 
+          url.pathname.startsWith('/api/register') || 
+          url.pathname.startsWith('/api/cookieUser') || 
+          url.pathname.startsWith('/api/user')) {
+        responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        responseHeaders.set('Pragma', 'no-cache');
+        responseHeaders.set('Expires', '0');
+      }
+
       return new Response(backendResponse.body, {
         status: backendResponse.status,
         statusText: backendResponse.statusText,
@@ -65,7 +76,10 @@ export const handle: Handle = async ({ event, resolve }) => {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin':
             request.headers.get('origin') || 'localhost:8080',
-          'Access-Control-Allow-Credentials': 'true'
+          'Access-Control-Allow-Credentials': 'true',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
     }
@@ -100,6 +114,16 @@ export const handle: Handle = async ({ event, resolve }) => {
   );
   response.headers.set('Access-Control-Allow-Headers', '*');
   response.headers.set('Access-Control-Expose-Headers', '*');
+
+  // Prevent browser caching for auth-related pages
+  if (url.pathname.startsWith('/auth') || 
+      url.pathname.startsWith('/course') || 
+      url.pathname.startsWith('/settings') ||
+      url.pathname.startsWith('/swapping')) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
 
   return response;
 };

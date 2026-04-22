@@ -1,6 +1,5 @@
 package users
 
-
 import (
 	"encoding/json"
 	"net/http"
@@ -18,44 +17,40 @@ import (
 func RetrieveUserInfo(w http.ResponseWriter, req *http.Request) {
 
 	rows, err := database.Query(`
-SELECT
+		SELECT
   u.id,
   u.username,
   u.email,
-  COALESCE(u.profile_picture, "noPicture") as profile_picture,
-  COALESCE(u.aboutme, "") as aboutme,
-  COALESCE(u.location, "") as location,
-  COALESCE(u.profession, "") as profession,
+  u.is_admin,
+  COALESCE(u.profile_picture, 'noPicture') as profile_picture,
+  COALESCE(u.aboutme, '') as aboutme,
+  COALESCE(u.location, '') as location,
+  COALESCE(u.profession, '') as profession,
 
-  COALESCE(
-    JSON_ARRAYAGG(
-      JSON_OBJECT("name", s.name, "verified", us.verified)
-    ), JSON_ARRAY()
-  ) AS skills,
+  -- Skills Subquery
+  (SELECT JSON_GROUP_ARRAY(
+      JSON_OBJECT('name', s.name, 'verified', us.verified)
+    )
+   FROM user_skills us
+   JOIN skills s ON us.skill_id = s.id
+   WHERE us.user_id = u.id) AS skills,
 
-  COALESCE(
-    JSON_ARRAYAGG(
-      JSON_OBJECT("name", up.name, "description", COALESCE(up.description, ""), "link", COALESCE(up.link, ""))
-    ), JSON_ARRAY()
-  ) AS projects,
+  -- Projects Subquery
+  (SELECT JSON_GROUP_ARRAY(
+      JSON_OBJECT('name', up.name, 'description', COALESCE(up.description, ''), 'link', COALESCE(up.link, ''))
+    )
+   FROM user_projects up
+   WHERE up.user_id = u.id) AS projects,
 
-  COALESCE(
-    JSON_ARRAYAGG(
-      JSON_OBJECT("name", uc.name, "link", COALESCE(uc.link, ""), "icon", uc.icon)
-    ), JSON_ARRAY()
-  ) AS contacts
+  -- Contacts Subquery
+  (SELECT JSON_GROUP_ARRAY(
+      JSON_OBJECT('name', uc.name, 'link', COALESCE(uc.link, ''), 'icon', uc.icon)
+    )
+   FROM user_contacts uc
+   WHERE uc.user_id = u.id) AS contacts
 
 FROM users AS u
-
-LEFT JOIN user_skills AS us ON u.id = us.user_id
-LEFT JOIN skills AS s ON us.skill_id = s.id
-
-LEFT JOIN user_projects AS up ON u.id = up.user_id
-LEFT JOIN user_contacts AS uc ON u.id = uc.user_id
-
-WHERE u.id = ?
-GROUP BY u.id, u.username, u.email, u.profile_picture, u.aboutme, u.location, u.profession;
-`, req.URL.Query().Get("q"))
+WHERE u.id = ?;`, req.URL.Query().Get("q"))
 	if err != nil {
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to retrieve user info"})
@@ -71,7 +66,7 @@ GROUP BY u.id, u.username, u.email, u.profile_picture, u.aboutme, u.location, u.
 		return
 	}
 
-	err = rows.Scan(&user.ID, &user.Username, &user.Email, &user.ProfilePicture, &user.AboutMe, &user.Location, &user.Professions, &skillsJSON, &projectsJSON, &contactsJSON)
+	err = rows.Scan(&user.ID, &user.Username, &user.Email, &user.IsAdmin, &user.ProfilePicture, &user.AboutMe, &user.Location, &user.Professions, &skillsJSON, &projectsJSON, &contactsJSON)
 	if err != nil {
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to parse user data"})

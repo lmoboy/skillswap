@@ -1,5 +1,4 @@
 <script lang="ts">
-   
    import { onMount, onDestroy } from 'svelte'
    import { auth } from '$lib/stores/auth'
    import { goto } from '$app/navigation'
@@ -32,6 +31,7 @@
    let videoConnectionStatus = $state('disconnected')
    let localVideoElement: HTMLVideoElement | null = $state(null)
    let remoteVideoElement: HTMLVideoElement | null = $state(null)
+   let incomingCall = $state<RTCSessionDescriptionInit | null>(null)
 
    function getWebSocketUrl(path: string = '/api/chat'): string {
       if (typeof window !== 'undefined') {
@@ -55,27 +55,53 @@
          (stream) => {
             console.log('Remote stream received')
             remoteStream = stream
-            if (remoteVideoElement) {
-               remoteVideoElement.srcObject = stream
-            }
          },
          (status) => {
             console.log('WebRTC status:', status)
             videoConnectionStatus = status
-         }
+         },
+         (offer) => {
+            console.log('Incoming call offer received')
+            incomingCall = offer
+         },
       )
 
       const wsUrl = getWebSocketUrl('/api/video')
-      webrtcService.connect(wsUrl)
+      try {
+         webrtcService.connect(wsUrl)
+      } catch (error) {
+         console.error('Failed to connect WebRTC:', error)
+         videoConnectionStatus = 'error'
+      }
    }
+
+   $effect(() => {
+      if (remoteVideoElement && remoteStream) {
+         remoteVideoElement.srcObject = remoteStream
+      }
+   })
+
+   $effect(() => {
+      if (localVideoElement && localStream) {
+         localVideoElement.srcObject = localStream
+      }
+   })
 
    async function startVideoCall() {
       if (!webrtcService) {
          initializeWebRTC()
       }
-      
+
       try {
-         const stream = await webrtcService!.startLocalStream()
+         // Try to get HD video stream first
+         const stream = await webrtcService!.startLocalStream({
+            video: {
+               width: { ideal: 1280 },
+               height: { ideal: 720 },
+               frameRate: { ideal: 30 },
+            },
+            audio: true,
+         })
          localStream = stream
          if (localVideoElement) {
             localVideoElement.srcObject = stream
@@ -83,17 +109,69 @@
          await webrtcService!.call()
       } catch (err) {
          console.error('Failed to start video call:', err)
+         videoConnectionStatus = 'error'
+
+         // Try fallback to audio-only
+         try {
+            const stream = await webrtcService!.startLocalStream({
+               video: false,
+               audio: true,
+            })
+            localStream = stream
+            if (localVideoElement) {
+               localVideoElement.srcObject = stream
+            }
+            await webrtcService!.call()
+         } catch (fallbackErr) {
+            console.error('Fallback to audio-only also failed:', fallbackErr)
+            videoConnectionStatus = 'error'
+         }
       }
+   }
+
+   async function acceptCall() {
+      if (!webrtcService || !incomingCall) return
+
+      const offer = incomingCall
+      incomingCall = null
+
+      try {
+         const stream = await webrtcService.startLocalStream()
+         localStream = stream
+         if (localVideoElement) {
+            localVideoElement.srcObject = stream
+         }
+         await webrtcService.handleOffer(offer)
+      } catch (err) {
+         console.error('Failed to accept video call:', err)
+      }
+   }
+
+   function rejectCall() {
+      incomingCall = null
    }
 
    function endVideoCall() {
       if (webrtcService) {
-         webrtcService.disconnect()
+         try {
+            webrtcService.disconnect()
+         } catch (error) {
+            console.error('Error disconnecting WebRTC:', error)
+         }
          webrtcService = null
       }
       localStream = null
       remoteStream = null
+      incomingCall = null
       videoConnectionStatus = 'disconnected'
+
+      // Clear video elements
+      if (localVideoElement) {
+         localVideoElement.srcObject = null
+      }
+      if (remoteVideoElement) {
+         remoteVideoElement.srcObject = null
+      }
    }
 
    async function updateChat() {
@@ -110,7 +188,7 @@
             const body2 = await res2.json()
             console.log(body2)
             const msgs: Message[] = body2.messages ?? []
-           
+
             return {
                ...cm,
                messages: msgs,
@@ -134,9 +212,9 @@
       console.log('Connecting to WebSocket:', wsUrl)
 
       try {
-        loading = false 
-        socket = new WebSocket(wsUrl)
-        
+         loading = false
+         socket = new WebSocket(wsUrl)
+
          socket.onopen = () => {
             console.log('WebSocket connected')
             connectionStatus = 'connected'
@@ -253,9 +331,9 @@
    }
 
    onMount(() => {
-     if(!$auth.isAuthenticated){
-      goto("/login");
-     }
+      if (!$auth.isAuthenticated) {
+         goto('/login')
+      }
       updateChat()
       initializeWebSocket()
    })
@@ -286,7 +364,9 @@
    {:else}
       <div class="grid grid-cols-1 lg:grid-cols-5 h-full gap-2 sm:gap-4">
          <!-- Chat List - Hidden on mobile when chat selected -->
-         <div class="lg:col-span-1 h-full {selectedChat ? 'hidden lg:block' : ''}">
+         <div
+            class="lg:col-span-1 h-full {selectedChat ? 'hidden lg:block' : ''}"
+         >
             <ChatList
                {chats}
                selectedChatId={selectedChat?.id || null}
@@ -296,108 +376,219 @@
          </div>
 
          <!-- Chat Window + Video -->
-         <div class="lg:col-span-4 flex flex-col h-full gap-2 sm:gap-4 {selectedChat ? '' : 'hidden lg:flex'}">
-             <!-- Video Call Container -->
-             <div
-                class="bg-gray-900 rounded-xl shadow-lg flex-1 min-h-[300px] lg:min-h-[400px] overflow-hidden relative"
-             >
-                {#if remoteStream}
-                   <video
-                      bind:this={remoteVideoElement}
-                      autoplay
-                      playsinline
-                      class="absolute inset-0 w-full h-full object-contain bg-gray-900"
-                   >
-                      <track kind="captions" />
-                   </video>
-                {:else}
-                   <div class="absolute inset-0 flex items-center justify-center text-white bg-gradient-to-br from-gray-800 to-gray-900">
-                      <div class="text-center px-4">
-                         <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-gray-700 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                         </div>
-                         <p class="text-sm sm:text-lg font-medium opacity-90">
-                            {selectedChat ? `Waiting for ${getOtherUserInfo(selectedChat).name}...` : 'Select a chat to start video'}
-                         </p>
-                         {#if selectedChat}
-                            <p class="text-xs sm:text-sm text-gray-400 mt-2">Click "Start" to begin the call</p>
-                         {/if}
-                      </div>
-                   </div>
-                {/if}
+         <div
+            class="lg:col-span-4 flex flex-col h-full gap-2 sm:gap-4 {selectedChat
+               ? ''
+               : 'hidden lg:flex'}"
+         >
+            <!-- Video Call Container -->
+            <div
+               class="bg-gray-900 rounded-xl shadow-lg flex-1 min-h-[300px] lg:min-h-[400px] overflow-hidden relative"
+            >
+               {#if remoteStream}
+                  <video
+                     bind:this={remoteVideoElement}
+                     autoplay
+                     playsinline
+                     class="absolute inset-0 w-full h-full object-contain bg-gray-900"
+                  >
+                     <track kind="captions" />
+                  </video>
+               {:else}
+                  <div
+                     class="absolute inset-0 flex items-center justify-center text-white bg-gradient-to-br from-gray-800 to-gray-900"
+                  >
+                     <div class="text-center px-4">
+                        <div
+                           class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-gray-700 flex items-center justify-center"
+                        >
+                           <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-8 w-8 sm:h-10 sm:w-10 text-gray-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                           >
+                              <path
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round"
+                                 stroke-width="2"
+                                 d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                           </svg>
+                        </div>
+                        <p class="text-sm sm:text-lg font-medium opacity-90">
+                           {selectedChat
+                              ? `Waiting for ${getOtherUserInfo(selectedChat).name}...`
+                              : 'Select a chat to start video'}
+                        </p>
+                        {#if selectedChat}
+                           <p class="text-xs sm:text-sm text-gray-400 mt-2">
+                              Click "Start" to begin the call
+                           </p>
+                        {/if}
+                     </div>
+                  </div>
+               {/if}
 
-                <!-- Local Video (Picture-in-Picture) -->
-                {#if localStream}
-                   <div class="absolute bottom-4 right-4 w-28 sm:w-40 lg:w-48 aspect-video bg-black rounded-lg border-2 border-white/50 overflow-hidden shadow-xl z-10">
-                      <video
-                         bind:this={localVideoElement}
-                         autoplay
-                         playsinline
-                         muted
-                         class="h-full w-full object-cover mirror"
-                      >
-                         <track kind="captions" />
-                      </video>
-                   </div>
-                {/if}
+               <!-- Local Video (Picture-in-Picture) -->
+               {#if localStream}
+                  <div
+                     class="absolute bottom-4 right-4 w-28 sm:w-40 lg:w-48 aspect-video bg-black rounded-lg border-2 border-white/50 overflow-hidden shadow-xl z-10"
+                  >
+                     <video
+                        bind:this={localVideoElement}
+                        autoplay
+                        playsinline
+                        muted
+                        class="h-full w-full object-cover mirror"
+                     >
+                        <track kind="captions" />
+                     </video>
+                  </div>
+               {/if}
 
-<!-- Video Controls Overlay -->
-                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-                   {#if !localStream}
-                      <button
-                         onclick={startVideoCall}
-                         class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-full flex items-center gap-2 sm:gap-2 transition-all shadow-lg text-sm sm:text-base font-medium hover:scale-105 active:scale-95"
-                      >
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                         </svg>
-                         <span class="hidden sm:inline">Start Call</span>
-                         <span class="sm:hidden">Start</span>
-                      </button>
-                   {:else}
-                      <button
-                         onclick={endVideoCall}
-                         class="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-full flex items-center gap-2 sm:gap-2 transition-all shadow-lg text-sm sm:text-base font-medium hover:scale-105 active:scale-95"
-                      >
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-10a2 2 0 01-2-2V5zm11 1H6v8l4-2 4 2V6z" clip-rule="evenodd" />
-                         </svg>
-                         <span class="hidden sm:inline">End Call</span>
-                         <span class="sm:hidden">End</span>
-                      </button>
-                   {/if}
-                </div>
+               <!-- Incoming Call Overlay -->
+               {#if incomingCall}
+                  <div
+                     class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30"
+                  >
+                     <div
+                        class="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl max-w-sm w-full mx-4 text-center transform transition-all scale-100"
+                     >
+                        <div
+                           class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse"
+                        >
+                           <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-10 w-10 text-blue-600"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                           >
+                              <path
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round"
+                                 stroke-width="2"
+                                 d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                           </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                           Incoming Video Call
+                        </h3>
+                        <p class="text-gray-500 mb-8">
+                           {selectedChat
+                              ? getOtherUserInfo(selectedChat).name
+                              : 'Someone'} is calling you...
+                        </p>
+                        <div class="flex gap-4">
+                           <button
+                              onclick={rejectCall}
+                              class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition-colors"
+                           >
+                              Decline
+                           </button>
+                           <button
+                              onclick={acceptCall}
+                              class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-colors shadow-lg shadow-green-200"
+                           >
+                              Accept
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               {/if}
 
-<!-- Connection Status Badge -->
-                <div class="absolute top-4 right-4 z-20">
-                   <span
-                      class="px-3 py-1.5 rounded-full text-xs font-medium capitalize shadow-lg {videoConnectionStatus === 'connected'
-                         ? 'bg-green-500/90 text-white backdrop-blur-sm'
-                         : videoConnectionStatus === 'error'
-                           ? 'bg-red-500/90 text-white backdrop-blur-sm'
-                           : 'bg-yellow-500/90 text-white backdrop-blur-sm'}"
-                   >
-                      {videoConnectionStatus}
-                   </span>
-                </div>
-             </div>
+               <!-- Video Controls Overlay -->
+               <div
+                  class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 z-20"
+               >
+                  {#if !localStream}
+                     <button
+                        onclick={startVideoCall}
+                        class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-full flex items-center gap-2 sm:gap-2 transition-all shadow-lg text-sm sm:text-base font-medium hover:scale-105 active:scale-95"
+                     >
+                        <svg
+                           xmlns="http://www.w3.org/2000/svg"
+                           class="h-5 w-5"
+                           viewBox="0 0 20 20"
+                           fill="currentColor"
+                        >
+                           <path
+                              d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"
+                           />
+                        </svg>
+                        <span class="hidden sm:inline">Start Call</span>
+                        <span class="sm:hidden">Start</span>
+                     </button>
+                  {:else}
+                     <button
+                        onclick={endVideoCall}
+                        class="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-full flex items-center gap-2 sm:gap-2 transition-all shadow-lg text-sm sm:text-base font-medium hover:scale-105 active:scale-95"
+                     >
+                        <svg
+                           xmlns="http://www.w3.org/2000/svg"
+                           class="h-5 w-5"
+                           viewBox="0 0 20 20"
+                           fill="currentColor"
+                        >
+                           <path
+                              fill-rule="evenodd"
+                              d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-10a2 2 0 01-2-2V5zm11 1H6v8l4-2 4 2V6z"
+                              clip-rule="evenodd"
+                           />
+                        </svg>
+                        <span class="hidden sm:inline">End Call</span>
+                        <span class="sm:hidden">End</span>
+                     </button>
+                  {/if}
+               </div>
+
+               <!-- Connection Status Badge -->
+               <div class="absolute top-4 right-4 z-20">
+                  <span
+                     class="px-3 py-1.5 rounded-full text-xs font-medium capitalize shadow-lg {[
+                        'connected',
+                        'completed',
+                     ].includes(videoConnectionStatus)
+                        ? 'bg-green-500/90 text-white backdrop-blur-sm'
+                        : ['failed', 'closed', 'error'].includes(
+                               videoConnectionStatus,
+                            )
+                          ? 'bg-red-500/90 text-white backdrop-blur-sm'
+                          : 'bg-yellow-500/90 text-white backdrop-blur-sm'}"
+                  >
+                     {videoConnectionStatus}
+                  </span>
+               </div>
+            </div>
 
             <!-- Chat Messages -->
             <div class="flex-1 min-h-0 relative">
                {#if selectedChat}
                   <!-- Back button for mobile -->
                   <button
-                      aria-label="Go back"
-                     onclick={() => selectedChatIndex = -1}
+                     aria-label="Go back"
+                     onclick={() => (selectedChatIndex = -1)}
                      class="lg:hidden absolute top-2 left-2 z-10 bg-white rounded-full p-2 shadow-md"
                   >
-                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                     <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                     >
+                        <path
+                           stroke-linecap="round"
+                           stroke-linejoin="round"
+                           stroke-width="2"
+                           d="M15 19l-7-7 7-7"
+                        />
                      </svg>
                   </button>
-                  
+
                   {@const otherUser = getOtherUserInfo(selectedChat)}
                   <ChatWindow
                      messages={selectedChat.messages}
@@ -431,7 +622,9 @@
                               />
                            </svg>
                         </div>
-                        <h3 class="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                        <h3
+                           class="text-lg sm:text-xl font-semibold text-gray-900 mb-2"
+                        >
                            Select a conversation
                         </h3>
                         <p class="text-sm sm:text-base text-gray-500">

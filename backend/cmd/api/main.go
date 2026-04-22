@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"time"
 
+	"skillswap/backend/internal/config"
+	"skillswap/backend/internal/database"
+	"skillswap/backend/internal/handlers/admin"
 	"skillswap/backend/internal/handlers/auth"
 	"skillswap/backend/internal/handlers/chat"
-	"skillswap/backend/internal/config"
 	"skillswap/backend/internal/handlers/courses"
 	"skillswap/backend/internal/handlers/skills"
 	"skillswap/backend/internal/handlers/users"
 	"skillswap/backend/internal/handlers/video"
-	"skillswap/backend/internal/database"
 	"skillswap/backend/internal/middleware"
 	"skillswap/backend/internal/utils"
 
@@ -45,13 +46,13 @@ func main() {
 	server.HandleFunc("/api/register", auth.Register).Methods("POST")
 	server.HandleFunc("/api/logout", auth.Logout).Methods("POST")
 	server.HandleFunc("/api/cookieUser", auth.CheckSession).Methods("GET")
-	
+
 	// Public search and user info routes
 	server.HandleFunc("/api/search", database.Search).Methods("POST")
 	server.HandleFunc("/api/fullSearch", database.FullSearch).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
 	server.HandleFunc("/api/profile/{id}/picture", users.GetProfilePicture).Methods("GET")
-	
+
 	// Public course routes
 	server.HandleFunc("/api/courses", courses.GetAllCourses).Methods("GET")
 	server.HandleFunc("/api/course", courses.GetCourseByID).Methods("GET")
@@ -60,19 +61,27 @@ func main() {
 	server.HandleFunc("/api/course/video", courses.ServeModuleVideo).Methods("GET")
 	server.HandleFunc("/api/course/{id}/stream", courses.StreamCourseAsset).Methods("GET")
 	server.HandleFunc("/api/getSkills", skills.GetSkills).Methods("GET")
-	
+
 	// Protected routes (authentication required)
 	server.HandleFunc("/api/updateUser", middleware.AuthMiddleware(users.UpdateUser)).Methods("POST")
 	server.HandleFunc("/api/profile/picture", middleware.AuthMiddleware(users.UploadProfilePicture)).Methods("POST")
-	
+
 	server.HandleFunc("/api/chat", middleware.AuthMiddleware(chat.SimpleWebSocketEndpoint))
 	server.HandleFunc("/api/createChat", middleware.AuthMiddleware(chat.CreateChat))
 	server.HandleFunc("/api/getChats", middleware.AuthMiddleware(chat.GetChatsFromUserID))
 	server.HandleFunc("/api/getChatInfo", middleware.AuthMiddleware(chat.GetMessagesFromUID))
 	server.HandleFunc("/api/video", middleware.AuthMiddleware(video.HandleWebSocket)).Methods("GET")
-	
+
 	server.HandleFunc("/api/course/add", middleware.AuthMiddleware(courses.AddCourse)).Methods("POST")
 	server.HandleFunc("/api/course/upload", middleware.AuthMiddleware(courses.UploadCourseAsset)).Methods("POST")
+
+	// Admin routes
+	server.HandleFunc("/api/admin/users", admin.AdminOnly(admin.GetUsers)).Methods("GET")
+	server.HandleFunc("/api/admin/users/{id}", admin.AdminOnly(admin.DeleteUser)).Methods("DELETE")
+	server.HandleFunc("/api/admin/skills", admin.AdminOnly(admin.AddSkill)).Methods("POST")
+	server.HandleFunc("/api/admin/skills/{id}", admin.AdminOnly(admin.DeleteSkill)).Methods("DELETE")
+	server.HandleFunc("/api/admin/courses", admin.AdminOnly(admin.GetCourses)).Methods("GET")
+	server.HandleFunc("/api/admin/courses/{id}", admin.AdminOnly(admin.DeleteCourse)).Methods("DELETE")
 
 	server.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.
@@ -94,7 +103,7 @@ func main() {
 
 	// Izveido un konfigurē HTTP serveri.
 	serve := &http.Server{
-		Handler: server,         // Norāda, ka šis serveris izmantos mūsu iepriekš definēto rūteri		 		
+		Handler: server,         // Norāda, ka šis serveris izmantos mūsu iepriekš definēto rūteri
 		Addr:    "0.0.0.0:8080", // Serveris klausīsies uz šīs adreses un porta.
 
 		// Iestata maksimālo laiku, cik ilgi serveris gaidīs pieprasījuma ķermeņa nolasīšanu un atbildes uzrakstīšanu.

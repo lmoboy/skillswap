@@ -24,10 +24,11 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	row := database.QueryRow("SELECT username, email, id FROM users WHERE email = ? AND password_hash = ?", userInfo.Email, fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password))))
+	row := database.QueryRow("SELECT username, email, id, is_admin FROM users WHERE email = ? AND password_hash = ?", userInfo.Email, fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password))))
 	var storedID int
 	var storedUsername, storedEmail string
-	if err := row.Scan(&storedUsername, &storedEmail, &storedID); err != nil {
+	var isAdmin bool
+	if err := row.Scan(&storedUsername, &storedEmail, &storedID, &isAdmin); err != nil {
 		if err == sql.ErrNoRows {
 			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
 			return
@@ -36,7 +37,7 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := ApplySession(w, req, &models.UserInfo{Username: storedUsername, Email: storedEmail, ID: storedID}); err != nil {
+	if err := ApplySession(w, req, &models.UserInfo{Username: storedUsername, Email: storedEmail, ID: storedID, IsAdmin: isAdmin}); err != nil {
 		utils.HandleError(err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create session"})
 		return

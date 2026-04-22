@@ -81,8 +81,8 @@ func addSkill(user models.UserInfo, skill models.UserSkill) error {
 		return fmt.Errorf("failed to get skill ID: %w", err)
 	}
 
-	database.Debug("INSERT INTO user_skills (user_id, skill_id, verified) VALUES (%v, %v, %v)",
-		user.ID, skillID, skill.Verified)
+	// database.Debug("INSERT INTO user_skills (user_id, skill_id, verified) VALUES (%v, %v, %v)",
+	// 	user.ID, skillID, skill.Verified)
 
 	_, err = database.Execute(
 		"INSERT INTO user_skills (user_id, skill_id, verified) VALUES (?, ?, ?)",
@@ -172,10 +172,11 @@ func updatePersonalUserInfo(user *models.UserInfo) error{
 		return err
 	}
 	user.Password = fmt.Sprintf("%x", md5.Sum([]byte(user.Password)))
-	if(user.Password != userPassword){
-		return errors.New("Incorrect old password")
-	}
+
 	if(user.OldPassword != ""){
+		if(user.Password != userPassword){
+			return errors.New("Incorrect old password")
+		}
 		if err := updatePassword(user); err != nil {
 			return err
 		}
