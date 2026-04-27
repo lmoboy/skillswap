@@ -45,6 +45,11 @@ export class WebRTCService {
       console.log(`WebRTC Service initialized. Polite: ${this.polite}`)
    }
 
+   public setPolite(polite: boolean) {
+      this.polite = polite
+      console.log(`WebRTC Politeness set to: ${this.polite}`)
+   }
+
    public async startLocalStream(): Promise<MediaStream> {
       try {
          this.localStream = await navigator.mediaDevices.getUserMedia({
