@@ -16,14 +16,18 @@ services:
          test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
          timeout: 20s
          retries: 10
+      deploy:
+         resources:
+            limits:
+               memory: 1G
 
    backend:
       build:
          context: ./backend
          dockerfile: Dockerfile
       container_name: skillswap-backend
-      ports:
-         - '0.0.0.0:8080:8080'
+      expose:
+         - '8080'
       environment:
          - DB_URL=skillswap:skillswap@tcp(mysql:3306)/skillswap?parseTime=true
       volumes:
@@ -36,59 +40,84 @@ services:
             aliases:
                - backend
       restart: unless-stopped
+      deploy:
+         resources:
+            limits:
+               memory: 512M
 
    frontend:
       build:
          context: ./frontend
          dockerfile: Dockerfile
-         shm_size: '2gb'
+         shm_size: '1gb'
       container_name: skillswap-frontend
-      ports:
-         - '0.0.0.0:80:3000'
+      expose:
+         - '3000'
       environment:
-         - ORIGIN=http://89.117.50.20
+         - ORIGIN=https://skillswap.online
          - BODY_SIZE_LIMIT=Infinity
          - BACKEND_URL=http://backend:8080
-         - NODE_OPTIONS=--max-old-space-size=4096
+         - NODE_OPTIONS=--max-old-space-size=1024
+         - PUBLIC_TURN_HOST=skillswap.online
+         - PUBLIC_TURN_PORT=3478
+         - PUBLIC_TURN_TLS_PORT=5349
+         - PUBLIC_TURN_USERNAME=skillswap
+         - PUBLIC_TURN_PASSWORD=skillswap-turn-password
       depends_on:
-         backend:
-            condition: service_started
+         - backend
       networks:
          - skillswap-network
       restart: unless-stopped
       deploy:
          resources:
             limits:
-               memory: 6G
-            reservations:
                memory: 2G
+            reservations:
+               memory: 512M
 
-   updater:
-      image: containrrr/watchtower
-      container_name: skillswap-updater
-      profiles: ['manual']  # Disabled by default - start manually with: docker-compose --profile manual up updater
+   coturn:
+      image: instrumentisto/coturn:latest
+      container_name: skillswap-coturn
+      command:
+         - -c
+         - /etc/coturn/turnserver.conf
+      ports:
+         - '3478:3478/tcp'
+         - '3478:3478/udp'
+         - '5349:5349/tcp'
+         - '5349:5349/udp'
+         - '49160-49200:49160-49200/udp'
       volumes:
-         - /var/run/docker.sock:/var/run/docker.sock
-         - ./:/app
-      environment:
-         - WATCHTOWER_CLEANUP=true
-         - WATCHTOWER_INCLUDE_STOPPED=true
-         - WATCHTOWER_POLL_INTERVAL=300
-      command: --run-once=false
+         - ./infra/coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+         - ./letsencrypt:/etc/letsencrypt:ro
       networks:
          - skillswap-network
       restart: unless-stopped
 
-   autoupdate:
-      image: alpine/git
-      container_name: skillswap-git-puller
-      profiles: ['manual']  # Disabled by default - start manually with: docker-compose --profile manual up autoupdate
-      working_dir: /app
+   nginx:
+      image: nginx:latest
+      container_name: skillswap-nginx
+      ports:
+         - '80:80'
+         - '443:443'
       volumes:
-         - ./:/app
-      entrypoint: /bin/sh
-      command: -c "while true; do git fetch origin && git reset --hard origin/main && sleep 300; done"
+         - ./nginx.conf:/etc/nginx/nginx.conf:ro
+         - ./letsencrypt:/etc/letsencrypt:ro
+         - webroot:/var/www/certbot
+      depends_on:
+         - frontend
+         - backend
+      networks:
+         - skillswap-network
       restart: unless-stopped
+
+   certbot:
+      image: certbot/certbot
+      container_name: skillswap-certbot
+      volumes:
+         - ./letsencrypt:/etc/letsencrypt
+         - webroot:/var/www/certbot
+      entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12d & wait $!; done;'"
       networks:
          - skillswap-network
 
@@ -99,3 +128,4 @@ networks:
 volumes:
    mysql-data:
    backend-uploads:
+   webroot:
