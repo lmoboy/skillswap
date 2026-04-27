@@ -75,11 +75,12 @@ export class WebRTCService {
          })
          console.log('[WebRTC] Local stream acquired')
 
-         if (this.pc && this.pc.signalingState !== 'closed') {
-            console.log('[WebRTC] PC exists, adding tracks from new stream')
-            this.addTracksToPC()
+         // Always ensure PC exists when stream acquired
+         if (!this.pc || this.pc.signalingState === 'closed') {
+            this.createPeerConnection()
          }
 
+         this.addTracksToPC()
          return this.localStream
       } catch (error) {
          console.warn(
@@ -92,6 +93,12 @@ export class WebRTCService {
                audio: true,
             })
             console.log('[WebRTC] Local audio stream acquired (fallback)')
+
+            if (!this.pc || this.pc.signalingState === 'closed') {
+               this.createPeerConnection()
+            }
+            this.addTracksToPC()
+
             return this.localStream
          } catch (audioError) {
             console.error('[WebRTC] Error accessing audio devices:', audioError)
@@ -101,7 +108,8 @@ export class WebRTCService {
    }
 
    private addTracksToPC() {
-      if (!this.pc || !this.localStream) return
+      if (!this.pc || !this.localStream || this.pc.signalingState === 'closed')
+         return
 
       const senders = this.pc.getSenders()
       this.localStream.getTracks().forEach((track) => {
@@ -120,6 +128,8 @@ export class WebRTCService {
       this.socket.onopen = () => {
          console.log('[WebRTC] Signaling socket opened')
          this.onConnectionStateChange('signaling:connected')
+         // Auto-create PC on connect to be ready for incoming offers/candidates
+         if (!this.pc) this.createPeerConnection()
       }
 
       this.socket.onmessage = async (event) => {
@@ -238,9 +248,7 @@ export class WebRTCService {
             console.log(
                `[WebRTC] Local ICE candidate generated: ${candidate.candidate.substring(0, 30)}...`,
             )
-            if (this.pc && this.pc.signalingState !== 'closed') {
-               this.sendSignalingMessage('candidate', candidate)
-            }
+            this.sendSignalingMessage('candidate', candidate)
          } else {
             console.log('[WebRTC] ICE gathering complete (null candidate)')
          }
@@ -253,7 +261,7 @@ export class WebRTCService {
       }
 
       this.pc.onnegotiationneeded = async () => {
-         console.log('[WebRTC] Negotiation needed')
+         console.log('[WebRTC] Negotiation needed event fired')
          if (!this.pc || this.pc.signalingState === 'closed') return
          try {
             this.isMakingOffer = true
@@ -307,13 +315,22 @@ export class WebRTCService {
          this.createPeerConnection()
       }
 
+      // Important: Add tracks BEFORE expecting negotiation to work
       this.addTracksToPC()
 
-      // If no tracks were added but we want to force negotiation (e.g. for data channel)
-      // or if onnegotiationneeded didn't fire for some reason
+      // If no tracks or event didn't fire, manually trigger
       if (this.pc!.signalingState === 'stable' && !this.isMakingOffer) {
-         console.log('[WebRTC] Manually triggering negotiation')
-         this.pc!.onnegotiationneeded?.(new Event('negotiationneeded'))
+         console.log('[WebRTC] Manual negotiation trigger')
+         try {
+            this.isMakingOffer = true
+            const offer = await this.pc!.createOffer()
+            await this.pc!.setLocalDescription(offer)
+            this.sendSignalingMessage('offer', this.pc!.localDescription)
+         } catch (err) {
+            console.error('[WebRTC] Manual offer fail:', err)
+         } finally {
+            this.isMakingOffer = false
+         }
       }
    }
 
