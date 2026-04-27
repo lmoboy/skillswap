@@ -16,12 +16,13 @@ export class WebRTCService {
    private onConnectionStateChange: (state: string) => void
    private iceCandidateQueue: RTCIceCandidateInit[] = []
    private isRemoteDescriptionSet = false
+   private isMakingOffer = false
+   private isIgnoringOffer = false
+   private polite: boolean
 
    private config: RTCConfiguration = {
       iceServers: [
          { urls: 'stun:stun.l.google.com:19302' },
-         { urls: 'stun:stun1.l.google.com:19302' },
-         { urls: 'stun:stun2.l.google.com:19302' },
          {
             urls: [`turn:skillswap.online:3478`, `turns:skillswap.online:5349`],
             username: 'skillswap',
@@ -39,11 +40,13 @@ export class WebRTCService {
       this.roomId = roomId
       this.onRemoteStream = onRemoteStream
       this.onConnectionStateChange = onConnectionStateChange
+      // Use a stable heuristic for politeness if possible, or random for now
+      this.polite = Math.random() > 0.5
+      console.log(`WebRTC Service initialized. Polite: ${this.polite}`)
    }
 
    public async startLocalStream(): Promise<MediaStream> {
       try {
-         // Try video + audio first
          this.localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true,
@@ -55,7 +58,6 @@ export class WebRTCService {
             error,
          )
          try {
-            // Fallback to audio only
             this.localStream = await navigator.mediaDevices.getUserMedia({
                video: false,
                audio: true,
@@ -77,13 +79,18 @@ export class WebRTCService {
       }
 
       this.socket.onmessage = async (event) => {
-         const message: WebRTCMessage = JSON.parse(event.data)
-         await this.handleSignalingMessage(message)
+         try {
+            const message: WebRTCMessage = JSON.parse(event.data)
+            await this.handleSignalingMessage(message)
+         } catch (err) {
+            console.error('Error handling signaling message:', err)
+         }
       }
 
       this.socket.onclose = () => {
          console.log('WebRTC signaling disconnected')
          this.onConnectionStateChange('disconnected')
+         this.disconnect()
       }
 
       this.socket.onerror = (error) => {
@@ -93,31 +100,85 @@ export class WebRTCService {
    }
 
    private async handleSignalingMessage(message: WebRTCMessage) {
-      switch (message.type) {
-         case 'offer':
-            await this.handleOffer(message.data)
-            break
-         case 'answer':
-            await this.handleAnswer(message.data)
-            break
-         case 'candidate':
-            await this.handleCandidate(message.data)
-            break
-         default:
-            console.warn('Unknown signaling message type:', message.type)
+      if (!this.pc) {
+         this.createPeerConnection()
+      }
+
+      const description = message.data
+
+      try {
+         if (message.type === 'offer') {
+            const offerCollision =
+               this.isMakingOffer || this.pc!.signalingState !== 'stable'
+            this.isIgnoringOffer = !this.polite && offerCollision
+
+            if (this.isIgnoringOffer) {
+               console.log('Glare detected: ignoring offer (impolite)')
+               return
+            }
+
+            console.log('Handling offer')
+            await this.pc!.setRemoteDescription(
+               new RTCSessionDescription(description),
+            )
+            this.isRemoteDescriptionSet = true
+
+            if (this.localStream) {
+               this.localStream.getTracks().forEach((track) => {
+                  this.pc?.addTrack(track, this.localStream!)
+               })
+            }
+
+            const answer = await this.pc!.createAnswer()
+            await this.pc!.setLocalDescription(answer)
+
+            this.socket?.send(
+               JSON.stringify({
+                  type: 'answer',
+                  roomId: this.roomId,
+                  data: this.pc!.localDescription,
+               }),
+            )
+            await this.processQueuedCandidates()
+         } else if (message.type === 'answer') {
+            console.log('Handling answer')
+            await this.pc!.setRemoteDescription(
+               new RTCSessionDescription(description),
+            )
+            this.isRemoteDescriptionSet = true
+            await this.processQueuedCandidates()
+         } else if (message.type === 'candidate') {
+            try {
+               if (this.isRemoteDescriptionSet) {
+                  await this.pc!.addIceCandidate(
+                     new RTCIceCandidate(description),
+                  )
+               } else {
+                  this.iceCandidateQueue.push(description)
+               }
+            } catch (err) {
+               if (!this.isIgnoringOffer) {
+                  console.error('Error adding ICE candidate:', err)
+               }
+            }
+         }
+      } catch (err) {
+         console.error('Error in signaling state machine:', err)
       }
    }
 
    private createPeerConnection() {
+      if (this.pc) return
+
       this.pc = new RTCPeerConnection(this.config)
 
-      this.pc.onicecandidate = (event) => {
-         if (event.candidate && this.socket) {
+      this.pc.onicecandidate = ({ candidate }) => {
+         if (candidate && this.socket) {
             this.socket.send(
                JSON.stringify({
                   type: 'candidate',
                   roomId: this.roomId,
-                  data: event.candidate,
+                  data: candidate,
                }),
             )
          }
@@ -129,75 +190,40 @@ export class WebRTCService {
          this.onRemoteStream(this.remoteStream)
       }
 
+      this.pc.onnegotiationneeded = async () => {
+         try {
+            this.isMakingOffer = true
+            await this.pc!.setLocalDescription()
+            this.socket?.send(
+               JSON.stringify({
+                  type: 'offer',
+                  roomId: this.roomId,
+                  data: this.pc!.localDescription,
+               }),
+            )
+         } catch (err) {
+            console.error('Error in onnegotiationneeded:', err)
+         } finally {
+            this.isMakingOffer = false
+         }
+      }
+
       this.pc.onconnectionstatechange = () => {
          if (this.pc) {
             this.onConnectionStateChange(this.pc.connectionState)
          }
+      }
+   }
+
+   public async call() {
+      if (!this.pc) {
+         this.createPeerConnection()
       }
 
       if (this.localStream) {
          this.localStream.getTracks().forEach((track) => {
             this.pc?.addTrack(track, this.localStream!)
          })
-      }
-   }
-
-   public async call() {
-      this.createPeerConnection()
-      const offer = await this.pc!.createOffer()
-      await this.pc!.setLocalDescription(offer)
-
-      if (this.socket) {
-         this.socket.send(
-            JSON.stringify({
-               type: 'offer',
-               roomId: this.roomId,
-               data: offer,
-            }),
-         )
-      }
-   }
-
-   private async handleOffer(offer: RTCSessionDescriptionInit) {
-      if (!this.pc) {
-         this.createPeerConnection()
-      }
-
-      await this.pc!.setRemoteDescription(new RTCSessionDescription(offer))
-      this.isRemoteDescriptionSet = true
-      await this.processQueuedCandidates()
-
-      const answer = await this.pc!.createAnswer()
-      await this.pc!.setLocalDescription(answer)
-
-      if (this.socket) {
-         this.socket.send(
-            JSON.stringify({
-               type: 'answer',
-               roomId: this.roomId,
-               data: answer,
-            }),
-         )
-      }
-   }
-
-   private async handleAnswer(answer: RTCSessionDescriptionInit) {
-      if (this.pc) {
-         await this.pc.setRemoteDescription(new RTCSessionDescription(answer))
-         this.isRemoteDescriptionSet = true
-         await this.processQueuedCandidates()
-      }
-   }
-
-   private async handleCandidate(candidate: RTCIceCandidateInit) {
-      if (this.pc && this.isRemoteDescriptionSet) {
-         try {
-            await this.pc.addIceCandidate(new RTCIceCandidate(candidate))
-         } catch (e) {
-            console.error('Error adding received ice candidate', e)
-         }
-      } else {
-         this.iceCandidateQueue.push(candidate)
       }
    }
 
@@ -217,11 +243,17 @@ export class WebRTCService {
 
    public disconnect() {
       this.isRemoteDescriptionSet = false
+      this.isMakingOffer = false
+      this.isIgnoringOffer = false
       this.iceCandidateQueue = []
       if (this.localStream) {
          this.localStream.getTracks().forEach((track) => track.stop())
       }
       if (this.pc) {
+         this.pc.onicecandidate = null
+         this.pc.ontrack = null
+         this.pc.onnegotiationneeded = null
+         this.pc.onconnectionstatechange = null
          this.pc.close()
       }
       if (this.socket) {
