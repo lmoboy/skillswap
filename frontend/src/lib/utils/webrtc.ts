@@ -40,18 +40,18 @@ export class WebRTCService {
       this.roomId = roomId
       this.onRemoteStream = onRemoteStream
       this.onConnectionStateChange = onConnectionStateChange
-      // Default to true, will be set specifically by the UI
       this.polite = true
-      console.log(`WebRTC Service initialized. Room: ${this.roomId}`)
+      console.log(`[WebRTC] Service initialized for room: ${this.roomId}`)
    }
 
    public setPolite(polite: boolean) {
       this.polite = polite
-      console.log(`WebRTC Politeness set to: ${this.polite}`)
+      console.log(`[WebRTC] Politeness set to: ${this.polite}`)
    }
 
    private sendSignalingMessage(type: string, data: any) {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+         console.log(`[WebRTC] Sending signaling message: ${type}`)
          this.socket.send(
             JSON.stringify({
                type,
@@ -60,32 +60,30 @@ export class WebRTCService {
             }),
          )
       } else {
-         console.warn(`Cannot send signaling message ${type}: socket not open`)
+         console.warn(
+            `[WebRTC] Cannot send signaling message ${type}: socket not open (state: ${this.socket?.readyState})`,
+         )
       }
    }
 
    public async startLocalStream(): Promise<MediaStream> {
+      console.log('[WebRTC] Requesting local stream...')
       try {
          this.localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true,
          })
+         console.log('[WebRTC] Local stream acquired')
 
-         // If we already have a peer connection, add tracks now
          if (this.pc && this.pc.signalingState !== 'closed') {
-            const senders = this.pc.getSenders()
-            this.localStream.getTracks().forEach((track) => {
-               const alreadyExists = senders.some((s) => s.track === track)
-               if (!alreadyExists) {
-                  this.pc?.addTrack(track, this.localStream!)
-               }
-            })
+            console.log('[WebRTC] PC exists, adding tracks from new stream')
+            this.addTracksToPC()
          }
 
          return this.localStream
       } catch (error) {
          console.warn(
-            'Could not start video, falling back to audio only:',
+            '[WebRTC] Could not start video, falling back to audio only:',
             error,
          )
          try {
@@ -93,47 +91,72 @@ export class WebRTCService {
                video: false,
                audio: true,
             })
+            console.log('[WebRTC] Local audio stream acquired (fallback)')
             return this.localStream
          } catch (audioError) {
-            console.error('Error accessing audio devices:', audioError)
+            console.error('[WebRTC] Error accessing audio devices:', audioError)
             throw audioError
          }
       }
    }
 
+   private addTracksToPC() {
+      if (!this.pc || !this.localStream) return
+
+      const senders = this.pc.getSenders()
+      this.localStream.getTracks().forEach((track) => {
+         const alreadyExists = senders.some((s) => s.track === track)
+         if (!alreadyExists) {
+            console.log(`[WebRTC] Adding track: ${track.kind}`)
+            this.pc?.addTrack(track, this.localStream!)
+         }
+      })
+   }
+
    public connect(wsUrl: string) {
+      console.log(`[WebRTC] Connecting to signaling: ${wsUrl}`)
       this.socket = new WebSocket(`${wsUrl}?room=${this.roomId}`)
 
       this.socket.onopen = () => {
-         console.log('WebRTC signaling connected')
+         console.log('[WebRTC] Signaling socket opened')
          this.onConnectionStateChange('signaling:connected')
       }
 
       this.socket.onmessage = async (event) => {
          try {
             const message: WebRTCMessage = JSON.parse(event.data)
+            console.log(
+               `[WebRTC] Received signaling message: ${message.type} from ${message.from}`,
+            )
             await this.handleSignalingMessage(message)
          } catch (err) {
-            console.error('Error handling signaling message:', err)
+            console.error('[WebRTC] Error handling signaling message:', err)
          }
       }
 
-      this.socket.onclose = () => {
-         console.log('WebRTC signaling disconnected')
+      this.socket.onclose = (event) => {
+         console.log(
+            `[WebRTC] Signaling socket closed: ${event.code} ${event.reason}`,
+         )
          this.onConnectionStateChange('signaling:disconnected')
       }
 
       this.socket.onerror = (error) => {
-         console.error('WebRTC signaling error:', error)
+         console.error('[WebRTC] Signaling socket error:', error)
          this.onConnectionStateChange('signaling:error')
       }
    }
 
    private async handleSignalingMessage(message: WebRTCMessage) {
-      // Guard: if PC is closed, ignore signaling
-      if (this.pc && this.pc.signalingState === 'closed') return
+      if (this.pc && this.pc.signalingState === 'closed') {
+         console.warn('[WebRTC] Received signaling message but PC is closed')
+         return
+      }
 
       if (!this.pc) {
+         console.log(
+            "[WebRTC] PC doesn't exist, creating one for incoming message",
+         )
          this.createPeerConnection()
       }
 
@@ -146,34 +169,27 @@ export class WebRTCService {
             this.isIgnoringOffer = !this.polite && offerCollision
 
             if (this.isIgnoringOffer) {
-               console.log('Glare detected: ignoring offer (impolite)')
+               console.log('[WebRTC] Glare detected: ignoring offer (impolite)')
                return
             }
 
-            console.log('Handling offer')
+            console.log('[WebRTC] Setting remote description (offer)')
             await this.pc!.setRemoteDescription(
                new RTCSessionDescription(description),
             )
             this.isRemoteDescriptionSet = true
 
-            // Add local tracks if they exist and haven't been added yet
-            if (this.localStream) {
-               const senders = this.pc!.getSenders()
-               this.localStream.getTracks().forEach((track) => {
-                  const alreadyExists = senders.some((s) => s.track === track)
-                  if (!alreadyExists) {
-                     this.pc?.addTrack(track, this.localStream!)
-                  }
-               })
-            }
+            this.addTracksToPC()
 
+            console.log('[WebRTC] Creating answer')
             const answer = await this.pc!.createAnswer()
+            console.log('[WebRTC] Setting local description (answer)')
             await this.pc!.setLocalDescription(answer)
 
             this.sendSignalingMessage('answer', this.pc!.localDescription)
             await this.processQueuedCandidates()
          } else if (message.type === 'answer') {
-            console.log('Handling answer')
+            console.log('[WebRTC] Setting remote description (answer)')
             await this.pc!.setRemoteDescription(
                new RTCSessionDescription(description),
             )
@@ -182,48 +198,72 @@ export class WebRTCService {
          } else if (message.type === 'candidate') {
             try {
                if (this.isRemoteDescriptionSet) {
+                  console.log('[WebRTC] Adding ICE candidate')
                   await this.pc!.addIceCandidate(
                      new RTCIceCandidate(description),
                   )
                } else {
+                  console.log(
+                     '[WebRTC] Queuing ICE candidate (remote description not set)',
+                  )
                   this.iceCandidateQueue.push(description)
                }
             } catch (err) {
                if (!this.isIgnoringOffer) {
-                  console.error('Error adding ICE candidate:', err)
+                  console.error('[WebRTC] Error adding ICE candidate:', err)
                }
             }
          }
       } catch (err) {
-         console.error('Error in signaling state machine:', err)
+         console.error('[WebRTC] Error in signaling state machine:', err)
       }
    }
 
    private createPeerConnection() {
-      if (this.pc && this.pc.signalingState !== 'closed') return
+      if (this.pc && this.pc.signalingState !== 'closed') {
+         console.log(
+            '[WebRTC] createPeerConnection called but PC already exists and is not closed',
+         )
+         return
+      }
 
+      console.log('[WebRTC] Creating RTCPeerConnection...')
       this.pc = new RTCPeerConnection(this.config)
+      console.log(
+         `[WebRTC] PC created. Initial state: ${this.pc.connectionState}`,
+      )
 
       this.pc.onicecandidate = ({ candidate }) => {
-         if (candidate && this.pc && this.pc.signalingState !== 'closed') {
-            this.sendSignalingMessage('candidate', candidate)
+         if (candidate) {
+            console.log(
+               `[WebRTC] Local ICE candidate generated: ${candidate.candidate.substring(0, 30)}...`,
+            )
+            if (this.pc && this.pc.signalingState !== 'closed') {
+               this.sendSignalingMessage('candidate', candidate)
+            }
+         } else {
+            console.log('[WebRTC] ICE gathering complete (null candidate)')
          }
       }
 
       this.pc.ontrack = (event) => {
-         console.log('Received remote track:', event.track.kind)
+         console.log(`[WebRTC] Received remote track: ${event.track.kind}`)
          this.remoteStream = event.streams[0] || new MediaStream([event.track])
          this.onRemoteStream(this.remoteStream)
       }
 
       this.pc.onnegotiationneeded = async () => {
+         console.log('[WebRTC] Negotiation needed')
          if (!this.pc || this.pc.signalingState === 'closed') return
          try {
             this.isMakingOffer = true
-            await this.pc.setLocalDescription()
+            console.log('[WebRTC] Creating offer')
+            const offer = await this.pc.createOffer()
+            console.log('[WebRTC] Setting local description (offer)')
+            await this.pc.setLocalDescription(offer)
             this.sendSignalingMessage('offer', this.pc.localDescription)
          } catch (err) {
-            console.error('Error in onnegotiationneeded:', err)
+            console.error('[WebRTC] Error in onnegotiationneeded:', err)
          } finally {
             this.isMakingOffer = false
          }
@@ -231,55 +271,78 @@ export class WebRTCService {
 
       this.pc.onconnectionstatechange = () => {
          if (this.pc) {
-            console.log(`PeerConnection state: ${this.pc.connectionState}`)
+            console.log(
+               `[WebRTC] PeerConnection state: ${this.pc.connectionState}`,
+            )
             this.onConnectionStateChange(this.pc.connectionState)
          }
       }
 
       this.pc.oniceconnectionstatechange = () => {
          if (this.pc) {
-            console.log(`ICE Connection state: ${this.pc.iceConnectionState}`)
+            console.log(
+               `[WebRTC] ICE Connection state: ${this.pc.iceConnectionState}`,
+            )
+         }
+      }
+
+      this.pc.onicegatheringstatechange = () => {
+         if (this.pc) {
+            console.log(
+               `[WebRTC] ICE Gathering state: ${this.pc.iceGatheringState}`,
+            )
+         }
+      }
+
+      this.pc.onsignalingstatechange = () => {
+         if (this.pc) {
+            console.log(`[WebRTC] Signaling state: ${this.pc.signalingState}`)
          }
       }
    }
 
    public async call() {
+      console.log('[WebRTC] call() initiated')
       if (!this.pc || this.pc.signalingState === 'closed') {
          this.createPeerConnection()
       }
 
-      if (this.localStream) {
-         const senders = this.pc!.getSenders()
-         this.localStream.getTracks().forEach((track) => {
-            const alreadyExists = senders.some((s) => s.track === track)
-            if (!alreadyExists) {
-               this.pc?.addTrack(track, this.localStream!)
-            }
-         })
+      this.addTracksToPC()
+
+      // If no tracks were added but we want to force negotiation (e.g. for data channel)
+      // or if onnegotiationneeded didn't fire for some reason
+      if (this.pc!.signalingState === 'stable' && !this.isMakingOffer) {
+         console.log('[WebRTC] Manually triggering negotiation')
+         this.pc!.onnegotiationneeded?.(new Event('negotiationneeded'))
       }
    }
 
    private async processQueuedCandidates() {
       if (!this.pc || this.pc.signalingState === 'closed') return
+      console.log(
+         `[WebRTC] Processing ${this.iceCandidateQueue.length} queued candidates`,
+      )
       while (this.iceCandidateQueue.length > 0) {
          const candidate = this.iceCandidateQueue.shift()
          if (candidate) {
             try {
                await this.pc.addIceCandidate(new RTCIceCandidate(candidate))
             } catch (e) {
-               console.error('Error adding queued ice candidate', e)
+               console.error('[WebRTC] Error adding queued ice candidate', e)
             }
          }
       }
    }
 
    public disconnect() {
+      console.log('[WebRTC] Disconnecting service...')
       this.isRemoteDescriptionSet = false
       this.isMakingOffer = false
       this.isIgnoringOffer = false
       this.iceCandidateQueue = []
 
       if (this.localStream) {
+         console.log('[WebRTC] Stopping local stream tracks')
          this.localStream.getTracks().forEach((track) => track.stop())
          this.localStream = null
       }
@@ -290,11 +353,14 @@ export class WebRTCService {
          this.pc.onnegotiationneeded = null
          this.pc.onconnectionstatechange = null
          this.pc.oniceconnectionstatechange = null
+         this.pc.onicegatheringstatechange = null
+         this.pc.onsignalingstatechange = null
 
          if (this.pc.signalingState !== 'closed') {
             this.pc.close()
          }
          this.pc = null
+         console.log('[WebRTC] PeerConnection closed')
       }
 
       if (this.socket) {
@@ -310,6 +376,7 @@ export class WebRTCService {
             this.socket.close()
          }
          this.socket = null
+         console.log('[WebRTC] Signaling socket closed')
       }
 
       this.remoteStream = null
