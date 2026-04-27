@@ -27,10 +27,16 @@ type Message struct {
 // Room represents a signaling room for peer-to-peer WebRTC connections
 type Room struct {
 	ID         string
-	Clients    map[*websocket.Conn]bool
-	Register   chan *websocket.Conn
-	Unregister chan *websocket.Conn
+	Clients    map[string]*Client // map of client ID to Client
+	Register   chan *Client
+	Unregister chan *Client
 	Broadcast  chan Message
+}
+
+// Client represents a connected peer in a signaling room.
+type Client struct {
+	ID   string
+	Conn *websocket.Conn
 }
 
 var Rooms = make(map[string]*Room)
@@ -43,7 +49,6 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Println("WebSocket upgrade error:", err)
 		return
 	}
-	// We don't defer conn.Close() here because room management handles it
 
 	// Parse room ID from query parameters
 	roomID := r.URL.Query().Get("room")
@@ -53,15 +58,18 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create a unique client ID for this connection
+	clientID := conn.RemoteAddr().String() + "_" + r.Header.Get("Sec-WebSocket-Key")
+
 	// Get or create room
 	RoomsMutex.Lock()
 	room, exists := Rooms[roomID]
 	if !exists {
 		room = &Room{
 			ID:         roomID,
-			Clients:    make(map[*websocket.Conn]bool),
-			Register:   make(chan *websocket.Conn),
-			Unregister: make(chan *websocket.Conn),
+			Clients:    make(map[string]*Client),
+			Register:   make(chan *Client),
+			Unregister: make(chan *Client),
 			Broadcast:  make(chan Message),
 		}
 		Rooms[roomID] = room
@@ -69,13 +77,15 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	RoomsMutex.Unlock()
 
+	client := &Client{ID: clientID, Conn: conn}
+
 	// Register client in room
-	room.Register <- conn
+	room.Register <- client
 
 	// Handle incoming messages
 	go func() {
 		defer func() {
-			room.Unregister <- conn
+			room.Unregister <- client
 		}()
 
 		for {
@@ -90,7 +100,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			// Add sender info to message
 			msg.RoomID = roomID
-			msg.From = conn.RemoteAddr().String()
+			msg.From = clientID
 
 			// Broadcast message to other clients in the room
 			room.Broadcast <- msg
@@ -103,14 +113,14 @@ func (room *Room) Run() {
 	for {
 		select {
 		case client := <-room.Register:
-			room.Clients[client] = true
-			log.Printf("Client connected to room %s. Total clients: %d", room.ID, len(room.Clients))
+			room.Clients[client.ID] = client
+			log.Printf("Client %s connected to room %s. Total clients: %d", client.ID, room.ID, len(room.Clients))
 
 		case client := <-room.Unregister:
-			if _, ok := room.Clients[client]; ok {
-				delete(room.Clients, client)
-				client.Close()
-				log.Printf("Client disconnected from room %s. Total clients: %d", room.ID, len(room.Clients))
+			if _, ok := room.Clients[client.ID]; ok {
+				delete(room.Clients, client.ID)
+				client.Conn.Close()
+				log.Printf("Client %s disconnected from room %s. Total clients: %d", client.ID, room.ID, len(room.Clients))
 			}
 
 			// Clean up empty rooms
@@ -122,14 +132,15 @@ func (room *Room) Run() {
 			}
 
 		case message := <-room.Broadcast:
+			// log.Printf("Broadcasting %s from %s in room %s", message.Type, message.From, room.ID)
 			// Broadcast message to all clients except sender
-			senderAddr := message.From
-			for client := range room.Clients {
-				if client.RemoteAddr().String() != senderAddr {
-					if err := client.WriteJSON(message); err != nil {
+			senderID := message.From
+			for clientID, client := range room.Clients {
+				if clientID != senderID {
+					if err := client.Conn.WriteJSON(message); err != nil {
 						log.Println("Write error:", err)
-						client.Close()
-						delete(room.Clients, client)
+						client.Conn.Close()
+						delete(room.Clients, clientID)
 					}
 				}
 			}

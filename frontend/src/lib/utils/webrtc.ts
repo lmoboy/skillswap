@@ -40,14 +40,28 @@ export class WebRTCService {
       this.roomId = roomId
       this.onRemoteStream = onRemoteStream
       this.onConnectionStateChange = onConnectionStateChange
-      // Use a stable heuristic for politeness if possible, or random for now
-      this.polite = Math.random() > 0.5
-      console.log(`WebRTC Service initialized. Polite: ${this.polite}`)
+      // Default to true, will be set specifically by the UI
+      this.polite = true
+      console.log(`WebRTC Service initialized. Room: ${this.roomId}`)
    }
 
    public setPolite(polite: boolean) {
       this.polite = polite
       console.log(`WebRTC Politeness set to: ${this.polite}`)
+   }
+
+   private sendSignalingMessage(type: string, data: any) {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+         this.socket.send(
+            JSON.stringify({
+               type,
+               roomId: this.roomId,
+               data,
+            }),
+         )
+      } else {
+         console.warn(`Cannot send signaling message ${type}: socket not open`)
+      }
    }
 
    public async startLocalStream(): Promise<MediaStream> {
@@ -56,6 +70,18 @@ export class WebRTCService {
             video: true,
             audio: true,
          })
+
+         // If we already have a peer connection, add tracks now
+         if (this.pc && this.pc.signalingState !== 'closed') {
+            const senders = this.pc.getSenders()
+            this.localStream.getTracks().forEach((track) => {
+               const alreadyExists = senders.some((s) => s.track === track)
+               if (!alreadyExists) {
+                  this.pc?.addTrack(track, this.localStream!)
+               }
+            })
+         }
+
          return this.localStream
       } catch (error) {
          console.warn(
@@ -80,7 +106,7 @@ export class WebRTCService {
 
       this.socket.onopen = () => {
          console.log('WebRTC signaling connected')
-         this.onConnectionStateChange('connected')
+         this.onConnectionStateChange('signaling:connected')
       }
 
       this.socket.onmessage = async (event) => {
@@ -94,17 +120,19 @@ export class WebRTCService {
 
       this.socket.onclose = () => {
          console.log('WebRTC signaling disconnected')
-         this.onConnectionStateChange('disconnected')
-         this.disconnect()
+         this.onConnectionStateChange('signaling:disconnected')
       }
 
       this.socket.onerror = (error) => {
          console.error('WebRTC signaling error:', error)
-         this.onConnectionStateChange('error')
+         this.onConnectionStateChange('signaling:error')
       }
    }
 
    private async handleSignalingMessage(message: WebRTCMessage) {
+      // Guard: if PC is closed, ignore signaling
+      if (this.pc && this.pc.signalingState === 'closed') return
+
       if (!this.pc) {
          this.createPeerConnection()
       }
@@ -128,22 +156,21 @@ export class WebRTCService {
             )
             this.isRemoteDescriptionSet = true
 
+            // Add local tracks if they exist and haven't been added yet
             if (this.localStream) {
+               const senders = this.pc!.getSenders()
                this.localStream.getTracks().forEach((track) => {
-                  this.pc?.addTrack(track, this.localStream!)
+                  const alreadyExists = senders.some((s) => s.track === track)
+                  if (!alreadyExists) {
+                     this.pc?.addTrack(track, this.localStream!)
+                  }
                })
             }
 
             const answer = await this.pc!.createAnswer()
             await this.pc!.setLocalDescription(answer)
 
-            this.socket?.send(
-               JSON.stringify({
-                  type: 'answer',
-                  roomId: this.roomId,
-                  data: this.pc!.localDescription,
-               }),
-            )
+            this.sendSignalingMessage('answer', this.pc!.localDescription)
             await this.processQueuedCandidates()
          } else if (message.type === 'answer') {
             console.log('Handling answer')
@@ -173,19 +200,13 @@ export class WebRTCService {
    }
 
    private createPeerConnection() {
-      if (this.pc) return
+      if (this.pc && this.pc.signalingState !== 'closed') return
 
       this.pc = new RTCPeerConnection(this.config)
 
       this.pc.onicecandidate = ({ candidate }) => {
-         if (candidate && this.socket) {
-            this.socket.send(
-               JSON.stringify({
-                  type: 'candidate',
-                  roomId: this.roomId,
-                  data: candidate,
-               }),
-            )
+         if (candidate && this.pc && this.pc.signalingState !== 'closed') {
+            this.sendSignalingMessage('candidate', candidate)
          }
       }
 
@@ -196,16 +217,11 @@ export class WebRTCService {
       }
 
       this.pc.onnegotiationneeded = async () => {
+         if (!this.pc || this.pc.signalingState === 'closed') return
          try {
             this.isMakingOffer = true
-            await this.pc!.setLocalDescription()
-            this.socket?.send(
-               JSON.stringify({
-                  type: 'offer',
-                  roomId: this.roomId,
-                  data: this.pc!.localDescription,
-               }),
-            )
+            await this.pc.setLocalDescription()
+            this.sendSignalingMessage('offer', this.pc.localDescription)
          } catch (err) {
             console.error('Error in onnegotiationneeded:', err)
          } finally {
@@ -215,25 +231,36 @@ export class WebRTCService {
 
       this.pc.onconnectionstatechange = () => {
          if (this.pc) {
+            console.log(`PeerConnection state: ${this.pc.connectionState}`)
             this.onConnectionStateChange(this.pc.connectionState)
+         }
+      }
+
+      this.pc.oniceconnectionstatechange = () => {
+         if (this.pc) {
+            console.log(`ICE Connection state: ${this.pc.iceConnectionState}`)
          }
       }
    }
 
    public async call() {
-      if (!this.pc) {
+      if (!this.pc || this.pc.signalingState === 'closed') {
          this.createPeerConnection()
       }
 
       if (this.localStream) {
+         const senders = this.pc!.getSenders()
          this.localStream.getTracks().forEach((track) => {
-            this.pc?.addTrack(track, this.localStream!)
+            const alreadyExists = senders.some((s) => s.track === track)
+            if (!alreadyExists) {
+               this.pc?.addTrack(track, this.localStream!)
+            }
          })
       }
    }
 
    private async processQueuedCandidates() {
-      if (!this.pc) return
+      if (!this.pc || this.pc.signalingState === 'closed') return
       while (this.iceCandidateQueue.length > 0) {
          const candidate = this.iceCandidateQueue.shift()
          if (candidate) {
@@ -251,22 +278,40 @@ export class WebRTCService {
       this.isMakingOffer = false
       this.isIgnoringOffer = false
       this.iceCandidateQueue = []
+
       if (this.localStream) {
          this.localStream.getTracks().forEach((track) => track.stop())
+         this.localStream = null
       }
+
       if (this.pc) {
          this.pc.onicecandidate = null
          this.pc.ontrack = null
          this.pc.onnegotiationneeded = null
          this.pc.onconnectionstatechange = null
-         this.pc.close()
+         this.pc.oniceconnectionstatechange = null
+
+         if (this.pc.signalingState !== 'closed') {
+            this.pc.close()
+         }
+         this.pc = null
       }
+
       if (this.socket) {
-         this.socket.close()
+         this.socket.onopen = null
+         this.socket.onmessage = null
+         this.socket.onclose = null
+         this.socket.onerror = null
+
+         if (
+            this.socket.readyState === WebSocket.OPEN ||
+            this.socket.readyState === WebSocket.CONNECTING
+         ) {
+            this.socket.close()
+         }
+         this.socket = null
       }
-      this.pc = null
-      this.localStream = null
+
       this.remoteStream = null
-      this.socket = null
    }
 }
