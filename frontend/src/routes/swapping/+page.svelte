@@ -25,7 +25,7 @@
    let reconnectTimeout: number | null = null
 
    // WebRTC state
-   let webrtcService = $state<WebRTCService | null>(null)
+   let webrtcService: WebRTCService | null = null
    let localStream = $state<MediaStream | null>(null)
    let remoteStream = $state<MediaStream | null>(null)
    let videoConnectionStatus = $state('disconnected')
@@ -42,15 +42,15 @@
       return `ws://localhost:5173${path}`
    }
 
-   function initializeWebRTC() {
-      if (!selectedChat || !$auth.user) return
+   function initializeWebRTC(chat: ChatWithMessages) {
+      if (!chat || !$auth.user) return
 
       if (webrtcService) {
          webrtcService.disconnect()
       }
 
       webrtcService = new WebRTCService(
-         `chat_${selectedChat.id}`,
+         `chat_${chat.id}`,
          (stream) => {
             console.log('Remote stream received')
             remoteStream = stream
@@ -67,9 +67,7 @@
       // Use a stable heuristic for politeness: user with smaller ID is polite
       const currentUserId = Number($auth.user.id)
       const otherUserId =
-         selectedChat.user1_id == currentUserId
-            ? selectedChat.user2_id
-            : selectedChat.user1_id
+         chat.user1_id == currentUserId ? chat.user2_id : chat.user1_id
       webrtcService.setPolite(currentUserId < Number(otherUserId))
 
       const wsUrl = getWebSocketUrl('/api/video')
@@ -83,7 +81,7 @@
       }
 
       if (!webrtcService) {
-         initializeWebRTC()
+         initializeWebRTC(selectedChat)
       }
 
       if (!webrtcService) {
@@ -121,11 +119,8 @@
          const resp = await fetch(`/api/getChats?uid=${uid}`)
          const chatMetas = await resp.json()
          const chatPromises = chatMetas.map(async (cm: any) => {
-            // console.log(cm)
             const res2 = await fetch(`/api/getChatInfo?cid=${cm.id}`)
-            // console.log(res2)
             const body2 = await res2.json()
-            console.log(body2)
             const msgs: Message[] = body2.messages ?? []
 
             return {
@@ -277,12 +272,16 @@
       initializeWebSocket()
    })
 
-   let lastInitializedChatId = $state<number | null>(null)
+   let lastInitializedChatId: number | null = null
    $effect(() => {
       if (selectedChat && selectedChat.id !== lastInitializedChatId) {
          lastInitializedChatId = selectedChat.id
-         initializeWebRTC()
+         initializeWebRTC(selectedChat)
       } else if (!selectedChat) {
+         if (webrtcService) {
+            webrtcService.disconnect()
+            webrtcService = null
+         }
          lastInitializedChatId = null
       }
    })
@@ -292,7 +291,7 @@
          clearTimeout(reconnectTimeout)
       }
       if (socket) {
-         reconnectAttempts = maxReconnectAttempts // Prevent reconnection
+         reconnectAttempts = maxReconnectAttempts
          socket.close()
       }
       endVideoCall()
@@ -374,6 +373,7 @@
                      </div>
                   </div>
                {/if}
+
                {#if localStream}
                   <div
                      class="absolute bottom-4 right-4 w-24 sm:w-32 lg:w-40 aspect-video bg-black rounded-lg border-2 border-white/50 overflow-hidden shadow-xl z-10"
