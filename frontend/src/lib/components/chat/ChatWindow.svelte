@@ -1,209 +1,243 @@
 <script lang="ts">
-    import type { Message } from "$lib/types/chat";
-    import MessageInput from "./MessageInput.svelte";
-    import { formatTime } from "$lib/utils/formatting";
-    import LoadingSpinner from "$lib/components/common/LoadingSpinner.svelte";
+   import type { Message } from '$lib/types/chat'
+   import MessageInput from './MessageInput.svelte'
+   import { formatTime } from '$lib/utils/formatting'
+   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
 
-    type Props = {
-        messages?: Message[];
-        currentUserId: number | string;
-        otherUserName?: string;
-        otherUserPicture?: string;
-        loading?: boolean;
-        onSendMessage?: (message: string) => void;
-        onAttachment?: () => void;
-        class?: string;
-    };
+   type Props = {
+      messages?: Message[]
+      currentUserId: number | string
+      otherUserName?: string
+      otherUserPicture?: string
+      loading?: boolean
+      onSendMessage?: (message: string) => void
+      onAttachment?: () => void
+      class?: string
+   }
 
-    let {
-        messages = [],
-        currentUserId,
-        otherUserName = "User",
-        otherUserPicture = "",
-        loading = false,
-        onSendMessage,
-        onAttachment,
-        class: className = ""
-    }: Props = $props();
+   let {
+      messages = [],
+      currentUserId,
+      otherUserName = 'User',
+      otherUserPicture = '',
+      loading = false,
+      onSendMessage,
+      onAttachment,
+      class: className = '',
+   }: Props = $props()
 
-    let messageContainer: HTMLElement;
-    let newMessage = $state("");
+   let messageContainer: HTMLElement
+   let newMessage = $state('')
 
-    function generateUUID(): string {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = (Math.random() * 16) | 0;
-            const v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-        });
-    }
+   function generateUUID(): string {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+         /[xy]/g,
+         function (c) {
+            const r = (Math.random() * 16) | 0
+            const v = c === 'x' ? r : (r & 0x3) | 0x8
+            return v.toString(16)
+         },
+      )
+   }
 
-    function handleSend(message: string) {
-        if (onSendMessage) {
-            onSendMessage(message);
-        }
-    }
+   function handleSend(message: string) {
+      if (onSendMessage) {
+         onSendMessage(message)
+      }
+   }
 
-    function scrollToBottom() {
-        if (messageContainer) {
-            messageContainer.scrollTop = messageContainer.scrollHeight;
-        }
-    }
+   function scrollToBottom() {
+      if (messageContainer) {
+         messageContainer.scrollTop = messageContainer.scrollHeight
+      }
+   }
 
-    $effect(() => {
-        if (messages.length > 0) {
-            setTimeout(scrollToBottom, 100);
-        }
-    });
+   $effect(() => {
+      if (messages.length > 0) {
+         setTimeout(scrollToBottom, 100)
+      }
+   })
 
-    function groupMessagesByDate(messages: Message[]) {
-        const groups: { id: string; date: string; messages: Message[] }[] = [];
-        let currentDate = "";
-        let groupIndex = 0;
+   function groupMessagesByDate(messages: Message[]) {
+      const groups: { id: string; date: string; messages: Message[] }[] = []
+      let currentDate = ''
+      let groupIndex = 0
 
-        messages.forEach((message) => {
-            const messageDate = new Date(message.timestamp).toLocaleDateString();
+      messages.forEach((message) => {
+         const messageDate = new Date(message.timestamp).toLocaleDateString()
 
-            if (messageDate !== currentDate) {
-                currentDate = messageDate;
-                groups.push({ id: `group-${groupIndex}`, date: messageDate, messages: [message] });
-                groupIndex++;
-            } else {
-                groups[groups.length - 1].messages.push(message);
-            }
-        });
+         if (messageDate !== currentDate) {
+            currentDate = messageDate
+            groups.push({
+               id: `group-${groupIndex}`,
+               date: messageDate,
+               messages: [message],
+            })
+            groupIndex++
+         } else {
+            groups[groups.length - 1].messages.push(message)
+         }
+      })
 
-        return groups;
-    }
+      return groups
+   }
 
-    const sortedMessages = $derived(
-        [...messages].sort((a, b) => {
-            const idA = a.id?.toString() || "";
-            const idB = b.id?.toString() || "";
-            return idA.localeCompare(idB);
-        })
-    );
+   const sortedMessages = $derived(
+      [...messages].sort((a, b) => {
+         const idA = a.id?.toString() || ''
+         const idB = b.id?.toString() || ''
+         return idA.localeCompare(idB)
+      }),
+   )
 
-    const messageGroups = $derived(groupMessagesByDate(sortedMessages));
+   const messageGroups = $derived(groupMessagesByDate(sortedMessages))
 </script>
 
-<div class="flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden {className}">
-    <!-- Header -->
-    <div class="flex-shrink-0 p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
-        <div class="flex items-center gap-2 sm:gap-3">
-            <img
-                src={otherUserPicture || '/api/profile/default/picture'}
-                alt={otherUserName}
-                class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-200"
-            />
-            <div class="flex-1 min-w-0">
-                <h3 class="text-base sm:text-lg font-semibold text-gray-900 truncate">
-                    {otherUserName}
-                </h3>
-                <p class="text-xs sm:text-sm text-gray-500">Active now</p>
-            </div>
-            <button
-                class="p-1.5 sm:p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
-                aria-label="More options"
+<div
+   class="flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden {className}"
+>
+   <!-- Header -->
+   <div class="flex-shrink-0 p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
+      <div class="flex items-center gap-2 sm:gap-3">
+         <img
+            src={otherUserPicture || '/api/profile/default/picture'}
+            alt={otherUserName}
+            class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-200"
+         />
+         <div class="flex-1 min-w-0">
+            <h3
+               class="text-base sm:text-lg font-semibold text-gray-900 truncate"
             >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                    />
-                </svg>
-            </button>
-        </div>
-    </div>
+               {otherUserName}
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-500">Active now</p>
+         </div>
+         <button
+            class="p-1.5 sm:p-2 hover:bg-gray-200 rounded-full transition-colors duration-200"
+            aria-label="More options"
+         >
+            <svg
+               xmlns="http://www.w3.org/2000/svg"
+               class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke="currentColor"
+            >
+               <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+               />
+            </svg>
+         </button>
+      </div>
+   </div>
 
-    <!-- Messages -->
-    <div
-        bind:this={messageContainer}
-        class="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4"
-    >
-        {#if loading}
-            <div class="flex items-center justify-center h-full">
-                <LoadingSpinner size="lg" text="Loading messages..." />
+   <!-- Messages -->
+   <div
+      bind:this={messageContainer}
+      class="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4"
+   >
+      {#if loading}
+         <div class="flex items-center justify-center h-full">
+            <LoadingSpinner size="lg" text="Loading messages..." />
+         </div>
+      {:else if messages.length === 0}
+         <div
+            class="flex flex-col items-center justify-center h-full text-center px-4"
+         >
+            <div
+               class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4"
+            >
+               <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-8 w-8 sm:h-10 sm:w-10 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+               >
+                  <path
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     stroke-width="2"
+                     d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                  />
+               </svg>
             </div>
-        {:else if messages.length === 0}
-            <div class="flex flex-col items-center justify-center h-full text-center px-4">
-                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-8 w-8 sm:h-10 sm:w-10 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                        />
-                    </svg>
-                </div>
-                <p class="text-gray-600 font-medium text-sm sm:text-base">No messages yet</p>
-                <p class="text-gray-400 text-xs sm:text-sm mt-1">Start the conversation by sending a message</p>
+            <p class="text-gray-600 font-medium text-sm sm:text-base">
+               No messages yet
+            </p>
+            <p class="text-gray-400 text-xs sm:text-sm mt-1">
+               Start the conversation by sending a message
+            </p>
+         </div>
+      {:else}
+         {#each messageGroups as group (group.id)}
+            <!-- Date divider -->
+            <div class="flex items-center justify-center my-2 sm:my-4">
+               <div
+                  class="bg-gray-200 text-gray-600 text-xs font-medium px-2 sm:px-3 py-1 rounded-full"
+               >
+                  {group.date}
+               </div>
             </div>
-        {:else}
-            {#each messageGroups as group (group.id)}
-                <!-- Date divider -->
-                <div class="flex items-center justify-center my-2 sm:my-4">
-                    <div class="bg-gray-200 text-gray-600 text-xs font-medium px-2 sm:px-3 py-1 rounded-full">
-                        {group.date}
-                    </div>
-                </div>
 
-                <!-- Messages for this date -->
-                {#each group.messages as message (message.id)}
-                    {@const isCurrentUser = message.sender.id == currentUserId || message.sender.email == currentUserId}
+            <!-- Messages for this date -->
+            {#each group.messages as message (message.id)}
+               {@const isCurrentUser =
+                  message.sender.id == currentUserId ||
+                  message.sender.email == currentUserId}
 
-                    <div class="flex {isCurrentUser ? 'justify-end' : 'justify-start'}">
-                        <div class="flex flex-col max-w-[85%] sm:max-w-[70%] {isCurrentUser ? 'items-end' : 'items-start'}">
-                            {#if !isCurrentUser}
-                                <div class="flex items-center gap-1.5 sm:gap-2 mb-1 px-1 sm:px-2">
-                                    <img
-                                        src={message.sender.profile_picture || '/api/profile/default/picture'}
-                                        alt={message.sender.username}
-                                        class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
-                                    />
-                                    <span class="text-xs text-gray-500 font-medium">
-                                        {message.sender.username}
-                                    </span>
-                                </div>
-                            {/if}
-
-                            <div
-                                class="p-2 sm:p-3 rounded-lg break-words text-sm sm:text-base {isCurrentUser
-                                    ? 'bg-blue-500 text-white rounded-br-none'
-                                    : 'bg-gray-200 text-gray-800 rounded-bl-none'}"
-                            >
-                                {message.content}
-                            </div>
-
-                            <span class="text-xs text-gray-400 mt-0.5 sm:mt-1 px-1 sm:px-2">
-                                {formatTime(message.timestamp)}
-                            </span>
+               <div
+                  class="flex {isCurrentUser ? 'justify-end' : 'justify-start'}"
+               >
+                  <div
+                     class="flex flex-col max-w-[85%] sm:max-w-[70%] {isCurrentUser
+                        ? 'items-end'
+                        : 'items-start'}"
+                  >
+                     {#if !isCurrentUser}
+                        <div
+                           class="flex items-center gap-1.5 sm:gap-2 mb-1 px-1 sm:px-2"
+                        >
+                           <img
+                              src={message.sender.profile_picture ||
+                                 '/api/profile/default/picture'}
+                              alt={message.sender.username}
+                              class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
+                           />
+                           <span class="text-xs text-gray-500 font-medium">
+                              {message.sender.username}
+                           </span>
                         </div>
-                    </div>
-                {/each}
-            {/each}
-        {/if}
-    </div>
+                     {/if}
 
-    <!-- Input -->
-    <MessageInput
-        bind:value={newMessage}
-        onSend={handleSend}
-        onAttachment={onAttachment}
-        disabled={loading}
-    />
+                     <div
+                        class="p-2 sm:p-3 rounded-lg break-words text-sm sm:text-base {isCurrentUser
+                           ? 'bg-blue-500 text-white rounded-br-none'
+                           : 'bg-gray-200 text-gray-800 rounded-bl-none'}"
+                     >
+                        {message.content}
+                     </div>
+
+                     <span
+                        class="text-xs text-gray-400 mt-0.5 sm:mt-1 px-1 sm:px-2"
+                     >
+                        {formatTime(message.timestamp)}
+                     </span>
+                  </div>
+               </div>
+            {/each}
+         {/each}
+      {/if}
+   </div>
+
+   <!-- Input -->
+   <MessageInput
+      bind:value={newMessage}
+      onSend={handleSend}
+      {onAttachment}
+      disabled={loading}
+   />
 </div>
