@@ -25,7 +25,7 @@
    let reconnectTimeout: number | null = null
 
    // WebRTC state
-   let webrtcService: WebRTCService | null = null
+   let webrtcService = $state<WebRTCService | null>(null)
    let localStream = $state<MediaStream | null>(null)
    let remoteStream = $state<MediaStream | null>(null)
    let videoConnectionStatus = $state('disconnected')
@@ -43,7 +43,7 @@
    }
 
    function initializeWebRTC() {
-      if (!selectedChat) return
+      if (!selectedChat || !$auth.user) return
 
       if (webrtcService) {
          webrtcService.disconnect()
@@ -64,22 +64,40 @@
          },
       )
 
+      // Use a stable heuristic for politeness: user with smaller ID is polite
+      const currentUserId = Number($auth.user.id)
+      const otherUserId =
+         selectedChat.user1_id == currentUserId
+            ? selectedChat.user2_id
+            : selectedChat.user1_id
+      webrtcService.setPolite(currentUserId < Number(otherUserId))
+
       const wsUrl = getWebSocketUrl('/api/video')
       webrtcService.connect(wsUrl)
    }
 
    async function startVideoCall() {
+      if (!selectedChat) {
+         console.warn('Cannot start call: no chat selected')
+         return
+      }
+
       if (!webrtcService) {
          initializeWebRTC()
       }
 
+      if (!webrtcService) {
+         console.error('Failed to initialize WebRTC service')
+         return
+      }
+
       try {
-         const stream = await webrtcService!.startLocalStream()
+         const stream = await webrtcService.startLocalStream()
          localStream = stream
          if (localVideoElement) {
             localVideoElement.srcObject = stream
          }
-         await webrtcService!.call()
+         await webrtcService.call()
       } catch (err) {
          console.error('Failed to start video call:', err)
       }
