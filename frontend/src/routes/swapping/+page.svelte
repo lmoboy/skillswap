@@ -277,9 +277,13 @@
       initializeWebSocket()
    })
 
+   let lastInitializedChatId = $state<number | null>(null)
    $effect(() => {
-      if (selectedChat) {
+      if (selectedChat && selectedChat.id !== lastInitializedChatId) {
+         lastInitializedChatId = selectedChat.id
          initializeWebRTC()
+      } else if (!selectedChat) {
+         lastInitializedChatId = null
       }
    })
 
