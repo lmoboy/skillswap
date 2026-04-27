@@ -131,14 +131,14 @@ func (room *Room) Run() {
 				return
 			}
 
-		case message := <-room.Broadcast:
 			// log.Printf("Broadcasting %s from %s in room %s", message.Type, message.From, room.ID)
 			// Broadcast message to all clients except sender
 			senderID := message.From
+			log.Printf("Signaling: Broadcasting %s from %s to others in room %s", message.Type, senderID, room.ID)
 			for clientID, client := range room.Clients {
 				if clientID != senderID {
 					if err := client.Conn.WriteJSON(message); err != nil {
-						log.Println("Write error:", err)
+						log.Printf("Signaling: Write error to %s: %v", clientID, err)
 						client.Conn.Close()
 						delete(room.Clients, clientID)
 					}
