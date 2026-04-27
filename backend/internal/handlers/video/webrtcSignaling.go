@@ -131,6 +131,7 @@ func (room *Room) Run() {
 				return
 			}
 
+		case message := <-room.Broadcast:
 			// log.Printf("Broadcasting %s from %s in room %s", message.Type, message.From, room.ID)
 			// Broadcast message to all clients except sender
 			senderID := message.From
