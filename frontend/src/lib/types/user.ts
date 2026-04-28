@@ -9,6 +9,7 @@ export type User = {
     skills: Skills[];
     contacts: Contacts[];
     id: number;
+    swaps: number;
 };
 
 export type Skills = {

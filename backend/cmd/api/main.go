@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"skillswap/backend/internal/handlers/admin"
 	"skillswap/backend/internal/handlers/auth"
 	"skillswap/backend/internal/handlers/chat"
 	"skillswap/backend/internal/config"
@@ -73,6 +74,20 @@ func main() {
 	
 	server.HandleFunc("/api/course/add", middleware.AuthMiddleware(courses.AddCourse)).Methods("POST")
 	server.HandleFunc("/api/course/upload", middleware.AuthMiddleware(courses.UploadCourseAsset)).Methods("POST")
+
+	// Admin routes (admin authentication required)
+	server.HandleFunc("/api/admin/stats", middleware.AdminMiddleware(admin.GetAllStats)).Methods("GET")
+	server.HandleFunc("/api/admin/users", middleware.AdminMiddleware(admin.GetAllUsers)).Methods("GET")
+	server.HandleFunc("/api/admin/user/toggle-admin", middleware.AdminMiddleware(admin.ToggleUserAdmin)).Methods("POST")
+	server.HandleFunc("/api/admin/user/delete", middleware.AdminMiddleware(admin.DeleteUser)).Methods("POST", "DELETE")
+	server.HandleFunc("/api/admin/user/swaps", middleware.AdminMiddleware(admin.UpdateUserSwaps)).Methods("POST")
+	server.HandleFunc("/api/admin/courses", middleware.AdminMiddleware(admin.GetAllCourses)).Methods("GET")
+	server.HandleFunc("/api/admin/course/delete", middleware.AdminMiddleware(admin.DeleteCourse)).Methods("POST", "DELETE")
+	server.HandleFunc("/api/admin/skills", middleware.AdminMiddleware(admin.GetAllSkills)).Methods("GET")
+	server.HandleFunc("/api/admin/skill/add", middleware.AdminMiddleware(admin.AddSkill)).Methods("POST")
+	server.HandleFunc("/api/admin/skill/update", middleware.AdminMiddleware(admin.UpdateSkill)).Methods("POST", "PUT")
+	server.HandleFunc("/api/admin/skill/delete", middleware.AdminMiddleware(admin.DeleteSkill)).Methods("POST", "DELETE")
+	server.HandleFunc("/api/admin/health", middleware.AdminMiddleware(admin.GetSystemHealth)).Methods("GET")
 
 	server.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 	// Vienkārša "dummy" funkcija aizmugursistēmas (backend) darbības pārbaudei.

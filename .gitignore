@@ -51,3 +51,4 @@ backend/uploads*
 backend/uploads/*
 frontend/test-results/*
 frontend/playwright-report/*
+CLAUDE.md
