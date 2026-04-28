@@ -51,6 +51,7 @@ func main() {
 	server.HandleFunc("/api/search", database.Search).Methods("POST")
 	server.HandleFunc("/api/fullSearch", database.FullSearch).Methods("POST")
 	server.HandleFunc("/api/user", users.RetrieveUserInfo).Methods("GET")
+	server.HandleFunc("/api/getUserInfo", users.RetrieveUserInfo).Methods("GET")
 	server.HandleFunc("/api/profile/{id}/picture", users.GetProfilePicture).Methods("GET")
 	
 	// Public course routes
