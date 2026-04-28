@@ -5,6 +5,8 @@ export interface User {
     email: string;
     id: number;
     profile_picture?: string;
+    is_admin?: boolean;
+    swaps?: number;
 }
 
 interface AuthState {

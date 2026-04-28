@@ -64,11 +64,13 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Not authenticated"})
 		return
 	}
-	row, err := database.Query("SELECT username, email, id, COALESCE(profile_picture, '') FROM users WHERE email = ?", values.Values["email"])
+	row, err := database.Query("SELECT username, email, id, COALESCE(profile_picture, ''), is_admin, swaps FROM users WHERE email = ?", values.Values["email"])
 	var username string = ""
 	var email = ""
 	var id = 0
 	var profilePicture = ""
+	var isAdmin = 0
+	var swaps = 0
 	if err != nil {
 		Authenticated = false
 		utils.HandleError(err)
@@ -81,7 +83,7 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "User not found"})
 		return
 	}
-	err = row.Scan(&username, &email, &id, &profilePicture)
+	err = row.Scan(&username, &email, &id, &profilePicture, &isAdmin, &swaps)
 	if err != nil {
 		Authenticated = false
 		utils.HandleError(err)
@@ -90,7 +92,14 @@ func CheckSession(w http.ResponseWriter, req *http.Request) {
 	}
 	// utils.DebugPrint(values.Values)
 	Authenticated = true
-	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"user": username, "email": email, "id": fmt.Sprintf("%d", id), "profile_picture": profilePicture})
+	utils.SendJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"user":            username,
+		"email":           email,
+		"id":              fmt.Sprintf("%d", id),
+		"profile_picture": profilePicture,
+		"is_admin":        isAdmin == 1,
+		"swaps":           swaps,
+	})
 }
 
 // RemoveSession invalidates and removes the current authentication session.

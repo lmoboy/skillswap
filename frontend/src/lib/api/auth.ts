@@ -214,6 +214,8 @@ export async function checkAuth(): Promise<boolean> {
                 email: data.email || '',
                 id: data.id || '',
                 profile_picture: data.profile_picture ? data.profile_picture : '',
+                is_admin: data.is_admin || false,
+                swaps: data.swaps || 0,
             });
             return true;
         }

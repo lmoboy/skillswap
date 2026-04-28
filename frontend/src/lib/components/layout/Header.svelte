@@ -4,7 +4,7 @@
     import { goto } from "$app/navigation";
     import SearchBar from "$lib/components/common/SearchBar.svelte";
     import UserMenu from "$lib/components/common/UserMenu.svelte";
-    import { Menu, X } from "lucide-svelte";
+    import { Menu, X, ArrowRightLeft } from "lucide-svelte";
 
     type Props = {
         class?: string;
@@ -120,7 +120,13 @@
                         ></div>
                     </div>
                 {:else if $auth.isAuthenticated && $auth.user}
+                    <div class="hidden lg:flex items-center bg-gradient-to-r from-teal-500 to-blue-900 rounded-full px-3 py-1 gap-2 mr-2 shadow-sm border border-blue-800/20">
+                        <ArrowRightLeft class="w-3.5 h-3.5 text-white" />
+                        <span class="text-sm font-bold text-white">{$auth.user.swaps ?? 0}</span>
+                        <span class="text-[10px] font-bold text-teal-50 uppercase tracking-tight opacity-90">Swaps</span>
+                    </div>
                     <UserMenu user={$auth.user} onLogout={handleLogout} />
+
                 {:else}
                     <a
                         href="/auth/login"
@@ -189,6 +195,13 @@
                             ></div>
                         </div>
                     {:else if $auth.isAuthenticated && $auth.user}
+                        <div class="px-3 py-3 flex items-center justify-between bg-gradient-to-r from-teal-500 to-blue-900 rounded-xl mx-2 mb-2 shadow-md">
+                            <div class="flex items-center gap-2">
+                                <ArrowRightLeft class="w-4 h-4 text-white" />
+                                <span class="text-sm font-bold text-white">Available Swaps</span>
+                            </div>
+                            <span class="text-xl font-black text-white">{$auth.user.swaps ?? 0}</span>
+                        </div>
                         <a
                             href={`/profile/${$auth.user.id}`}
                             class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium hover:bg-gray-50 rounded-md transition-colors"

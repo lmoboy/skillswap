@@ -8,6 +8,7 @@
         name: string;
         email: string;
         profile_picture?: string;
+        is_admin?: boolean;
     };
 
     type Props = {
@@ -96,6 +97,15 @@
             >
                 Settings
             </a>
+            {#if user.is_admin}
+                <a
+                    href="/admin"
+                    class="block px-4 py-2 text-sm text-peach-600 font-bold hover:bg-peach-50 transition-colors duration-200"
+                    onclick={closeMenu}
+                >
+                    Admin Dashboard
+                </a>
+            {/if}
             <div class="border-t border-gray-100 my-1"></div>
             <button
                 onclick={handleLogout}
