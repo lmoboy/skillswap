@@ -22,6 +22,7 @@
     let { data } = $props();
 
     let profilePictureRef = $state<File | null>(null);
+    let profilePictureError = $state<string>("");
     
     let newProjectDescription = $state("");
     let newProjectLink = $state("");
@@ -114,6 +115,7 @@
             user = structuredClone(original);
         }
         editing = false;
+        profilePictureError = "";
         resetForms();
     };
 
@@ -237,7 +239,32 @@
     const uploadProfilePicture = async (e: Event) => {
         const input = e.target as HTMLInputElement;
         if (!input.files?.[0]) return;
-        profilePictureRef = input.files[0];
+        
+        const file = input.files[0];
+        const fileName = file.name.toLowerCase();
+        
+        // Validate file extension
+        const validExtensions = ['.jpg', '.jpeg', '.png'];
+        const fileExtension = '.' + fileName.split('.').pop();
+        
+        if (!validExtensions.includes(fileExtension)) {
+            profilePictureError = `Invalid file type. Please upload a JPG or PNG image.`;
+            // Reset the input
+            input.value = '';
+            return;
+        }
+        
+        // Validate file size (max 4MB)
+        const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
+        if (file.size > maxSizeInBytes) {
+            profilePictureError = `File is too large. Maximum size is 4MB.`;
+            input.value = '';
+            return;
+        }
+        
+        // Clear any previous errors
+        profilePictureError = "";
+        profilePictureRef = file;
         
         // Update the user's profile picture in the state
         user.profile_picture = URL.createObjectURL(profilePictureRef);
@@ -292,13 +319,24 @@
                                     <Camera class="w-4 h-4 text-gray-600" />
                                     <input
                                         type="file"
-                                        accept="image/*"
+                                        accept=".jpg,.jpeg,.png"
                                         onchange={uploadProfilePicture}
                                         class="hidden"
                                     />
                                 </label>
                             {/if}
                         </div>
+
+                        {#if profilePictureError}
+                            <div class="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                                <AlertCircle class="w-4 h-4 flex-shrink-0" />
+                                <span>{profilePictureError}</span>
+                            </div>
+                        {/if}
+
+                        {#if editing && user.id == $auth?.user?.id && !profilePictureError}
+                            <p class="mt-2 text-xs text-white">Supported formats: JPG, PNG (max 4MB)</p>
+                        {/if}
 
                         <!-- Profile Info -->
                         <div class="flex-1 text-center lg:text-left text-white">
@@ -601,7 +639,7 @@
                                         {#if user.id == $auth?.user?.id && !editing}
                                             <button
                                                 onclick={() => (editing = true)}
-                                                class="bg-blue-600 text-black px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+                                                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
                                             >
                                                 <Plus class="w-4 h-4" />
                                                 Add Your First Project

@@ -172,10 +172,11 @@ func updatePersonalUserInfo(user *models.UserInfo) error{
 		return err
 	}
 	user.Password = fmt.Sprintf("%x", md5.Sum([]byte(user.Password)))
-	if(user.Password != userPassword){
-		return errors.New("Incorrect old password")
-	}
+
 	if(user.OldPassword != ""){
+		if(user.Password != userPassword){
+			return errors.New("Incorrect old password")
+		}
 		if err := updatePassword(user); err != nil {
 			return err
 		}

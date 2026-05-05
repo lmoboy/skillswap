@@ -24,6 +24,34 @@
    let maxReconnectAttempts = 10
    let reconnectTimeout: number | null = null
 
+   // Notification toast state
+   let notificationToast = $state<{
+      show: boolean
+      from_user: string
+      message_preview: string
+      chat_id: number
+   } | null>(null)
+   let notificationTimeout: number | null = null
+
+   function showNotificationToast(message: WebSocketChatMessage) {
+      // Clear any existing timeout
+      if (notificationTimeout) {
+         window.clearTimeout(notificationTimeout)
+      }
+
+      notificationToast = {
+         show: true,
+         from_user: message.from_user || 'Someone',
+         message_preview: message.message_preview || '',
+         chat_id: message.chat_id || 0,
+      }
+
+      // Auto-hide after 5 seconds
+      notificationTimeout = window.setTimeout(() => {
+         notificationToast = null
+      }, 5000)
+   }
+
    // WebRTC state
    let webrtcService: WebRTCService | null = null
    let localStream = $state<MediaStream | null>(null)
@@ -180,6 +208,9 @@
                   }
                } else if (message.type === 'update') {
                   updateChat()
+               } else if (message.type === 'notification' && message.subtype === 'new_message') {
+                  // Show in-app notification toast
+                  showNotificationToast(message)
                }
             } catch (error) {
                console.error('Error processing WebSocket message:', error)
@@ -521,4 +552,58 @@
          </div>
       </div>
    {/if}
+
+   <!-- Notification Toast -->
+   {#if notificationToast && notificationToast.show}
+      <div class="fixed top-4 right-4 z-50 max-w-sm w-full animate-slide-in">
+         <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-4 flex items-start gap-3">
+            <div class="flex-shrink-0 mt-0.5">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+               </svg>
+            </div>
+            <div class="flex-1">
+               <h4 class="font-medium text-gray-900">New message from {notificationToast.from_user}</h4>
+               <p class="text-sm text-gray-600 mt-1">{notificationToast.message_preview}</p>
+               <button 
+                  class="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  onclick={() => {
+                     // Find and select the chat
+                     const chatIndex = chats.findIndex(c => c.id === notificationToast?.chat_id)
+                     if (chatIndex !== -1) {
+                        selectedChatIndex = chatIndex
+                     }
+                     notificationToast = null
+                  }}
+               >
+                  Open chat →
+               </button>
+            </div>
+            <button 
+               class="flex-shrink-0 text-gray-400 hover:text-gray-600"
+               onclick={() => notificationToast = null}
+            >
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+               </svg>
+            </button>
+         </div>
+      </div>
+   {/if}
+
+<style>
+   @keyframes slide-in {
+      from {
+         transform: translateX(100%);
+         opacity: 0;
+      }
+      to {
+         transform: translateX(0);
+         opacity: 1;
+      }
+   }
+   .animate-slide-in {
+      animation: slide-in 0.3s ease-out;
+   }
+</style>
 </div>

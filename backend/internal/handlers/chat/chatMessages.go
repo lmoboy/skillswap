@@ -45,6 +45,32 @@ func (c *Client) handlePostMessage(wsMessage *WebSocketMessage) {
 
 	// Broadcast to all clients
 	c.broadcastNewMessage(wsMessage.ID, message)
+
+	// Send targeted notification to the recipient
+	recipientID, err := getChatRecipient(wsMessage.ID, c.userID)
+	if err != nil {
+		utils.HandleError(err)
+		return
+	}
+
+	// Create notification payload
+	notification := map[string]interface{}{
+		"type":        "notification",
+		"subtype":     "new_message",
+		"chat_id":     wsMessage.ID,
+		"from_user":   message.Sender.Username,
+		"message_preview": truncateString(message.Content, 50),
+	}
+	notificationBytes, _ := json.Marshal(notification)
+	globalHub.SendToUser(recipientID, notificationBytes)
+}
+
+// truncateString truncates a string to maxLen and adds "..." if needed
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // handleUpdateMessage handles update message type
@@ -75,6 +101,22 @@ func saveMessageToDB(wsMessage *WebSocketMessage) (int64, error) {
 	}
 
 	return result.LastInsertId()
+}
+
+// getChatRecipient returns the other user's ID in a chat (not the sender)
+func getChatRecipient(chatID int, senderID int) (int, error) {
+	row := database.QueryRow(`
+		SELECT user1_id, user2_id 
+		FROM chats 
+		WHERE id = ?`, chatID)
+	var user1ID, user2ID int
+	if err := row.Scan(&user1ID, &user2ID); err != nil {
+		return 0, err
+	}
+	if user1ID == senderID {
+		return user2ID, nil
+	}
+	return user1ID, nil
 }
 
 // fetchMessageWithSender retrieves complete user information for a message sender
