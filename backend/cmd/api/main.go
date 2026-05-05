@@ -38,6 +38,9 @@ func main() {
 	// Izveido jaunu rūteri ar stingru pārbaudi slīpsvītrām, kas nozīmē, ka maršruti ar un bez beigu slīpsvītras tiek uzskatīti par atšķirīgiem.
 	server := mux.NewRouter().StrictSlash(true)
 
+	// Apply panic recovery middleware first to catch all panics
+	server.Use(middleware.RecoveryMiddleware)
+
 	// Tiek definēti API ceļi (end-points) dažādām front-end darbībām.
 	// "HandleFunc" piesaista konkrētu URL ceļu noteiktai Go funkcijai.
 

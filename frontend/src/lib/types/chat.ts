@@ -33,12 +33,15 @@ export type ChatWithMessages = ChatMeta & {
 };
 
 export type WebSocketChatMessage = {
-    type: 'post' | 'update' | 'new_message' | 'join' | 'leave';
+    type: 'post' | 'update' | 'new_message' | 'join' | 'leave' | 'notification';
     id?: number;
     chat_id?: number;
     user_id?: number | string;
     content?: string;
     message?: Message;
+    subtype?: string;
+    from_user?: string;
+    message_preview?: string;
     [key: string]: any;
 };
 

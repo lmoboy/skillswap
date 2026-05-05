@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"skillswap/backend/internal/database"
+	"skillswap/backend/internal/handlers/auth"
 	"skillswap/backend/internal/utils"
 
 	"github.com/gorilla/websocket"
@@ -21,26 +23,29 @@ var (
 
 // Client represents a single user's WebSocket connection
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub    *Hub
+	conn   *websocket.Conn
+	send   chan []byte
+	userID int // Authenticated user ID associated with this connection
 }
 
 // Hub maintains the set of active clients and broadcasts messages to them
 type Hub struct {
-	clients    map[*Client]bool
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
+	clients         map[*Client]bool
+	clientsByUserID map[int][]*Client // Track clients by user ID for targeted messages
+	broadcast       chan []byte
+	register        chan *Client
+	unregister      chan *Client
 }
 
 // NewHub initializes and returns a new Hub
 func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+		broadcast:       make(chan []byte),
+		register:        make(chan *Client),
+		unregister:      make(chan *Client),
+		clients:         make(map[*Client]bool),
+		clientsByUserID: make(map[int][]*Client),
 	}
 }
 
@@ -61,6 +66,8 @@ func (h *Hub) Run() {
 // registerClient adds a new client to the hub
 func (h *Hub) registerClient(client *Client) {
 	h.clients[client] = true
+	// Add client to user ID tracking
+	h.clientsByUserID[client.userID] = append(h.clientsByUserID[client.userID], client)
 	// utils.DebugPrint("New client connected. Total clients:", len(h.clients))
 }
 
@@ -69,6 +76,17 @@ func (h *Hub) unregisterClient(client *Client) {
 	if _, ok := h.clients[client]; ok {
 		delete(h.clients, client)
 		close(client.send)
+		// Remove client from user ID tracking
+		clients := h.clientsByUserID[client.userID]
+		for i, c := range clients {
+			if c == client {
+				h.clientsByUserID[client.userID] = append(clients[:i], clients[i+1:]...)
+				break
+			}
+		}
+		if len(h.clientsByUserID[client.userID]) == 0 {
+			delete(h.clientsByUserID, client.userID)
+		}
 		// utils.DebugPrint("Client disconnected. Total clients:", len(h.clients))
 	}
 }
@@ -81,6 +99,23 @@ func (h *Hub) broadcastMessage(message []byte) {
 			// Message successfully sent
 		default:
 			// Failed to send, unregister client
+			h.closeClient(client)
+		}
+	}
+}
+
+// SendToUser sends a message to all active connections of a specific user
+func (h *Hub) SendToUser(userID int, message []byte) {
+	clients, ok := h.clientsByUserID[userID]
+	if !ok {
+		return
+	}
+	for _, client := range clients {
+		select {
+		case client.send <- message:
+			// Message sent
+		default:
+			// Failed, unregister
 			h.closeClient(client)
 		}
 	}
@@ -241,13 +276,34 @@ func SimpleWebSocketEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get authenticated user's email from session
+	session, err := auth.Store.Get(r, "authentication")
+	if err != nil {
+		conn.Close()
+		return
+	}
+	email, ok := session.Values["email"].(string)
+	if !ok || email == "" {
+		conn.Close()
+		return
+	}
+
+	// Get user ID from database
+	var userID int
+	row := database.QueryRow("SELECT id FROM users WHERE email = ?", email)
+	if err := row.Scan(&userID); err != nil {
+		conn.Close()
+		return
+	}
+
 	client := &Client{
-		hub:  globalHub,
-		conn: conn,
-		send: make(chan []byte, 256),
+		hub:    globalHub,
+		conn:   conn,
+		send:   make(chan []byte, 256),
+		userID: userID,
 	}
 	client.hub.register <- client
-	// utils.DebugPrint("New client connected:", len(globalHub.clients))
+	// utils.DebugPrint("New client connected. User ID:", userID, "Total clients:", len(globalHub.clients))
 
 	go client.writePump()
 	client.readPump()
