@@ -26,35 +26,24 @@ SELECT
   COALESCE(u.aboutme, "") as aboutme,
   COALESCE(u.location, "") as location,
   COALESCE(u.profession, "") as profession,
-
-  COALESCE(
-    JSON_ARRAYAGG(
-      JSON_OBJECT("name", s.name, "verified", us.verified)
-    ), JSON_ARRAY()
+  (
+    SELECT COALESCE(JSON_ARRAYAGG(JSON_OBJECT("name", s.name, "verified", us.verified)), JSON_ARRAY())
+    FROM user_skills us
+    JOIN skills s ON us.skill_id = s.id
+    WHERE us.user_id = u.id
   ) AS skills,
-
-  COALESCE(
-    JSON_ARRAYAGG(
-      JSON_OBJECT("name", up.name, "description", COALESCE(up.description, ""), "link", COALESCE(up.link, ""))
-    ), JSON_ARRAY()
+  (
+    SELECT COALESCE(JSON_ARRAYAGG(JSON_OBJECT("name", up.name, "description", COALESCE(up.description, ""), "link", COALESCE(up.link, ""))), JSON_ARRAY())
+    FROM user_projects up
+    WHERE up.user_id = u.id
   ) AS projects,
-
-  COALESCE(
-    JSON_ARRAYAGG(
-      JSON_OBJECT("name", uc.name, "link", COALESCE(uc.link, ""), "icon", uc.icon)
-    ), JSON_ARRAY()
+  (
+    SELECT COALESCE(JSON_ARRAYAGG(JSON_OBJECT("name", uc.name, "link", COALESCE(uc.link, ""), "icon", uc.icon)), JSON_ARRAY())
+    FROM user_contacts uc
+    WHERE uc.user_id = u.id
   ) AS contacts
-
 FROM users AS u
-
-LEFT JOIN user_skills AS us ON u.id = us.user_id
-LEFT JOIN skills AS s ON us.skill_id = s.id
-
-LEFT JOIN user_projects AS up ON u.id = up.user_id
-LEFT JOIN user_contacts AS uc ON u.id = uc.user_id
-
-WHERE u.id = ?
-GROUP BY u.id, u.username, u.email, u.profile_picture, u.aboutme, u.location, u.profession;
+WHERE u.id = ?;
 `, req.URL.Query().Get("q"))
 	if err != nil {
 		utils.HandleError(err)
@@ -81,8 +70,6 @@ GROUP BY u.id, u.username, u.email, u.profile_picture, u.aboutme, u.location, u.
 	// Unmarshal JSON arrays into structs
 	if err := json.Unmarshal(skillsJSON, &user.Skills); err != nil {
 		utils.HandleError(err)
-		// Log the actual JSON data for debugging
-		// utils.DebugPrint("Failed to unmarshal skills JSON: " + string(skillsJSON))
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to parse skills data"})
 		return
 	}
@@ -98,29 +85,6 @@ GROUP BY u.id, u.username, u.email, u.profile_picture, u.aboutme, u.location, u.
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to parse contacts data"})
 		return
 	}
-	if(len(user.Contacts)>0){
-		for i, contact := range user.Contacts {
-			if contact.Name == "" && contact.Link == "" && contact.Icon == "" {
-				user.Contacts = append(user.Contacts[:i], user.Contacts[i+1:]...)
 
-			}
-		}
-	}
-	if(len(user.Projects)>0){
-		for i, project := range user.Projects {
-			if project.Name == "" && project.Link == "" && project.Description == "" {
-				user.Projects = append(user.Projects[:i], user.Projects[i+1:]...)
-
-			}
-		}
-	}
-	if(len(user.Skills)>0){
-		for i, skill := range user.Skills {
-			if skill.Name == "" {
-				user.Skills = append(user.Skills[:i], user.Skills[i+1:]...)
-
-			}
-		}
-	}
 	utils.SendJSONResponse(w, http.StatusOK, user)
 }
