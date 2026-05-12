@@ -119,7 +119,13 @@ func addContacts(user models.UserInfo, contact models.UserContact) error {
 
 // updateUserProjects adds all projects for a user
 func updateUserProjects(user models.UserInfo) {
+	seen := make(map[string]bool)
 	for _, project := range user.Projects {
+		key := fmt.Sprintf("%s|%s|%s", project.Name, project.Description, project.Link)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
 		if err := addProject(user, project); err != nil {
 			// utils.DebugPrint(fmt.Sprintf("Failed to add project: %v", err))
 		}
@@ -128,7 +134,12 @@ func updateUserProjects(user models.UserInfo) {
 
 // updateUserSkills adds all skills for a user
 func updateUserSkills(user models.UserInfo) {
+	seen := make(map[string]bool)
 	for _, skill := range user.Skills {
+		if seen[skill.Name] {
+			continue
+		}
+		seen[skill.Name] = true
 		if err := addSkill(user, skill); err != nil {
 			// utils.DebugPrint(fmt.Sprintf("Failed to add skill: %v", err))
 		}
@@ -137,7 +148,13 @@ func updateUserSkills(user models.UserInfo) {
 
 // updateUserContacts adds all contacts for a user
 func updateUserContacts(user models.UserInfo) {
+	seen := make(map[string]bool)
 	for _, contact := range user.Contacts {
+		key := fmt.Sprintf("%s|%s|%s", contact.Name, contact.Link, contact.Icon)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
 		if err := addContacts(user, contact); err != nil {
 			// utils.DebugPrint(fmt.Sprintf("Failed to add contact: %v", err))
 		}
