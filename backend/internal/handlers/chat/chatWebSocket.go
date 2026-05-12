@@ -207,21 +207,7 @@ func (c *Client) writeMessage(message []byte, ok bool) bool {
 		return false
 	}
 
-	w, err := c.conn.NextWriter(websocket.TextMessage)
-	if err != nil {
-		utils.HandleError(err)
-		return false
-	}
-	w.Write(message)
-
-	// Add queued messages to the current websocket message
-	n := len(c.send)
-	for i := 0; i < n; i++ {
-		// utils.DebugPrint("Sending message:", message)
-		w.Write(<-c.send)
-	}
-
-	if err := w.Close(); err != nil {
+	if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
 		utils.HandleError(err)
 		return false
 	}
