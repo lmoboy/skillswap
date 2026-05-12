@@ -84,9 +84,9 @@
 
    const sortedMessages = $derived(
       [...messages].sort((a, b) => {
-         const idA = a.id?.toString() || ''
-         const idB = b.id?.toString() || ''
-         return idA.localeCompare(idB)
+         const idA = Number(a.id) || 0
+         const idB = Number(b.id) || 0
+         return idA - idB
       }),
    )
 
