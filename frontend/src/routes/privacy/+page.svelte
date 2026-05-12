@@ -29,9 +29,8 @@
           We use your information to provide, maintain, and improve our services, including:
         </p>
         <ul class="list-disc pl-5 mt-2 space-y-2">
-          <li>Facilitating skill exchanges and video calls.</li>
-          <li>Connecting you with other users based on skills and interests.</li>
-          <li>Ensuring the security and integrity of our platform.</li>
+          <li>Search results by other users from within the platform.</li>
+          <li>Authentification and differentiation between users.</li>
         </ul>
       </section>
 
@@ -47,11 +46,14 @@
         <p>
           You have the right to access, correct, or delete your personal data at any time through your account settings.
         </p>
+        <p>
+          If you decide you want to no longer use the platform please contact us here <a href="mailto:steamgoyu19@gmail.com">(click me)</a>, attach your account name or link and we will remove it within 3 business days.
+        </p>
       </section>
 
       <section class="pt-8 border-t border-gray-100">
         <p class="text-sm">
-          Last updated: April 28, 2026
+          Last updated: May 12, 2026
         </p>
       </section>
     </div>

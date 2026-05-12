@@ -554,7 +554,7 @@
    {/if}
 
    <!-- Notification Toast -->
-   {#if notificationToast && notificationToast.show}
+   <!-- {#if notificationToast && notificationToast.show}
       <div class="fixed top-4 right-4 z-50 max-w-sm w-full animate-slide-in">
          <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-4 flex items-start gap-3">
             <div class="flex-shrink-0 mt-0.5">
@@ -589,7 +589,7 @@
             </button>
          </div>
       </div>
-   {/if}
+   {/if} -->
 
 <style>
    @keyframes slide-in {
