@@ -34,7 +34,7 @@
 
     function getLastMessage(chat: ChatWithMessages): string {
         if (chat.messages && chat.messages.length > 0) {
-            return chat.messages[0].content;
+            return chat.messages[chat.messages.length - 1].content;
         }
         return "No messages yet";
     }

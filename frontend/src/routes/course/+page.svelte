@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import CourseCard from "$lib/components/course/CourseCard.svelte";
     import type { Course } from "$lib/types/course";
     import { Search,  } from "lucide-svelte";
@@ -24,6 +24,8 @@
             : courses,
     );
 
+    let pollingInterval: ReturnType<typeof setInterval> | null = null;
+
     async function fetchCourses() {
         try {
             const response = await fetch("/api/courses", {
@@ -46,7 +48,13 @@
 
     onMount(() => {
         fetchCourses();
-        setInterval(fetchCourses, 5000);
+        pollingInterval = setInterval(fetchCourses, 30000);
+    });
+
+    onDestroy(() => {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
     });
 </script>
 

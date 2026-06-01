@@ -24,7 +24,7 @@ export class WebRTCService {
       iceServers: [
          { urls: 'stun:stun.l.google.com:19302' },
          {
-            urls: [`turn:skillswap.online:3478`, `turns:skillswap.online:5349`],
+            urls: [`turn:skillswap.online:3478`, `turn:skillswap.online:5349`],
             username: 'skillswap',
             credential: 'skillswap-turn-password',
          },

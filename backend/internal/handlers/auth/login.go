@@ -1,14 +1,14 @@
 package auth
 
 import (
-	"crypto/md5"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"skillswap/backend/internal/database"
 	"skillswap/backend/internal/models"
 	"skillswap/backend/internal/utils"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Login(w http.ResponseWriter, req *http.Request) {
@@ -24,15 +24,21 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	row := database.QueryRow("SELECT username, email, id FROM users WHERE email = ? AND password_hash = ?", userInfo.Email, fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password))))
+	row := database.QueryRow("SELECT username, email, id, password_hash FROM users WHERE email = ?", userInfo.Email)
 	var storedID int
-	var storedUsername, storedEmail string
-	if err := row.Scan(&storedUsername, &storedEmail, &storedID); err != nil {
+	var storedUsername, storedEmail, storedHash string
+	if err := row.Scan(&storedUsername, &storedEmail, &storedID, &storedHash); err != nil {
 		if err == sql.ErrNoRows {
 			utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
 			return
 		}
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "An error occurred. Please try again later"})
+		return
+	}
+
+	// Verify password with bcrypt (fallback to MD5 for legacy hashes)
+	if err := verifyPassword(storedHash, userInfo.Password); err != nil {
+		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
 		return
 	}
 
@@ -43,4 +49,9 @@ func Login(w http.ResponseWriter, req *http.Request) {
 	}
 
 	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "message": "Login successful"})
+}
+
+// verifyPassword checks a password against a bcrypt hash.
+func verifyPassword(storedHash, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
 }

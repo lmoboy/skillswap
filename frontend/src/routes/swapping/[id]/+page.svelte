@@ -3,9 +3,6 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
-    import { fade, fly } from "svelte/transition";
-    import { ArrowRightLeft, ShieldAlert, CheckCircle2, XCircle, Loader2 } from "lucide-svelte";
-    import type { User } from "$lib/types/user";
 
     let targetUser = $state<User | null>(null);
     let loading = $state(true);
@@ -39,44 +36,20 @@
         } finally {
             loading = false;
         }
-        
-        try {
-            const response = await fetch(
-                `/api/createChat?u1=${$auth.user.id}&u2=${targetUser.id}`,
-            );
-
-            if (response.ok) {
-                const result = await response.json();
-                swapSuccess = true;
-                // Brief delay to show success state
-                setTimeout(() => {
-                    goto("/swapping");
-                }, 1500);
-            } else {
-                const errorData = await response.json();
-                error = errorData.error || "Failed to initiate swap.";
-                creating = false;
-            }
-        } catch (err) {
-            console.error("Error creating chat:", err);
-            error = "A connection error occurred. Please try again.";
-            creating = false;
-        }
     });
 
     async function handleConfirmSwap() {
         if (!targetUser || !$auth.user) return;
         
         creating = true;
+        error = "";
         try {
             const response = await fetch(
                 `/api/createChat?u1=${$auth.user.id}&u2=${targetUser.id}`,
             );
 
             if (response.ok) {
-                const result = await response.json();
                 swapSuccess = true;
-                // Brief delay to show success state
                 setTimeout(() => {
                     goto("/swapping");
                 }, 1500);

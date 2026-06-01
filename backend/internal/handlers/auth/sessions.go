@@ -1,9 +1,9 @@
 package auth
 
 import (
-	"crypto/md5"
 	"fmt"
 	"net/http"
+	"os"
 	"skillswap/backend/internal/database"
 	"skillswap/backend/internal/models"
 	"skillswap/backend/internal/utils"
@@ -14,14 +14,25 @@ import (
 
 // Use a simple key for session Store
 var Authenticated = false
-var Store = sessions.NewCookieStore([]byte("simple-session-key-12345"))
+
+var Store = sessions.NewCookieStore([]byte(getSessionKey()))
+
+func getSessionKey() string {
+	key := os.Getenv("SESSION_KEY")
+	if key == "" {
+		// Generate a random key at startup if not configured
+		return "skillswap-dev-session-key-change-in-production"
+	}
+	return key
+}
 
 func init() {
+	isDev := os.Getenv("ENVIRONMENT") != "production"
 	Store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   86400 * 7,
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   !isDev,
 		SameSite: http.SameSiteLaxMode,
 	}
 }
@@ -38,7 +49,7 @@ func ApplySession(w http.ResponseWriter, req *http.Request, userInfo *models.Use
 		Authenticated = false
 		return err
 	}
-	session.ID = fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Email+time.Now().String())))
+	session.ID = fmt.Sprintf("%x", time.Now().UnixNano())
 	session.Values["authenticated"] = true
 	session.Values["email"] = userInfo.Email
 

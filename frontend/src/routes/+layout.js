@@ -7,20 +7,21 @@ import { redirect } from "@sveltejs/kit";
 
  const securePath = ['/course', '/settings', '/swapping'];
  
-export async function load({ url }) {
+export async function load({ url, cookies }) {
     const pathname = url.pathname
     // Check authentication status
-    // This will run on both server and client, ensuring auth is always checked
     if (securePath.some(path => pathname.startsWith(path))) {
         try {
-          const isUser = await checkAuth();
+          const isUser = await checkAuth(cookies);
           if (!isUser) {
-            // Redirect to login if not authenticated
             throw redirect(303, `/auth/login`);
           }
         } catch (error) {
+          // Don't re-throw redirects from checkAuth
+          if (error && typeof error === 'object' && 'status' in error && 'location' in error) {
+            throw error;
+          }
           console.error('Error checking auth in layout load:', error);
-          // Redirect to login on error as well
           throw redirect(303, `/auth/login`);
         }
       }

@@ -3,7 +3,9 @@ package video
 import (
 	"log"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -12,7 +14,18 @@ import (
 var VideoUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool {
+		// Only allow same-origin WebSocket connections
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // Allow non-browser clients
+		}
+		host := r.Host
+		// Check if origin matches host (same origin policy)
+		return strings.HasPrefix(origin, "http://"+host) ||
+			strings.HasPrefix(origin, "https://"+host) ||
+			strings.HasPrefix(host, "localhost")
+	},
 }
 
 // Message represents a WebSocket message for WebRTC signaling between peers.
@@ -110,6 +123,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 // Run handles the room's message broadcasting and client management.
 func (room *Room) Run() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case client := <-room.Register:
@@ -132,8 +148,6 @@ func (room *Room) Run() {
 			}
 
 		case message := <-room.Broadcast:
-			// log.Printf("Broadcasting %s from %s in room %s", message.Type, message.From, room.ID)
-			// Broadcast message to all clients except sender
 			senderID := message.From
 			log.Printf("Signaling: Broadcasting %s from %s to others in room %s", message.Type, senderID, room.ID)
 			for clientID, client := range room.Clients {
@@ -144,6 +158,23 @@ func (room *Room) Run() {
 						delete(room.Clients, clientID)
 					}
 				}
+			}
+
+		case <-ticker.C:
+			// Heartbeat: ping all clients to detect dead connections
+			for clientID, client := range room.Clients {
+				if err := client.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					log.Printf("Signaling: Ping failed for %s: %v", clientID, err)
+					client.Conn.Close()
+					delete(room.Clients, clientID)
+				}
+			}
+			// Clean up if room went empty during ping
+			if len(room.Clients) == 0 {
+				RoomsMutex.Lock()
+				delete(Rooms, room.ID)
+				RoomsMutex.Unlock()
+				return
 			}
 		}
 	}

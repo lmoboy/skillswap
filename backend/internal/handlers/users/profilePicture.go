@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"skillswap/backend/internal/database"
+	"skillswap/backend/internal/handlers/auth"
 	"skillswap/backend/internal/utils"
 
 	"github.com/gorilla/mux"
@@ -20,16 +21,32 @@ func UploadProfilePicture(w http.ResponseWriter, req *http.Request) {
 	}
 	defer file.Close()
 	if !utils.CheckType(filepath.Ext(fileHeader.Filename), []string{".jpg", ".jpeg", ".png"}) {
-		// utils.DebugPrint("type not accepted")
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid file type"})
 		return
 	}
-	userID := req.FormValue("user_id")
+
+	// Get user ID from session, not from form (prevents impersonation)
+	session, err := auth.Store.Get(req, "authentication")
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Not authenticated"})
+		return
+	}
+	email, ok := session.Values["email"].(string)
+	if !ok || email == "" {
+		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "Not authenticated"})
+		return
+	}
+	userID, err := database.GetUserIDFromEmail(email)
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "User not found"})
+		return
+	}
+	userIDStr := fmt.Sprintf("%d", userID)
 	if err := os.MkdirAll(filepath.Join("uploads", "users"), 0o755); err != nil {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create upload directory"})
 		return
 	}
-	path := filepath.Join("uploads", "users", fmt.Sprintf("%s.jpg", userID))
+	path := filepath.Join("uploads", "users", fmt.Sprintf("%s.jpg", userIDStr))
 	dst, err := os.Create(path)
 	if err != nil {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create file"})
@@ -41,7 +58,7 @@ func UploadProfilePicture(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	publicPath := fmt.Sprintf("/api/profile/%s/picture", userID)
+	publicPath := fmt.Sprintf("/api/profile/%s/picture", userIDStr)
 	database.Execute("UPDATE users SET profile_picture = ? WHERE id = ?", publicPath, userID)
 	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"profile_picture": publicPath})
 }

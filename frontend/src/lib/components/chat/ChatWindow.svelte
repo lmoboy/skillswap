@@ -186,8 +186,7 @@
             <!-- Messages for this date -->
             {#each group.messages as message (message.id)}
                {@const isCurrentUser =
-                  message.sender.id == currentUserId ||
-                  message.sender.email == currentUserId}
+                  String(message.sender.id) === String(currentUserId)}
 
                <div
                   class="flex {isCurrentUser ? 'justify-end' : 'justify-start'}"
