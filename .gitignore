@@ -54,3 +54,4 @@ frontend/playwright-report/*
 CLAUDE.md
 backend/api
 AGENT.md
+docker-compose.override.yml
