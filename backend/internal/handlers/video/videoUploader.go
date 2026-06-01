@@ -2,6 +2,7 @@ package video
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,16 +23,32 @@ func UploadCourseVideo(w http.ResponseWriter, req *http.Request) {
 
 	courseID := req.FormValue("course_id")
 	ext := filepath.Ext(fileHeader.Filename)
-	if utils.CheckType(ext, []string{".mp4", ".webm", ".ogv", ".mov", ".avi", ".wmv", ".flv", ".m4v"}) {
+	if !utils.CheckType(ext, []string{".mp4", ".webm", ".ogv", ".mov", ".avi", ".wmv", ".flv", ".m4v"}) {
 		utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid file type"})
 		return
 	}
 	uniqueFileName := utils.GenerateUUID() + ext
 
-	_ = os.MkdirAll(filepath.Join("uploads", "courses"), 0o755)
+	if err := os.MkdirAll(filepath.Join("uploads", "courses"), 0o755); err != nil {
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create upload directory"})
+		return
+	}
 	path := filepath.Join("uploads", "courses", uniqueFileName)
-	database.Execute("UPDATE courses SET video_path = ? WHERE id = ?", path, courseID)
 
+	// Actually write the file
+	dst, err := os.Create(path)
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create file"})
+		return
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save file"})
+		return
+	}
+
+	database.Execute("UPDATE courses SET video_path = ? WHERE id = ?", path, courseID)
+	utils.SendJSONResponse(w, http.StatusOK, map[string]string{"path": path})
 }
 
 func GetCourseVideo(w http.ResponseWriter, req *http.Request) {

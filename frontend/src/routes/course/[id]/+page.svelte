@@ -15,7 +15,7 @@
     onMount(async () => {
       if(!$auth.isAuthenticated){
         await checkAuth().then();
-        goto("/login");
+        goto("/auth/login");
       }
       const courseId = $page.params.id;
         try {

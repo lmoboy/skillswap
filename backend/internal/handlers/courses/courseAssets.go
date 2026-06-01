@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"skillswap/backend/internal/utils"
@@ -52,5 +53,28 @@ func UploadCourseAsset(w http.ResponseWriter, req *http.Request) {
 func StreamCourseAsset(w http.ResponseWriter, req *http.Request) {
     id := mux.Vars(req)["id"]
     name := req.URL.Query().Get("file")
-    http.ServeFile(w, req, filepath.Join("uploads", "courses", id, name))
+
+    // Prevent path traversal: sanitize both id and name
+    cleanID := filepath.Clean(id)
+    cleanName := filepath.Base(filepath.Clean(name))
+    if cleanID == ".." || cleanID == "." || cleanName == ".." || cleanName == "." {
+        utils.SendJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid path"})
+        return
+    }
+
+    targetPath := filepath.Join("uploads", "courses", cleanID, cleanName)
+
+    // Verify the resolved path stays within uploads/courses
+    absTarget, err := filepath.Abs(targetPath)
+    if err != nil {
+        utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Invalid path"})
+        return
+    }
+    absBase, _ := filepath.Abs(filepath.Join("uploads", "courses"))
+    if !strings.HasPrefix(absTarget, absBase) {
+        utils.SendJSONResponse(w, http.StatusForbidden, map[string]string{"error": "Access denied"})
+        return
+    }
+
+    http.ServeFile(w, req, targetPath)
 }

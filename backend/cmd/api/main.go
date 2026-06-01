@@ -45,8 +45,8 @@ func main() {
 	// "HandleFunc" piesaista konkrētu URL ceļu noteiktai Go funkcijai.
 
 	// Public routes (no authentication required)
-	server.HandleFunc("/api/login", auth.Login).Methods("POST")
-	server.HandleFunc("/api/register", auth.Register).Methods("POST")
+	server.HandleFunc("/api/login", middleware.LoginRateLimit(auth.Login)).Methods("POST")
+	server.HandleFunc("/api/register", middleware.LoginRateLimit(auth.Register)).Methods("POST")
 	server.HandleFunc("/api/logout", auth.Logout).Methods("POST")
 	server.HandleFunc("/api/cookieUser", auth.CheckSession).Methods("GET")
 	

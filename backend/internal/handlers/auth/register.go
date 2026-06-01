@@ -1,13 +1,14 @@
 package auth
 
 import (
-	"crypto/md5"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strings"
 	"skillswap/backend/internal/database"
 	"skillswap/backend/internal/models"
 	"skillswap/backend/internal/utils"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Register(w http.ResponseWriter, req *http.Request) {
@@ -40,19 +41,28 @@ func Register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	passwordHash := fmt.Sprintf("%x", md5.Sum([]byte(userInfo.Password)))
+	passwordHashBytes, err := bcrypt.GenerateFromPassword([]byte(userInfo.Password), bcrypt.DefaultCost)
+	if err != nil {
+		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to process password"})
+		return
+	}
+	passwordHash := string(passwordHashBytes)
 
-	_, err := database.Execute("INSERT INTO users ( username, email, password_hash) VALUES (?, ?, ?)", userInfo.Username, userInfo.Email, passwordHash)
+	_, err = database.Execute("INSERT INTO users ( username, email, password_hash) VALUES (?, ?, ?)", userInfo.Username, userInfo.Email, passwordHash)
 	if err != nil {
 		utils.HandleError(err)
-		// Check for duplicate entry
-		if err.Error() == "UNIQUE constraint failed: users.email" {
-			utils.SendJSONResponse(w, http.StatusConflict, map[string]string{"error": "Email already registered"})
-			return
-		}
-		if err.Error() == "UNIQUE constraint failed: users.username" {
-			utils.SendJSONResponse(w, http.StatusConflict, map[string]string{"error": "Username already taken"})
-			return
+		errStr := err.Error()
+		// Check for MySQL duplicate entry (Error 1062)
+		if strings.Contains(errStr, "Duplicate entry") || strings.Contains(errStr, "1062") ||
+			strings.Contains(errStr, "UNIQUE constraint failed") {
+			if strings.Contains(errStr, "email") {
+				utils.SendJSONResponse(w, http.StatusConflict, map[string]string{"error": "Email already registered"})
+				return
+			}
+			if strings.Contains(errStr, "username") {
+				utils.SendJSONResponse(w, http.StatusConflict, map[string]string{"error": "Username already taken"})
+				return
+			}
 		}
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create account. Please try again"})
 		return

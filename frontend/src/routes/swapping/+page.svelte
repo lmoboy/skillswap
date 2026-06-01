@@ -297,7 +297,7 @@
 
    onMount(() => {
       if (!$auth.isAuthenticated) {
-         goto('/login')
+         goto('/auth/login')
       }
       updateChat()
       initializeWebSocket()

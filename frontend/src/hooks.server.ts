@@ -5,7 +5,7 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 const securePath = ['/course', '/settings', '/swapping'];
 
 export const handle: Handle = async ({ event, resolve }) => {
-  const { url, request } = event;
+  const { url, request, cookies } = event;
 
   // 1. Handle WebSocket upgrade requests first
   if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {
@@ -24,6 +24,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     const headers = new Headers(request.headers);
     headers.delete('host');
     headers.delete('connection');
+
+    // Forward the original Cookie header so the backend receives session cookies
+    const cookieHeader = request.headers.get('cookie');
+    if (cookieHeader) {
+      headers.set('cookie', cookieHeader);
+    }
 
     try {
       const backendResponse = await fetch(backendUrl, {
@@ -73,7 +79,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // 3. Auth check for restricted routes
   try {
-    const isUser = await checkAuth();
+    // Pass cookies to checkAuth for SSR session validation
+    const isUser = await checkAuth(cookies);
     const isPublic = !securePath.some(path => url.pathname.startsWith(path));
 
     // If user not logged in and trying to access a restricted route

@@ -183,55 +183,75 @@ export async function logout(): Promise<void> {
 
 /**
  * Pārbauda, vai lietotājs ir autentificēts, pamatojoties uz sīkdatnēm (angļu v. cookies).
+ * When called with cookies (SSR), skips store operations and returns boolean directly.
  * @returns {Promise<boolean>} 'true' ja autentificēts, 'false' ja nav.
  */
-export async function checkAuth(): Promise<boolean> {
+export async function checkAuth(cookies?: { get: (name: string) => string | undefined }): Promise<boolean> {
+    const isSSR = !!cookies;
+
     try {
-        auth.setLoading(true); // Sākt ielādi
-        
+        if (!isSSR) auth.setLoading(true);
+
+        const fetchHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
+
+        // Forward cookies for SSR context
+        if (cookies) {
+            const sessionCookie = cookies.get('authentication');
+            if (sessionCookie) {
+                fetchHeaders['Cookie'] = `authentication=${sessionCookie}`;
+            }
+        }
+
         const response = await fetch(`${API_BASE}/cookieUser`, {
-            ...defaultOptions,
             method: 'GET',
-            credentials: 'include', // Pārliecināties, ka akreditācijas dati ir iekļauti
+            headers: fetchHeaders,
+            credentials: 'include',
         });
-        auth.setStep("Datu ielāde no bd... (angļu v. Fetching data from bd...)");
-        // console.log(response);
+
+        if (!isSSR) auth.setStep("Datu ielāde no bd...");
+
         const data = await response.json();
-        auth.setStep("Datu konvertēšana... (angļu v. Converting data...)");
+
+        if (!isSSR) auth.setStep("Datu konvertēšana...");
 
         if (!response.ok) {
-            auth.setStep("Atbildē radās kļūda... (angļu v. Error occured with response...)");
-
-            console.warn('Nav autentificēts:', data.error || 'Nav kļūdas detaļu');
-            auth.clearUser(); // Notīrīt lietotāja stāvokli, ja nav autentificēts
+            if (!isSSR) {
+                console.warn('Nav autentificēts:', data.error || 'Nav kļūdas detaļu');
+                auth.clearUser();
+            }
             return false;
         }
-        if (data) {
-            auth.setStep("Lietotāja datu iestatīšana... (angļu v. Set user data...)");
 
-            auth.setUser({
-                name: data.user || '',
-                email: data.email || '',
-                id: data.id || '',
-                profile_picture: data.profile_picture ? data.profile_picture : '',
-                is_admin: data.is_admin || false,
-                swaps: data.swaps || 0,
-            });
+        if (data) {
+            if (!isSSR) {
+                auth.setUser({
+                    name: data.user || '',
+                    email: data.email || '',
+                    id: data.id || '',
+                    profile_picture: data.profile_picture ? data.profile_picture : '',
+                    is_admin: data.is_admin || false,
+                    swaps: data.swaps || 0,
+                });
+            }
             return true;
         }
-        // console.log("mēs kaut kā nokļuvām tik tālu");
-        auth.setStep("Dati neizdevās, notīra... (angļu v. Data failed, clearing...)");
 
-        auth.clearUser(); // Notīrīt lietotāja stāvokli, ja dati nav derīgi
+        if (!isSSR) auth.clearUser();
         return false;
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Nezināma kļūda (angļu v. Unknown error)';
-        auth.setStep('Autentifikācijas pārbaude neizdevās:' + errorMessage);
-        auth.clearUser(); // Notīrīt lietotāja stāvokli, ja radās kļūda
+        if (!isSSR) {
+            const errorMessage = error instanceof Error ? error.message : 'Nezināma kļūda';
+            auth.setStep('Autentifikācijas pārbaude neizdevās:' + errorMessage);
+            auth.clearUser();
+        }
         return false;
     } finally {
-        auth.setStep("Autentifikācijas pārbaude pabeigta");
-        auth.setLoading(false); // Beigt ielādi
+        if (!isSSR) {
+            auth.setStep("Autentifikācijas pārbaude pabeigta");
+            auth.setLoading(false);
+        }
     }
 }
 

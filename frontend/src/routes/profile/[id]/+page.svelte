@@ -17,10 +17,11 @@
       ExternalLink,
       AlertCircle,
    } from 'lucide-svelte'
-   import { onMount } from 'svelte'
+   import { onMount, onDestroy } from 'svelte'
 
    let { data } = $props()
 
+   let objectURL: string | null = null;
    let profilePictureRef = $state<File | null>(null)
    let profilePictureError = $state<string>('')
 
@@ -260,7 +261,12 @@
       profilePictureRef = file
 
       // Update the user's profile picture in the state
-      user.profile_picture = URL.createObjectURL(profilePictureRef)
+      // Revoke previous object URL to prevent memory leaks
+      if (objectURL) {
+         URL.revokeObjectURL(objectURL);
+      }
+      objectURL = URL.createObjectURL(profilePictureRef);
+      user.profile_picture = objectURL
    }
 
    onMount(async () => {
@@ -272,6 +278,13 @@
             var e = new Set(res)
             availableSkills = [...e]
          })
+   })
+
+   onDestroy(() => {
+      if (objectURL) {
+         URL.revokeObjectURL(objectURL);
+         objectURL = null;
+      }
    })
 </script>
 
